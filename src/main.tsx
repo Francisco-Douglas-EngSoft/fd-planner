@@ -1,0 +1,30 @@
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+import { initializeBranding } from "./hooks/useBranding";
+import { initializeCustomTheme } from "./hooks/useCustomTheme";
+import { installFocusQueueAutoFlush } from "./lib/offlineFocusQueue";
+
+// Initialize theme classes before React mounts to prevent flash
+(() => {
+  const theme = localStorage.getItem('fdplanner-theme') || 
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const lightVariant = localStorage.getItem('fdplanner-light-variant') || 'verdant';
+  const darkVariant = localStorage.getItem('fdplanner-dark-variant') || 'cosmic';
+  
+  const root = document.documentElement;
+  root.classList.add(theme);
+  root.classList.add(theme === 'dark' ? `dark-${darkVariant}` : `light-${lightVariant}`);
+  
+  // Initialize custom theme if active (must be after base theme classes)
+  initializeCustomTheme();
+})();
+
+// Initialize branding (document title)
+initializeBranding();
+
+// Install offline-first queue for focus sessions: replays any pending
+// sessions saved locally when the network was down or the tab closed.
+installFocusQueueAutoFlush();
+
+createRoot(document.getElementById("root")!).render(<App />);

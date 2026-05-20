@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    
+    <!-- ============================================
+         SECURITY HEADERS VIA META TAGS
+         LGPD/GDPR Compliant Configuration
+         ============================================ -->
+    
+    <!-- Content Security Policy (CSP) - Strict XSS Mitigation -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://cdn.gpteng.co;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: blob: https:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com;
+      frame-ancestors 'none';
+      form-action 'self';
+      base-uri 'self';
+      object-src 'none';
+      media-src 'self' blob:;
+      worker-src 'self' blob:;
+      child-src 'self' blob:;
+      manifest-src 'self';
+      upgrade-insecure-requests;
+      block-all-mixed-content;
+    ">
+    
+    <!-- X-Content-Type-Options - Prevents MIME type sniffing -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    
+    <!-- X-Frame-Options - Prevents clickjacking attacks -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    
+    <!-- X-XSS-Protection - Legacy XSS protection for older browsers -->
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    
+    <!-- Referrer Policy - Controls information sent with requests -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- Permissions Policy - Restricts browser features (Privacy-focused) -->
+    <meta http-equiv="Permissions-Policy" content="
+      accelerometer=(),
+      ambient-light-sensor=(),
+      autoplay=(),
+      battery=(),
+      camera=(),
+      cross-origin-isolated=(),
+      display-capture=(),
+      document-domain=(),
+      encrypted-media=(),
+      execution-while-not-rendered=(),
+      execution-while-out-of-viewport=(),
+      fullscreen=(self),
+      geolocation=(),
+      gyroscope=(),
+      keyboard-map=(),
+      magnetometer=(),
+      microphone=(),
+      midi=(),
+      navigation-override=(),
+      payment=(),
+      picture-in-picture=(),
+      publickey-credentials-get=(),
+      screen-wake-lock=(),
+      sync-xhr=(),
+      usb=(),
+      web-share=(self),
+      xr-spatial-tracking=(),
+      browsing-topics=(),
+      interest-cohort=()
+    " />
+    
+    <!-- Cross-Origin Policies - relaxed for PWA standalone mode -->
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups" />
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin" />
+    
+    <!-- DNS Prefetch for performance (only trusted domains) -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- Preconnect for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Favicons and App Icons -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    
+    <!-- SEO and PWA Meta Tags -->
+    <title>Lovable App</title>
+    <meta name="description" content="FD-Planner is a web application for managing study plans and tracking progress.">
+    <meta name="keywords" content="estudos, cursos, planejamento, pomodoro, produtividade, gestão de tempo" />
+    <meta name="author" content="FD-Planner" />
+    <meta name="theme-color" content="#6D28D9" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FD-Planner" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Windows 11 and Microsoft Edge PWA Support -->
+    <meta name="application-name" content="FD-Planner" />
+    <meta name="msapplication-TileColor" content="#6D28D9" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    <meta name="msapplication-navbutton-color" content="#6D28D9" />
+    
+    <!-- Standalone mode for Windows -->
+    <meta name="viewport-fit" content="cover" />
+    
+    <!-- LGPD/GDPR: No tracking without consent -->
+    <meta name="robots" content="index, follow, noarchive" />
+
+    <!-- Open Graph -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/090d7fd0-8a41-4729-87f5-b39d02077788/id-preview-b124a80b--e1ed0155-87c0-4dd9-8753-6c98645c12cc.lovable.app-1774611677479.png">
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    
+    
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/090d7fd0-8a41-4729-87f5-b39d02077788/id-preview-b124a80b--e1ed0155-87c0-4dd9-8753-6c98645c12cc.lovable.app-1774611677479.png">
+
+    <!-- Premium Modern Fonts with display swap for performance -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+  
+  
+  
+  
+  
+  
+  
+  <meta property="og:title" content="Lovable App">
+  <meta name="twitter:title" content="Lovable App">
+  <meta property="og:description" content="FD-Planner is a web application for managing study plans and tracking progress.">
+  <meta name="twitter:description" content="FD-Planner is a web application for managing study plans and tracking progress.">
+</head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
