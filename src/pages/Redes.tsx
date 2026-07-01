@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase as typedSupabase } from '@/integrations/supabase/client';
-// The connected `fd-planner` schema for these portfolio tables differs from the
-// app's expected shapes; use a loosely-typed client here until the schema is reconciled.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const supabase = typedSupabase as any;
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
