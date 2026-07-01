@@ -140,7 +140,7 @@ export class CourseService {
 
     const { data, error } = await supabase
       .from('courses')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', courseId)
       .select()
       .single();

@@ -113,7 +113,7 @@ export class NoteService {
 
     const { data, error } = await supabase
       .from('study_notes')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', noteId)
       .eq('user_id', userId)
       .select()

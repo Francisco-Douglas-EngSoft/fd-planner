@@ -202,7 +202,7 @@ export class PlanningService {
 
     const { data, error } = await supabase
       .from('study_plans')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', planId)
       .eq('user_id', userId)
       .select()
@@ -264,7 +264,7 @@ export class PlanningService {
         study_plan_id: planId,
         course_id: courseId,
         ...courseData,
-      })
+      } as never)
       .select()
       .single();
 
