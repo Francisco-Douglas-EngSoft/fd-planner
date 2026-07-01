@@ -117,7 +117,7 @@ export class TaskService {
 
     const { data, error } = await supabase
       .from('tasks')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', taskId)
       .eq('user_id', userId)
       .select()
