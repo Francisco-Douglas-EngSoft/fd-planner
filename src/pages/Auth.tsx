@@ -176,7 +176,7 @@ export default function Auth() {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-white font-semibold" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold" disabled={isLoading}>
               {isLoading ? 'Enviando...' : 'Enviar Link de Recuperação'}
             </Button>
             <Button type="button" variant="ghost" className="w-full gap-2" onClick={() => setAuthView('login')}>
@@ -237,7 +237,7 @@ export default function Auth() {
               </div>
               <p className="text-xs text-muted-foreground">Mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial</p>
             </div>
-            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-white font-semibold" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold" disabled={isLoading}>
               {isLoading ? 'Salvando...' : 'Salvar Nova Senha'}
             </Button>
           </form>
@@ -321,7 +321,7 @@ export default function Auth() {
                     </button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-white font-semibold text-base" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold text-base" disabled={isLoading}>
                   {isLoading ? 'Entrando...' : 'Fazer Login'}
                 </Button>
               </form>
@@ -379,7 +379,7 @@ export default function Auth() {
                   </div>
                   <p className="text-xs text-muted-foreground">Inclua maiúscula, minúscula, número e caractere especial</p>
                 </div>
-                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-white font-semibold text-base" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold text-base" disabled={isLoading}>
                   {isLoading ? 'Criando conta...' : 'Criar Minha Conta'}
                 </Button>
               </form>
