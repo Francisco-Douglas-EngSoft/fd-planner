@@ -266,6 +266,7 @@ export type Database = {
           id: string
           message: string
           name: string
+          subject: string | null
         }
         Insert: {
           created_at?: string
@@ -273,6 +274,7 @@ export type Database = {
           id?: string
           message: string
           name: string
+          subject?: string | null
         }
         Update: {
           created_at?: string
@@ -280,6 +282,7 @@ export type Database = {
           id?: string
           message?: string
           name?: string
+          subject?: string | null
         }
         Relationships: []
       }
@@ -654,30 +657,42 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          experience_points: number
           full_name: string | null
           id: string
+          last_study_date: string | null
           level: number | null
           streak_days: number | null
+          study_hours_goal: number
+          total_study_hours: number
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          experience_points?: number
           full_name?: string | null
           id: string
+          last_study_date?: string | null
           level?: number | null
           streak_days?: number | null
+          study_hours_goal?: number
+          total_study_hours?: number
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          experience_points?: number
           full_name?: string | null
           id?: string
+          last_study_date?: string | null
           level?: number | null
           streak_days?: number | null
+          study_hours_goal?: number
+          total_study_hours?: number
           updated_at?: string
         }
         Relationships: []
@@ -1053,6 +1068,7 @@ export type Database = {
           id: string
           is_active: boolean
           reminder_time: string
+          reminder_type: string
           title: string
           user_id: string
         }
@@ -1062,6 +1078,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           reminder_time: string
+          reminder_type?: string
           title: string
           user_id: string
         }
@@ -1071,6 +1088,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           reminder_time?: string
+          reminder_type?: string
           title?: string
           user_id?: string
         }
