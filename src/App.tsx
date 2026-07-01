@@ -33,6 +33,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Notes = lazy(() => import("./pages/Notes"));
 const Redes = lazy(() => import("./pages/Redes"));
 const Install = lazy(() => import("./pages/Install"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,6 +71,13 @@ function HomeEntry() {
   return <LandingPage />;
 }
 
+function AdminRoute({ children }: { readonly children: React.ReactNode }) {
+  const { isAdmin, loading } = useUserRole();
+  if (loading) return <PageLoader />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function AuthenticatedInstallPrompt() {
   const { user } = useAuth();
   if (!user) return null;
@@ -98,6 +106,7 @@ function AppRoutes() {
           <Route path="/redes" element={<Redes />} />
           <Route path="/perfil" element={<Profile />} />
           <Route path="/configuracoes" element={<Settings />} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
