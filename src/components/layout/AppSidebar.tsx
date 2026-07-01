@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { Logo, LogoIcon } from '@/components/ui/Logo';
 import { GlobalSearch } from './GlobalSearch';
 
@@ -55,6 +56,10 @@ export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: A
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
+  const { isAdmin } = useUserRole();
+  const items = isAdmin
+    ? [...navItems, { path: '/admin', label: 'Admin', icon: Shield }]
+    : navItems;
 
   const handleNavClick = () => {
     if (isMobile && onOpenChange) {
@@ -101,7 +106,7 @@ export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: A
 
         {/* Navigation */}
         <nav className="flex-1 space-y-0.5 px-3 py-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <NavLink
