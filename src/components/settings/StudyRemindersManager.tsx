@@ -9,7 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as typedSupabase } from '@/integrations/supabase/client';
+// The connected `fd-planner` `study_reminders` shape differs from the app's expected
+// type; use a loosely-typed client here until the schema is reconciled.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
