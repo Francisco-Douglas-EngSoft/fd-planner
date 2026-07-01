@@ -299,15 +299,11 @@ const LandingPage = () => {
           >
             {allModules.map((mod) => (
               <motion.div key={mod.title} variants={itemVariants}>
-                <Card className="h-full border-0 shadow-lg bg-card/80 backdrop-blur-sm hover:shadow-xl transition-all overflow-hidden group">
-                  <div className={cn("h-1 bg-gradient-to-r", mod.color)} />
+                <Card className="h-full border border-border/60 shadow-card bg-card hover:shadow-lg hover:border-primary/30 transition-all overflow-hidden group">
+                  <div className="h-0.5 bg-border group-hover:bg-primary/60 transition-colors" />
                   <CardContent className="p-5 sm:p-6">
                     <div className="flex items-start gap-4">
-                      <div className={cn(
-                        "flex-shrink-0 p-3 rounded-xl bg-gradient-to-br",
-                        mod.color,
-                        "text-white shadow-md"
-                      )}>
+                      <div className="flex-shrink-0 p-3 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                         <mod.icon className="h-6 w-6" />
                       </div>
                       <div className="flex-1 min-w-0">
