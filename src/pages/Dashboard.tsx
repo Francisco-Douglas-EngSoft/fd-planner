@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Clock, Target, Flame, Trophy, TrendingUp, Library, Timer, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProgressChart } from '@/components/dashboard/ProgressChart';
 import { CourseProgress } from '@/components/dashboard/CourseProgress';
 import { UpcomingTasks } from '@/components/dashboard/UpcomingTasks';
@@ -125,40 +126,30 @@ export default function Dashboard() {
       value: formatHoursToHMS(stats.courseCompletedHours),
       subtitle: 'Módulos concluídos',
       icon: Clock,
-      gradient: 'bg-gradient-primary',
-      iconBg: 'bg-white/20',
     },
     {
       title: 'Tempo de Foco',
       value: formatFocusTime(stats.totalFocusMinutes),
       subtitle: 'Pomodoro total',
       icon: Timer,
-      gradient: 'bg-gradient-to-br from-orange-400 to-red-500',
-      iconBg: 'bg-white/20',
     },
     {
       title: 'Carga Horária Total',
       value: formatHoursToHMS(stats.totalCourseHours),
       subtitle: 'Cursos ativos',
       icon: Library,
-      gradient: 'bg-gradient-success',
-      iconBg: 'bg-white/20',
     },
     {
       title: 'Cursos Ativos',
       value: stats.activeCourses,
       subtitle: `${stats.inProgressCourses} em andamento`,
       icon: BookOpen,
-      gradient: 'bg-gradient-accent',
-      iconBg: 'bg-white/20',
     },
     {
       title: 'Cursos Concluídos',
       value: stats.completedCourses,
       subtitle: 'Finalizados',
       icon: CheckCircle,
-      gradient: 'bg-gradient-to-br from-emerald-400 to-green-600',
-      iconBg: 'bg-white/20',
       link: '/cursos',
     },
     {
@@ -166,16 +157,12 @@ export default function Dashboard() {
       value: stats.completedTasks,
       subtitle: `De ${stats.totalTasks} no total`,
       icon: Target,
-      gradient: 'bg-gradient-to-br from-teal-400 to-cyan-500',
-      iconBg: 'bg-white/20',
     },
     {
       title: 'Sequência',
       value: `${stats.streakDays} dias`,
       subtitle: `Nível ${stats.level}`,
       icon: Flame,
-      gradient: 'bg-gradient-warm',
-      iconBg: 'bg-white/20',
       link: '/conquistas',
     },
     {
@@ -183,8 +170,6 @@ export default function Dashboard() {
       value: stats.achievements,
       subtitle: 'Desbloqueadas',
       icon: Trophy,
-      gradient: 'bg-gradient-to-br from-amber-400 to-orange-500',
-      iconBg: 'bg-white/20',
       link: '/conquistas',
     },
   ];
@@ -193,31 +178,27 @@ export default function Dashboard() {
     const Icon = card.icon;
     
     return (
-      <Card className={cn(
-        "h-full overflow-hidden card-animated card-shine",
-        card.gradient,
-        "text-white border-0 shadow-md"
-      )}>
-        <CardContent className="p-4 sm:p-5 relative z-10">
+      <Card className="h-full overflow-hidden border border-border/60 bg-card shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col h-full">
             <div className="flex items-start justify-between mb-3">
-              <div className={cn("rounded-xl p-2.5 icon-float", card.iconBg)}>
+              <div className="rounded-xl p-2.5 bg-primary/10 text-primary ring-1 ring-primary/15">
                 <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
             </div>
             <div className="space-y-1 flex-1">
               <p className={cn(
-                "font-bold font-display leading-none",
+                "font-bold font-display leading-none text-foreground",
                 typeof card.value === 'string' && (card.value.includes(':') || card.value.includes('min'))
                   ? "text-base sm:text-lg font-mono" 
                   : "text-2xl sm:text-3xl"
               )}>
                 {card.value}
               </p>
-              <p className="text-xs sm:text-sm font-medium text-white/85">
+              <p className="text-xs sm:text-sm font-medium text-foreground/90">
                 {card.title}
               </p>
-              <p className="text-[10px] sm:text-xs text-white/60">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 {card.subtitle}
               </p>
             </div>
@@ -257,49 +238,44 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Task Reminders */}
-      <TaskReminders />
+      {/* Tabs por área */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="w-full sm:w-auto flex-wrap h-auto">
+          <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="studies">Estudos</TabsTrigger>
+          <TabsTrigger value="habits">Hábitos</TabsTrigger>
+        </TabsList>
 
-      {/* Study Hours Evolution Chart - Full Width */}
-      <StudyHoursEvolutionChart />
+        {/* Visão geral */}
+        <TabsContent value="overview" className="space-y-6 mt-0">
+          <TaskReminders />
+          <StudyHoursEvolutionChart />
+          <WeeklyStats />
+          <UpcomingTasks />
+        </TabsContent>
 
-      {/* Comparison Chart - Focus vs Course Hours */}
-      <StudyComparisonChart />
+        {/* Estudos */}
+        <TabsContent value="studies" className="space-y-6 mt-0">
+          <StudyComparisonChart />
+          <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
+            <FocusSessionsChart />
+            <CourseStudyChart />
+          </div>
+          <ImprovedGoalsManager />
+          <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
+            <CategoryChart />
+            <CourseHoursBreakdown />
+          </div>
+          <CategoryProgressReport />
+          <CompletedCoursesStats />
+          <CourseProgress />
+        </TabsContent>
 
-      {/* Focus & Course Study Charts - Side by Side */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
-        <FocusSessionsChart />
-        <CourseStudyChart />
-      </div>
-
-      {/* Weekly Stats */}
-      <WeeklyStats />
-
-      {/* Improved Goals Manager - Metas de Foco e Cursos lado a lado */}
-      <ImprovedGoalsManager />
-
-      {/* Charts Row - Full Width */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
-        <CategoryChart />
-        <CourseHoursBreakdown />
-      </div>
-
-      {/* Category Progress Report */}
-      <CategoryProgressReport />
-
-      {/* Completed Courses Stats - Full Width */}
-      <CompletedCoursesStats />
-
-      {/* AntiVício & Course Progress */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
-        <AntiVicioStats />
-        <CourseProgress />
-      </div>
-
-      {/* Bottom Row - Upcoming Tasks */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-1">
-        <UpcomingTasks />
-      </div>
+        {/* Hábitos */}
+        <TabsContent value="habits" className="space-y-6 mt-0">
+          <AntiVicioStats />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
