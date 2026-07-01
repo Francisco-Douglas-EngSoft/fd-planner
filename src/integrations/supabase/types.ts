@@ -503,6 +503,7 @@ export type Database = {
           course_id: string | null
           duration_minutes: number
           id: string
+          module_id: string | null
           mood: string | null
           notes: string | null
           session_type: string
@@ -513,6 +514,7 @@ export type Database = {
           course_id?: string | null
           duration_minutes?: number
           id?: string
+          module_id?: string | null
           mood?: string | null
           notes?: string | null
           session_type?: string
@@ -523,6 +525,7 @@ export type Database = {
           course_id?: string | null
           duration_minutes?: number
           id?: string
+          module_id?: string | null
           mood?: string | null
           notes?: string | null
           session_type?: string
@@ -813,6 +816,7 @@ export type Database = {
       study_plan_courses: {
         Row: {
           allocated_hours: number
+          completed_at: string | null
           course_id: string
           created_at: string
           custom_daily_hours: number | null
@@ -826,6 +830,7 @@ export type Database = {
         }
         Insert: {
           allocated_hours?: number
+          completed_at?: string | null
           course_id: string
           created_at?: string
           custom_daily_hours?: number | null
@@ -839,6 +844,7 @@ export type Database = {
         }
         Update: {
           allocated_hours?: number
+          completed_at?: string | null
           course_id?: string
           created_at?: string
           custom_daily_hours?: number | null
@@ -1067,6 +1073,7 @@ export type Database = {
           days_of_week: string[] | null
           id: string
           is_active: boolean
+          message: string | null
           reminder_time: string
           reminder_type: string
           title: string
@@ -1077,6 +1084,7 @@ export type Database = {
           days_of_week?: string[] | null
           id?: string
           is_active?: boolean
+          message?: string | null
           reminder_time: string
           reminder_type?: string
           title: string
@@ -1087,6 +1095,7 @@ export type Database = {
           days_of_week?: string[] | null
           id?: string
           is_active?: boolean
+          message?: string | null
           reminder_time?: string
           reminder_type?: string
           title?: string
@@ -1175,8 +1184,11 @@ export type Database = {
           certificate_url: string | null
           course_id: string | null
           created_at: string
+          credential_url: string | null
           id: string
+          issue_date: string | null
           issued_at: string
+          issuer: string | null
           title: string
           user_id: string
         }
@@ -1184,8 +1196,11 @@ export type Database = {
           certificate_url?: string | null
           course_id?: string | null
           created_at?: string
+          credential_url?: string | null
           id?: string
+          issue_date?: string | null
           issued_at?: string
+          issuer?: string | null
           title: string
           user_id: string
         }
@@ -1193,8 +1208,11 @@ export type Database = {
           certificate_url?: string | null
           course_id?: string | null
           created_at?: string
+          credential_url?: string | null
           id?: string
+          issue_date?: string | null
           issued_at?: string
+          issuer?: string | null
           title?: string
           user_id?: string
         }
@@ -1247,6 +1265,10 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_featured: boolean
+          order_index: number
+          project_url: string | null
+          technologies: string[]
           title: string
           url: string | null
           user_id: string
@@ -1256,6 +1278,10 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean
+          order_index?: number
+          project_url?: string | null
+          technologies?: string[]
           title: string
           url?: string | null
           user_id: string
@@ -1265,6 +1291,10 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean
+          order_index?: number
+          project_url?: string | null
+          technologies?: string[]
           title?: string
           url?: string | null
           user_id?: string
@@ -1275,33 +1305,36 @@ export type Database = {
         Row: {
           created_at: string
           education: Json | null
-          experience: Json | null
+          experience: string | null
           headline: string | null
           id: string
-          skills: string[] | null
+          skills: string | null
           summary: string | null
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           education?: Json | null
-          experience?: Json | null
+          experience?: string | null
           headline?: string | null
           id?: string
-          skills?: string[] | null
+          skills?: string | null
           summary?: string | null
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           education?: Json | null
-          experience?: Json | null
+          experience?: string | null
           headline?: string | null
           id?: string
-          skills?: string[] | null
+          skills?: string | null
           summary?: string | null
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1310,24 +1343,42 @@ export type Database = {
       user_social_links: {
         Row: {
           created_at: string
+          github: string | null
           id: string
-          platform: string
-          url: string
+          instagram: string | null
+          linkedin: string | null
+          platform: string | null
+          portfolio: string | null
+          twitter: string | null
+          url: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
           created_at?: string
+          github?: string | null
           id?: string
-          platform: string
-          url: string
+          instagram?: string | null
+          linkedin?: string | null
+          platform?: string | null
+          portfolio?: string | null
+          twitter?: string | null
+          url?: string | null
           user_id: string
+          website?: string | null
         }
         Update: {
           created_at?: string
+          github?: string | null
           id?: string
-          platform?: string
-          url?: string
+          instagram?: string | null
+          linkedin?: string | null
+          platform?: string | null
+          portfolio?: string | null
+          twitter?: string | null
+          url?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
