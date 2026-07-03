@@ -437,7 +437,7 @@ export default function Reports() {
   const ChangeIndicator = ({ value }: { value: number }) => {
     if (value > 0) {
       return (
-        <div className="flex items-center gap-1 text-green-500">
+        <div className="flex items-center gap-1 text-success">
           <ArrowUp className="h-3 w-3" />
           <span className="text-xs font-medium">+{value}%</span>
         </div>
@@ -629,7 +629,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <TrendingUp className="h-5 w-5 text-success" />
                   Tendência Mensal
                 </CardTitle>
                 <CardDescription>Evolução por semana</CardDescription>
@@ -668,7 +668,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5 text-purple-500" />
+                  <PieChart className="h-5 w-5 text-accent" />
                   Distribuição por Categoria
                 </CardTitle>
                 <CardDescription>Horas estudadas por área</CardDescription>
@@ -745,10 +745,10 @@ export default function Reports() {
                   </div>
                   <div className="p-4 rounded-lg bg-green-500/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-green-500" />
+                      <Target className="h-4 w-4 text-success" />
                       <span className="text-xs text-muted-foreground">Tarefas Pendentes</span>
                     </div>
-                    <p className="text-xl font-bold text-green-500">{stats.tasksPending}</p>
+                    <p className="text-xl font-bold text-success">{stats.tasksPending}</p>
                   </div>
                 </div>
               </CardContent>
@@ -779,7 +779,7 @@ export default function Reports() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Bar dataKey="minutos" fill="hsl(24, 95%, 53%)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="minutos" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -808,7 +808,7 @@ export default function Reports() {
                   
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/10">
+                      <div className="p-2 rounded-lg bg-primary/10">
                         <Target className="h-5 w-5 text-blue-500" />
                       </div>
                       <div>
@@ -822,7 +822,7 @@ export default function Reports() {
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-green-500/10">
-                        <TrendingUp className="h-5 w-5 text-green-500" />
+                        <TrendingUp className="h-5 w-5 text-success" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Média Diária</p>
@@ -862,7 +862,7 @@ export default function Reports() {
                           }}
                         />
                         <Legend />
-                        <Bar dataKey="concluido" stackId="a" fill="hsl(142, 71%, 45%)" name="Concluído" />
+                        <Bar dataKey="concluido" stackId="a" fill="hsl(var(--success))" name="Concluído" />
                         <Bar dataKey="restante" stackId="a" fill="hsl(var(--muted))" name="Restante" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -936,7 +936,7 @@ export default function Reports() {
                         }}
                       />
                       <Legend />
-                      <Bar dataKey="concluidas" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Concluídas" />
+                      <Bar dataKey="concluidas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Concluídas" />
                       <Bar dataKey="pendentes" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} name="Pendentes" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -952,8 +952,8 @@ export default function Reports() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-lg bg-green-500/10 text-center">
-                    <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-green-500">{stats.tasksCompleted}</p>
+                    <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-success">{stats.tasksCompleted}</p>
                     <p className="text-xs text-muted-foreground">Concluídas (período)</p>
                   </div>
                   <div className="p-4 rounded-lg bg-amber-500/10 text-center">
@@ -971,7 +971,7 @@ export default function Reports() {
                         <span className="text-sm font-medium">Prioridade {item.name}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-green-500 font-medium">{item.concluidas}</span>
+                        <span className="text-success font-medium">{item.concluidas}</span>
                         <span className="text-muted-foreground"> / </span>
                         <span className="text-muted-foreground">{item.concluidas + item.pendentes}</span>
                       </div>
@@ -996,7 +996,7 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center py-6">
-                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-red-500 to-orange-500 mb-4">
+                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent mb-4">
                     <div className="text-white">
                       <p className="text-4xl font-bold">{stats.streakDays}</p>
                       <p className="text-xs">dias</p>
@@ -1012,7 +1012,7 @@ export default function Reports() {
                     <p className="text-xs text-muted-foreground">Maior sequência</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-500">{stats.focusSessions}</p>
+                    <p className="text-2xl font-bold text-success">{stats.focusSessions}</p>
                     <p className="text-xs text-muted-foreground">Sessões hoje</p>
                   </div>
                 </div>
@@ -1022,7 +1022,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-purple-500" />
+                  <Brain className="h-5 w-5 text-accent" />
                   AntiVício - Controle
                 </CardTitle>
                 <CardDescription>Seu progresso de recuperação</CardDescription>
