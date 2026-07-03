@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/utils';
-import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap } from 'lucide-react';
+import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO, addDays, format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -482,6 +482,11 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const [noDeadline, setNoDeadline] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [color, setColor] = useState('');
+
+  // Horários de estudo (blocos que refletem no Foco em sequência)
+  const [studyTimes, setStudyTimes] = useState<{ start: string; end: string }[]>([]);
+  const [newStartTime, setNewStartTime] = useState('19:00');
+  const [newEndTime, setNewEndTime] = useState('20:00');
   
   // New state for planning type
   const [planningType, setPlanningType] = useState<'course' | 'module'>('course');
@@ -536,6 +541,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       } else {
         fetchPlanCourses(editPlan.id);
       }
+      fetchStudyTimes(editPlan.id);
     } else if (!editPlan && open) {
       resetForm();
       if (initialPlanningCategory) {
@@ -543,6 +549,22 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       }
     }
   }, [editPlan, open, initialPlanningCategory]);
+
+  const fetchStudyTimes = async (planId: string) => {
+    const { data, error } = await supabase
+      .from('study_plan_time_blocks')
+      .select('start_time, end_time')
+      .eq('study_plan_id', planId)
+      .eq('block_type', 'study');
+    if (error || !data) return;
+    const unique = new Map<string, { start: string; end: string }>();
+    data.forEach((b: { start_time: string; end_time: string }) => {
+      const start = b.start_time.slice(0, 5);
+      const end = b.end_time.slice(0, 5);
+      unique.set(`${start}-${end}`, { start, end });
+    });
+    setStudyTimes(Array.from(unique.values()).sort((a, b) => a.start.localeCompare(b.start)));
+  };
 
   const fetchModules = async () => {
     if (!user) return;
@@ -750,6 +772,36 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     setSelectedModules([]);
     setModuleSettings({});
     setColor('');
+    setStudyTimes([]);
+    setNewStartTime('19:00');
+    setNewEndTime('20:00');
+  };
+
+  // Validação e manipulação dos horários de estudo
+  const timeToMinutes = (t: string): number => {
+    const [h, m] = t.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  const newTimeError = useMemo(() => {
+    const s = timeToMinutes(newStartTime);
+    const e = timeToMinutes(newEndTime);
+    if (e <= s) return 'O horário de término deve ser posterior ao de início.';
+    if (e - s < 15) return 'O bloco deve ter pelo menos 15 minutos.';
+    if (e - s > 240) return 'O bloco não deve exceder 4 horas.';
+    if (studyTimes.some((b) => b.start === newStartTime && b.end === newEndTime)) return 'Esse horário já foi adicionado.';
+    return null;
+  }, [newStartTime, newEndTime, studyTimes]);
+
+  const addStudyTime = () => {
+    if (newTimeError) return;
+    setStudyTimes((prev) =>
+      [...prev, { start: newStartTime, end: newEndTime }].sort((a, b) => a.start.localeCompare(b.start))
+    );
+  };
+
+  const removeStudyTime = (index: number) => {
+    setStudyTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleDay = (day: string) => {
@@ -1416,6 +1468,35 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         if (moduleError) throw moduleError;
       }
 
+      // Salvar horários de estudo (blocos de tempo) — refletem no Foco em sequência
+      if (editPlan) {
+        await supabase
+          .from('study_plan_time_blocks')
+          .delete()
+          .eq('study_plan_id', planId)
+          .eq('block_type', 'study');
+      }
+
+      if (studyTimes.length > 0 && studyDays.length > 0) {
+        const timeBlockRows = studyDays.flatMap((dayId) =>
+          studyTimes.map((t) => ({
+            study_plan_id: planId,
+            course_id: null,
+            day_of_week: dayId,
+            start_time: `${t.start}:00`,
+            end_time: `${t.end}:00`,
+            block_type: 'study' as const,
+            title: null,
+          }))
+        );
+
+        const { error: blockError } = await supabase
+          .from('study_plan_time_blocks')
+          .insert(timeBlockRows);
+
+        if (blockError) throw blockError;
+      }
+
       resetForm();
       onSuccess();
       onOpenChange(false);
@@ -1984,6 +2065,76 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Horários de Estudo
+                <span className="text-xs text-muted-foreground font-normal">(aparecem no Foco em sequência)</span>
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Defina os horários em que você irá estudar este planejamento. Eles serão aplicados a todos os dias de estudo selecionados e exibidos na agenda do Foco.
+              </p>
+
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Início</Label>
+                  <Input
+                    type="time"
+                    value={newStartTime}
+                    onChange={(e) => setNewStartTime(e.target.value)}
+                    className="w-[130px]"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Término</Label>
+                  <Input
+                    type="time"
+                    value={newEndTime}
+                    onChange={(e) => setNewEndTime(e.target.value)}
+                    className="w-[130px]"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addStudyTime}
+                  disabled={!!newTimeError}
+                  className="gap-1.5"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar
+                </Button>
+              </div>
+
+              {newTimeError && (
+                <div className="flex items-center gap-2 text-xs text-destructive">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {newTimeError}
+                </div>
+              )}
+
+              {studyTimes.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {studyTimes.map((t, index) => (
+                    <span
+                      key={`${t.start}-${t.end}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm font-medium"
+                    >
+                      {t.start} – {t.end}
+                      <button
+                        type="button"
+                        onClick={() => removeStudyTime(index)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remover horário"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Course/Module Selection based on planning type */}
