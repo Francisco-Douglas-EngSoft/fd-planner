@@ -755,6 +755,36 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     setSelectedModules([]);
     setModuleSettings({});
     setColor('');
+    setStudyTimes([]);
+    setNewStartTime('19:00');
+    setNewEndTime('20:00');
+  };
+
+  // Validação e manipulação dos horários de estudo
+  const timeToMinutes = (t: string): number => {
+    const [h, m] = t.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  const newTimeError = useMemo(() => {
+    const s = timeToMinutes(newStartTime);
+    const e = timeToMinutes(newEndTime);
+    if (e <= s) return 'O horário de término deve ser posterior ao de início.';
+    if (e - s < 15) return 'O bloco deve ter pelo menos 15 minutos.';
+    if (e - s > 240) return 'O bloco não deve exceder 4 horas.';
+    if (studyTimes.some((b) => b.start === newStartTime && b.end === newEndTime)) return 'Esse horário já foi adicionado.';
+    return null;
+  }, [newStartTime, newEndTime, studyTimes]);
+
+  const addStudyTime = () => {
+    if (newTimeError) return;
+    setStudyTimes((prev) =>
+      [...prev, { start: newStartTime, end: newEndTime }].sort((a, b) => a.start.localeCompare(b.start))
+    );
+  };
+
+  const removeStudyTime = (index: number) => {
+    setStudyTimes((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleDay = (day: string) => {
