@@ -2067,6 +2067,76 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
               </div>
             </div>
 
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Horários de Estudo
+                <span className="text-xs text-muted-foreground font-normal">(aparecem no Foco em sequência)</span>
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Defina os horários em que você irá estudar este planejamento. Eles serão aplicados a todos os dias de estudo selecionados e exibidos na agenda do Foco.
+              </p>
+
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Início</Label>
+                  <Input
+                    type="time"
+                    value={newStartTime}
+                    onChange={(e) => setNewStartTime(e.target.value)}
+                    className="w-[130px]"
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label className="text-xs">Término</Label>
+                  <Input
+                    type="time"
+                    value={newEndTime}
+                    onChange={(e) => setNewEndTime(e.target.value)}
+                    className="w-[130px]"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={addStudyTime}
+                  disabled={!!newTimeError}
+                  className="gap-1.5"
+                >
+                  <Plus className="h-4 w-4" />
+                  Adicionar
+                </Button>
+              </div>
+
+              {newTimeError && (
+                <div className="flex items-center gap-2 text-xs text-destructive">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  {newTimeError}
+                </div>
+              )}
+
+              {studyTimes.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {studyTimes.map((t, index) => (
+                    <span
+                      key={`${t.start}-${t.end}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm font-medium"
+                    >
+                      {t.start} – {t.end}
+                      <button
+                        type="button"
+                        onClick={() => removeStudyTime(index)}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        aria-label="Remover horário"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Course/Module Selection based on planning type */}
             {planningType === 'course' ? (
               <div className="space-y-4">
