@@ -596,7 +596,7 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[40vw] min-w-[600px] max-w-[900px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="w-[calc(100vw-1rem)] sm:w-[92vw] md:!max-w-[700px] md:w-[700px] lg:!max-w-[800px] lg:w-[800px] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg">{editCourse ? 'Editar Curso' : 'Novo Curso'}</DialogTitle>
           <DialogDescription className="text-sm">
