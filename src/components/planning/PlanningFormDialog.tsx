@@ -482,6 +482,11 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const [noDeadline, setNoDeadline] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [color, setColor] = useState('');
+
+  // Horários de estudo (blocos que refletem no Foco em sequência)
+  const [studyTimes, setStudyTimes] = useState<{ start: string; end: string }[]>([]);
+  const [newStartTime, setNewStartTime] = useState('19:00');
+  const [newEndTime, setNewEndTime] = useState('20:00');
   
   // New state for planning type
   const [planningType, setPlanningType] = useState<'course' | 'module'>('course');
