@@ -1,24 +1,32 @@
 import { motion } from "framer-motion";
-import { LayoutDashboard, BookOpen, LineChart, Target, FileText } from "lucide-react";
+import {
+  LineChart,
+  Flame,
+  Clock,
+  Trophy,
+  Timer,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-const navMain = [
-  { label: "Visão geral", icon: LayoutDashboard, active: true },
-  { label: "Diário de estudos", icon: BookOpen, active: false },
-  { label: "Análises", icon: LineChart, active: false },
-];
-const navGoals = [
-  { label: "Metas", icon: Target, active: false },
-  { label: "Relatórios", icon: FileText, active: false },
+const bars = [
+  { d: "Seg", h: 40 },
+  { d: "Ter", h: 65 },
+  { d: "Qua", h: 50 },
+  { d: "Qui", h: 85 },
+  { d: "Sex", h: 45 },
+  { d: "Sáb", h: 70 },
+  { d: "Dom", h: 95 },
 ];
 
-const bars = [40, 60, 55, 80, 95, 70, 85];
-const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const weekHeat = [true, true, true, true, false, false, false];
 
-const weekly = [
-  { label: "Cálculo Avançado", value: "12/15h", pct: 80, tone: "primary" as const },
-  { label: "Estrutura de Dados", value: "8/8h", pct: 100, tone: "success" as const },
-  { label: "Escrita Acadêmica", value: "4/10h", pct: 40, tone: "primary" as const },
+const tasks = [
+  { label: "Revisão de Biologia", done: true },
+  { label: "Simulado de Matemática", done: false },
+  { label: "Redação: estrutura", done: false },
+  { label: "Vocabulário de Inglês", done: false },
 ];
 
 export const DashboardPreview = () => {
@@ -30,150 +38,160 @@ export const DashboardPreview = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center max-w-2xl mx-auto mb-10"
+          className="text-center max-w-2xl mx-auto mb-12"
         >
           <Badge variant="outline" className="mb-4 px-4 py-1.5">
             <LineChart className="h-3 w-3 mr-1" />
             Visão do produto
           </Badge>
-          <h2 className="text-3xl sm:text-4xl font-bold font-display mb-3">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold font-display mb-3">
             Seus estudos em <span className="text-primary">dados claros</span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            Um exemplo do painel: horas estudadas, metas semanais e evolução — tudo em um só lugar.
+            Um panorama do painel: horas, metas, ofensiva, foco e tarefas — tudo em uma só tela.
           </p>
         </motion.div>
 
+        {/* Bento grid */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="max-w-6xl mx-auto rounded-2xl border border-border bg-card shadow-2xl overflow-hidden"
+          className="max-w-6xl mx-auto grid grid-cols-12 auto-rows-[120px] gap-4"
         >
-          {/* Browser chrome */}
-          <div className="bg-muted/60 px-6 py-3 border-b border-border flex items-center justify-between">
-            <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-border" />
-              <div className="w-3 h-3 rounded-full bg-border" />
-              <div className="w-3 h-3 rounded-full bg-border" />
+          {/* Evolution chart — large */}
+          <div className="col-span-12 md:col-span-8 row-span-3 rounded-3xl border border-border bg-card p-6 shadow-card flex flex-col">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-display font-bold text-lg">Evolução de horas</h3>
+                <p className="text-xs text-muted-foreground">Produtividade dos últimos 7 dias</p>
+              </div>
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1 rounded-lg">
+                Últimos 7 dias
+              </span>
             </div>
-            <div className="bg-card px-8 py-1 rounded-md text-[10px] text-muted-foreground font-medium border border-border/60">
-              app.fd-planner.com/dashboard
+            <div className="flex-1 flex items-end justify-between gap-3 rounded-2xl bg-muted/40 p-5">
+              {bars.map((b, i) => (
+                <div key={b.d} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    whileInView={{ height: `${b.h}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: i * 0.06 }}
+                    className={
+                      i === bars.length - 1
+                        ? "w-full rounded-t-lg bg-primary"
+                        : "w-full rounded-t-lg bg-accent/70"
+                    }
+                  />
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase">{b.d}</span>
+                </div>
+              ))}
             </div>
-            <div className="w-12" />
           </div>
 
-          <div className="p-6 sm:p-8 flex flex-col lg:flex-row gap-8">
-            {/* Sidebar preview */}
-            <aside className="hidden lg:block w-48 space-y-6 pt-1">
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-                  Menu
-                </div>
-                {navMain.map((item) => (
-                  <div
-                    key={item.label}
-                    className={
-                      item.active
-                        ? "flex items-center gap-2 bg-primary/10 text-primary px-3 py-2 rounded-lg text-sm font-medium border-l-2 border-primary"
-                        : "flex items-center gap-2 text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium"
-                    }
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-3 mb-2">
-                  Metas
-                </div>
-                {navGoals.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-2 text-muted-foreground px-3 py-2 rounded-lg text-sm font-medium"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </div>
-                ))}
-              </div>
-            </aside>
+          {/* Streak KPI — dark */}
+          <div className="col-span-6 md:col-span-4 row-span-1 rounded-3xl bg-primary text-primary-foreground p-6 shadow-lg flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium opacity-70">Ofensiva</p>
+              <p className="font-display font-bold text-2xl">14 dias</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-white/10">
+              <Flame className="h-6 w-6" />
+            </div>
+          </div>
 
-            {/* Main content */}
-            <div className="flex-1 space-y-8">
-              {/* KPI cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-muted/40 p-5 rounded-xl border border-border">
-                  <div className="text-xs font-medium text-muted-foreground mb-1">Total de horas</div>
-                  <div className="text-2xl font-semibold text-foreground">142,5h</div>
-                  <div className="text-[10px] text-primary mt-2 font-medium">+12% na semana</div>
-                </div>
-                <div className="bg-muted/40 p-5 rounded-xl border border-border">
-                  <div className="text-xs font-medium text-muted-foreground mb-1">Metas concluídas</div>
-                  <div className="text-2xl font-semibold text-foreground">88,4%</div>
-                  <div className="w-full bg-muted h-1.5 mt-3 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full" style={{ width: "88%" }} />
-                  </div>
-                </div>
-                <div className="bg-muted/40 p-5 rounded-xl border border-border">
-                  <div className="text-xs font-medium text-muted-foreground mb-1">Sequência atual</div>
-                  <div className="text-2xl font-semibold text-foreground">14 dias</div>
-                  <div className="text-[10px] text-muted-foreground mt-2">Recorde: 21 dias</div>
-                </div>
+          {/* Focus KPI */}
+          <div className="col-span-6 md:col-span-4 row-span-1 rounded-3xl border border-border bg-card p-6 shadow-card flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Foco total</p>
+              <p className="font-display font-bold text-2xl">142,5h</p>
+            </div>
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+              <Clock className="h-6 w-6" />
+            </div>
+          </div>
+
+          {/* Ranking KPI */}
+          <div className="col-span-12 md:col-span-4 row-span-1 rounded-3xl border border-border bg-muted/50 p-6 flex items-center gap-4">
+            <div className="h-11 w-11 flex-shrink-0 rounded-full bg-accent/15 text-accent flex items-center justify-center font-display font-bold">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Metas concluídas</p>
+              <p className="text-xs text-muted-foreground">88,4% neste mês</p>
+            </div>
+          </div>
+
+          {/* Weekly progress */}
+          <div className="col-span-12 md:col-span-5 row-span-2 rounded-3xl border border-border bg-card p-6 shadow-card">
+            <h3 className="font-display font-bold text-sm mb-4">Progresso semanal</h3>
+            <div className="space-y-1 mb-5">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                <span>Meta semanal</span>
+                <span>75%</span>
               </div>
-
-              {/* Chart + weekly goals */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Evolution bar chart */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-foreground">Evolução de horas</h3>
-                  <div className="h-48 w-full bg-muted/40 rounded-xl relative flex items-end justify-between p-4 border border-border">
-                    {bars.map((h, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ height: 0 }}
-                        whileInView={{ height: `${h}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6, delay: i * 0.06 }}
-                        className="w-4 bg-primary rounded-t-sm"
-                        style={{ opacity: 0.55 + (h / 100) * 0.45 }}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground px-2 font-medium">
-                    {days.map((d) => (
-                      <span key={d}>{d}</span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Weekly progress */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-foreground">Progresso semanal</h3>
-                  <div className="space-y-5">
-                    {weekly.map((w) => (
-                      <div key={w.label} className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">{w.label}</span>
-                          <span className="font-medium text-foreground">{w.value}</span>
-                        </div>
-                        <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${w.pct}%` }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.7 }}
-                            className={w.tone === "success" ? "bg-success h-full" : "bg-primary h-full"}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  whileInView={{ width: "75%" }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.7 }}
+                  className="h-full rounded-full bg-primary"
+                />
               </div>
             </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {weekHeat.map((active, i) => (
+                <div
+                  key={i}
+                  className={active ? "h-9 rounded-md bg-primary" : "h-9 rounded-md bg-muted"}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Pomodoro */}
+          <div className="col-span-12 md:col-span-3 row-span-2 rounded-3xl bg-accent text-accent-foreground p-6 flex flex-col justify-between shadow-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Pomodoro</span>
+              <span className="flex h-2 w-2 rounded-full bg-white animate-pulse" />
+            </div>
+            <div className="text-center">
+              <p className="font-display font-bold text-4xl">21:04</p>
+              <p className="text-[10px] uppercase tracking-wide opacity-70 mt-1 flex items-center justify-center gap-1">
+                <Timer className="h-3 w-3" /> Foco intenso
+              </p>
+            </div>
+            <div className="w-full py-2 rounded-xl bg-white/15 text-center text-xs font-semibold">
+              Pausar
+            </div>
+          </div>
+
+          {/* Tasks */}
+          <div className="col-span-12 md:col-span-4 row-span-2 rounded-3xl border border-border bg-card p-6 shadow-card">
+            <h3 className="font-display font-bold text-sm mb-4">Próximas tarefas</h3>
+            <ul className="space-y-3">
+              {tasks.map((t) => (
+                <li key={t.label} className="flex items-center gap-3">
+                  {t.done ? (
+                    <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  )}
+                  <span
+                    className={
+                      t.done
+                        ? "text-sm text-muted-foreground line-through"
+                        : "text-sm text-foreground"
+                    }
+                  >
+                    {t.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </motion.div>
       </div>
