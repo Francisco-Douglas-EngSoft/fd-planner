@@ -77,12 +77,12 @@ interface CleanStreak {
 }
 
 const CHART_COLORS = [
-  'hsl(217, 91%, 60%)',
-  'hsl(142, 71%, 45%)',
-  'hsl(262, 83%, 58%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(340, 82%, 52%)',
-  'hsl(200, 89%, 48%)',
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--accent))',
 ];
 
 export default function Reports() {
@@ -366,9 +366,9 @@ export default function Reports() {
     });
 
     return [
-      { name: 'Alta', concluidas: priorityMap.high.completed, pendentes: priorityMap.high.pending, color: 'hsl(340, 82%, 52%)' },
-      { name: 'Normal', concluidas: priorityMap.normal.completed, pendentes: priorityMap.normal.pending, color: 'hsl(38, 92%, 50%)' },
-      { name: 'Baixa', concluidas: priorityMap.low.completed, pendentes: priorityMap.low.pending, color: 'hsl(142, 71%, 45%)' },
+      { name: 'Alta', concluidas: priorityMap.high.completed, pendentes: priorityMap.high.pending, color: 'hsl(var(--destructive))' },
+      { name: 'Normal', concluidas: priorityMap.normal.completed, pendentes: priorityMap.normal.pending, color: 'hsl(var(--warning))' },
+      { name: 'Baixa', concluidas: priorityMap.low.completed, pendentes: priorityMap.low.pending, color: 'hsl(var(--success))' },
     ];
   })();
 
@@ -437,14 +437,14 @@ export default function Reports() {
   const ChangeIndicator = ({ value }: { value: number }) => {
     if (value > 0) {
       return (
-        <div className="flex items-center gap-1 text-green-500">
+        <div className="flex items-center gap-1 text-success">
           <ArrowUp className="h-3 w-3" />
           <span className="text-xs font-medium">+{value}%</span>
         </div>
       );
     } else if (value < 0) {
       return (
-        <div className="flex items-center gap-1 text-red-500">
+        <div className="flex items-center gap-1 text-destructive">
           <ArrowDown className="h-3 w-3" />
           <span className="text-xs font-medium">{value}%</span>
         </div>
@@ -461,14 +461,16 @@ export default function Reports() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
+      <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-accent/[0.05] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+        <div className="relative space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Análise de desempenho</p>
           <h1 className="text-2xl sm:text-3xl font-bold font-display">Relatórios</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Análise detalhada do seu desempenho e evolução
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[140px]">
               <Calendar className="h-4 w-4 mr-2" />
@@ -499,79 +501,64 @@ export default function Reports() {
 
       {/* Quick Stats Cards */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-white/80">Horas Estudadas</p>
-                <p className="text-2xl font-bold font-display mt-1">
-                  {formatHoursToHMS(stats.completedCourseHours)}
-                </p>
-                <p className="text-[10px] text-white/60 mt-1">Módulos concluídos</p>
+        {[
+          {
+            label: 'Horas Estudadas',
+            value: formatHoursToHMS(stats.completedCourseHours),
+            icon: BookOpen,
+            footer: <p className="mt-1 text-[10px] text-muted-foreground">Módulos concluídos</p>,
+          },
+          {
+            label: 'Tempo de Foco',
+            value: formatTime(stats.focusMinutes),
+            icon: Timer,
+            footer: (
+              <div className="mt-1 flex items-center gap-2">
+                <ChangeIndicator value={focusChange} />
+                <span className="text-[10px] text-muted-foreground">vs anterior</span>
               </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <BookOpen className="h-5 w-5" />
+            ),
+          },
+          {
+            label: 'Tarefas Concluídas',
+            value: stats.tasksCompleted,
+            icon: CheckCircle2,
+            footer: (
+              <div className="mt-1 flex items-center gap-2">
+                <ChangeIndicator value={tasksChange} />
+                <span className="text-[10px] text-muted-foreground">vs anterior</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-white/80">Tempo de Foco</p>
-                <p className="text-2xl font-bold font-display mt-1">
-                  {formatTime(stats.focusMinutes)}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <ChangeIndicator value={focusChange} />
-                  <span className="text-[10px] text-white/60">vs anterior</span>
+            ),
+          },
+          {
+            label: 'Progresso Cursos',
+            value: `${stats.coursesProgress}%`,
+            icon: TrendingUp,
+            footer: <p className="mt-1 text-[10px] text-muted-foreground">{courses.length} cursos ativos</p>,
+          },
+        ].map((card, i) => {
+          const Icon = card.icon;
+          return (
+            <Card
+              key={i}
+              className="group relative overflow-hidden border border-border/60 bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+            >
+              <div className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-gradient-to-r from-primary to-accent transition-transform duration-300 group-hover:scale-x-100" />
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{card.label}</p>
+                    <p className="mt-1 text-2xl font-bold font-display text-foreground">{card.value}</p>
+                    {card.footer}
+                  </div>
+                  <div className="rounded-lg bg-primary/10 p-2 text-primary ring-1 ring-primary/15 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="h-5 w-5" />
+                  </div>
                 </div>
-              </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <Timer className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-white/80">Tarefas Concluídas</p>
-                <p className="text-2xl font-bold font-display mt-1">
-                  {stats.tasksCompleted}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <ChangeIndicator value={tasksChange} />
-                  <span className="text-[10px] text-white/60">vs anterior</span>
-                </div>
-              </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-violet-500 text-white border-0">
-          <CardContent className="p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-white/80">Progresso Cursos</p>
-                <p className="text-2xl font-bold font-display mt-1">
-                  {stats.coursesProgress}%
-                </p>
-                <p className="text-[10px] text-white/60 mt-1">{courses.length} cursos ativos</p>
-              </div>
-              <div className="p-2 bg-white/20 rounded-lg">
-                <TrendingUp className="h-5 w-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Tabs for different report types */}
@@ -642,7 +629,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <TrendingUp className="h-5 w-5 text-success" />
                   Tendência Mensal
                 </CardTitle>
                 <CardDescription>Evolução por semana</CardDescription>
@@ -681,7 +668,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <PieChart className="h-5 w-5 text-purple-500" />
+                  <PieChart className="h-5 w-5 text-accent" />
                   Distribuição por Categoria
                 </CardTitle>
                 <CardDescription>Horas estudadas por área</CardDescription>
@@ -749,19 +736,19 @@ export default function Reports() {
                     </div>
                     <p className="text-xl font-bold text-orange-500">{stats.focusSessions}</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-red-500/10">
+                  <div className="p-4 rounded-lg bg-destructive/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Flame className="h-4 w-4 text-red-500" />
+                      <Flame className="h-4 w-4 text-destructive" />
                       <span className="text-xs text-muted-foreground">Sequência Atual</span>
                     </div>
-                    <p className="text-xl font-bold text-red-500">{stats.streakDays} dias</p>
+                    <p className="text-xl font-bold text-destructive">{stats.streakDays} dias</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-green-500/10">
+                  <div className="p-4 rounded-lg bg-success/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Target className="h-4 w-4 text-green-500" />
+                      <Target className="h-4 w-4 text-success" />
                       <span className="text-xs text-muted-foreground">Tarefas Pendentes</span>
                     </div>
-                    <p className="text-xl font-bold text-green-500">{stats.tasksPending}</p>
+                    <p className="text-xl font-bold text-success">{stats.tasksPending}</p>
                   </div>
                 </div>
               </CardContent>
@@ -792,7 +779,7 @@ export default function Reports() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Bar dataKey="minutos" fill="hsl(24, 95%, 53%)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="minutos" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -821,8 +808,8 @@ export default function Reports() {
                   
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-blue-500/10">
-                        <Target className="h-5 w-5 text-blue-500" />
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Target className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Sessões Completas</p>
@@ -834,8 +821,8 @@ export default function Reports() {
                   
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <TrendingUp className="h-5 w-5 text-green-500" />
+                      <div className="p-2 rounded-lg bg-success/10">
+                        <TrendingUp className="h-5 w-5 text-success" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Média Diária</p>
@@ -875,7 +862,7 @@ export default function Reports() {
                           }}
                         />
                         <Legend />
-                        <Bar dataKey="concluido" stackId="a" fill="hsl(142, 71%, 45%)" name="Concluído" />
+                        <Bar dataKey="concluido" stackId="a" fill="hsl(var(--success))" name="Concluído" />
                         <Bar dataKey="restante" stackId="a" fill="hsl(var(--muted))" name="Restante" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -949,7 +936,7 @@ export default function Reports() {
                         }}
                       />
                       <Legend />
-                      <Bar dataKey="concluidas" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Concluídas" />
+                      <Bar dataKey="concluidas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Concluídas" />
                       <Bar dataKey="pendentes" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} name="Pendentes" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -964,9 +951,9 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-green-500/10 text-center">
-                    <CheckCircle2 className="h-8 w-8 text-green-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-green-500">{stats.tasksCompleted}</p>
+                  <div className="p-4 rounded-lg bg-success/10 text-center">
+                    <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-success">{stats.tasksCompleted}</p>
                     <p className="text-xs text-muted-foreground">Concluídas (período)</p>
                   </div>
                   <div className="p-4 rounded-lg bg-amber-500/10 text-center">
@@ -984,7 +971,7 @@ export default function Reports() {
                         <span className="text-sm font-medium">Prioridade {item.name}</span>
                       </div>
                       <div className="text-sm">
-                        <span className="text-green-500 font-medium">{item.concluidas}</span>
+                        <span className="text-success font-medium">{item.concluidas}</span>
                         <span className="text-muted-foreground"> / </span>
                         <span className="text-muted-foreground">{item.concluidas + item.pendentes}</span>
                       </div>
@@ -1002,14 +989,14 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-red-500" />
+                  <Flame className="h-5 w-5 text-destructive" />
                   Sequência de Estudos
                 </CardTitle>
                 <CardDescription>Mantenha sua consistência</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center py-6">
-                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-red-500 to-orange-500 mb-4">
+                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-primary to-accent mb-4">
                     <div className="text-white">
                       <p className="text-4xl font-bold">{stats.streakDays}</p>
                       <p className="text-xs">dias</p>
@@ -1025,7 +1012,7 @@ export default function Reports() {
                     <p className="text-xs text-muted-foreground">Maior sequência</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-500">{stats.focusSessions}</p>
+                    <p className="text-2xl font-bold text-success">{stats.focusSessions}</p>
                     <p className="text-xs text-muted-foreground">Sessões hoje</p>
                   </div>
                 </div>
@@ -1035,7 +1022,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-purple-500" />
+                  <Brain className="h-5 w-5 text-accent" />
                   AntiVício - Controle
                 </CardTitle>
                 <CardDescription>Seu progresso de recuperação</CardDescription>
