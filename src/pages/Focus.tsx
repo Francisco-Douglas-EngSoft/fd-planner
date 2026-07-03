@@ -41,6 +41,7 @@ import { FocusGoalsPanel } from '@/components/focus/FocusGoalsPanel';
 import { DailyAgenda } from '@/components/focus/DailyAgenda';
 import { MotivationalQuote } from '@/components/focus/MotivationalQuote';
 import { PaceIndicatorCard } from '@/components/focus/PaceIndicatorCard';
+import { FocusEvolutionChart } from '@/components/focus/FocusEvolutionChart';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatSecondsToHMS, formatMinutesToHMS, formatHoursToHMS } from '@/lib/timeUtils';
