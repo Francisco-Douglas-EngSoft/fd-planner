@@ -366,8 +366,8 @@ export default function Reports() {
     });
 
     return [
-      { name: 'Alta', concluidas: priorityMap.high.completed, pendentes: priorityMap.high.pending, color: 'hsl(340, 82%, 52%)' },
-      { name: 'Normal', concluidas: priorityMap.normal.completed, pendentes: priorityMap.normal.pending, color: 'hsl(38, 92%, 50%)' },
+      { name: 'Alta', concluidas: priorityMap.high.completed, pendentes: priorityMap.high.pending, color: 'hsl(var(--destructive))' },
+      { name: 'Normal', concluidas: priorityMap.normal.completed, pendentes: priorityMap.normal.pending, color: 'hsl(var(--warning))' },
       { name: 'Baixa', concluidas: priorityMap.low.completed, pendentes: priorityMap.low.pending, color: 'hsl(var(--success))' },
     ];
   })();
