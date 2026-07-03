@@ -541,6 +541,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       } else {
         fetchPlanCourses(editPlan.id);
       }
+      fetchStudyTimes(editPlan.id);
     } else if (!editPlan && open) {
       resetForm();
       if (initialPlanningCategory) {
