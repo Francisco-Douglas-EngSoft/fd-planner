@@ -77,12 +77,12 @@ interface CleanStreak {
 }
 
 const CHART_COLORS = [
-  'hsl(217, 91%, 60%)',
-  'hsl(142, 71%, 45%)',
-  'hsl(262, 83%, 58%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(340, 82%, 52%)',
-  'hsl(200, 89%, 48%)',
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--accent))',
 ];
 
 export default function Reports() {
