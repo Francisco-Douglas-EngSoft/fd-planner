@@ -1288,7 +1288,7 @@ export default function Focus() {
           )}
 
           {/* ─── Stats Row ─── */}
-          <div className="grid gap-4 grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 grid-cols-3">
             {[
               { icon: Target, label: 'Sessões', value: todayCompletedCycles, color: 'primary' as const },
               { 
@@ -1305,35 +1305,36 @@ export default function Focus() {
               },
             ].map((stat) => (
               <Card key={stat.label} className="border-border/40 rounded-2xl hover:border-border/60 transition-all">
-                <CardContent className="p-6 text-center">
+                <CardContent className="p-3 sm:p-6 text-center">
                   <div className={cn(
-                    "inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3 transition-colors",
+                    "inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl mb-2 sm:mb-3 transition-colors",
                     stat.color === 'primary' && "bg-primary/10",
                     stat.color === 'accent' && "bg-accent/10",
                     stat.color === 'success' && "bg-success/10"
                   )}>
                     <stat.icon className={cn(
-                      "h-5 w-5",
+                      "h-4 w-4 sm:h-5 sm:w-5",
                       stat.color === 'primary' && "text-primary",
                       stat.color === 'accent' && "text-accent",
                       stat.color === 'success' && "text-success"
                     )} />
                   </div>
                   <p className={cn(
-                    "text-2xl font-bold tabular-nums mb-1",
+                    "text-lg sm:text-2xl font-bold tabular-nums mb-1",
                     stat.color === 'primary' && "text-primary",
                     stat.color === 'accent' && "text-accent",
                     stat.color === 'success' && "text-success"
                   )}>
                     {stat.value}
                   </p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Motivational Quote - Removed for cleaner design */}
+          {/* ─── Evolution Chart ─── */}
+          <FocusEvolutionChart refreshKey={focusRefreshKey} />
         </div>
 
         {/* ─── Sidebar ─── */}
