@@ -259,44 +259,44 @@ export default function AntiVicio() {
         </div>
 
         {/* Quick Stats in Header */}
-        <div className="relative grid grid-cols-3 gap-4 mt-8">
+        <div className="relative grid grid-cols-3 gap-2 sm:gap-4 mt-6 sm:mt-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-center p-4 rounded-2xl bg-white/10 backdrop-blur-sm"
+            className="text-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-sm"
           >
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Flame className="h-5 w-5 text-orange-300" />
-              <span className="text-3xl font-bold text-white">{getTotalStreak()}</span>
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-1">
+              <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-orange-300 shrink-0" />
+              <span className="text-xl sm:text-3xl font-bold text-white">{getTotalStreak()}</span>
             </div>
-            <p className="text-xs text-white/70">Dias em Sequência</p>
+            <p className="text-[10px] sm:text-xs text-white/70">Dias em Sequência</p>
           </motion.div>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center p-4 rounded-2xl bg-white/10 backdrop-blur-sm"
+            className="text-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-sm"
           >
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Trophy className="h-5 w-5 text-yellow-300" />
-              <span className="text-3xl font-bold text-white">{getLongestStreak()}</span>
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-1">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-300 shrink-0" />
+              <span className="text-xl sm:text-3xl font-bold text-white">{getLongestStreak()}</span>
             </div>
-            <p className="text-xs text-white/70">Recorde Pessoal</p>
+            <p className="text-[10px] sm:text-xs text-white/70">Recorde Pessoal</p>
           </motion.div>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-center p-4 rounded-2xl bg-white/10 backdrop-blur-sm"
+            className="text-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-sm"
           >
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Target className="h-5 w-5 text-green-300" />
-              <span className="text-3xl font-bold text-white">{getResistanceRate()}%</span>
+            <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-1">
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-green-300 shrink-0" />
+              <span className="text-xl sm:text-3xl font-bold text-white">{getResistanceRate()}%</span>
             </div>
-            <p className="text-xs text-white/70">Taxa de Resistência</p>
+            <p className="text-[10px] sm:text-xs text-white/70">Taxa de Resistência</p>
           </motion.div>
         </div>
       </motion.div>
