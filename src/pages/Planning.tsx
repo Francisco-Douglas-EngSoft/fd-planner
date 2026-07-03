@@ -864,7 +864,7 @@ export default function Planning() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {/* Days Header */}
-            <div className="grid grid-cols-7 gap-2 mb-4">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4">
               {daysOfWeek.map((day, idx) => (
                 <div 
                   key={day} 
@@ -881,7 +881,7 @@ export default function Planning() {
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {getDaysInMonth(currentDate).map((day, index) => {
                 if (!day) return <div key={index} className="aspect-square" />;
                 

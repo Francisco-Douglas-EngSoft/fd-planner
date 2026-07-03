@@ -1151,7 +1151,7 @@ export default function Focus() {
 
                 {/* Timer Circle */}
                 <div className="relative py-6">
-                  <div className="text-7xl md:text-8xl font-bold tabular-nums tracking-tight">
+                  <div className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tabular-nums tracking-tight break-all">
                     {formatSecondsToHMS(timeLeft)}
                   </div>
                   {dailyProgressInfo && (
