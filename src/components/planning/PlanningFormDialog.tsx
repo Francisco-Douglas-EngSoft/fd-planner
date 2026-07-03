@@ -553,6 +553,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const fetchModules = async () => {
     if (!user) return;
 
+
     const { data, error } = await supabase
       .from('course_modules')
       .select(`
