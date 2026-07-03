@@ -176,15 +176,22 @@ export default function Dashboard() {
 
   const renderCard = (card: typeof statCards[0], index: number) => {
     const Icon = card.icon;
-    
+
     return (
-      <Card className="h-full overflow-hidden border border-border/60 bg-card shadow-card transition-all hover:border-primary/30 hover:shadow-lg">
+      <Card className="group relative h-full overflow-hidden border border-border/60 bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg">
+        {/* Top accent line */}
+        <div className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-gradient-to-r from-primary to-accent transition-transform duration-300 group-hover:scale-x-100" />
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col h-full">
             <div className="flex items-start justify-between mb-3">
-              <div className="rounded-xl p-2.5 bg-primary/10 text-primary ring-1 ring-primary/15">
+              <div className="rounded-xl p-2.5 bg-primary/10 text-primary ring-1 ring-primary/15 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
                 <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
+              {card.link && (
+                <span className="text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                  ver mais →
+                </span>
+              )}
             </div>
             <div className="space-y-1 flex-1">
               <p className={cn(
@@ -208,16 +215,26 @@ export default function Dashboard() {
     );
   };
 
+  const today = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">
-          Olá, {userName}! 👋
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Aqui está o resumo dos seus estudos. Continue assim!
-        </p>
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-accent/[0.05] p-5 sm:p-6">
+        <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
+        <div className="relative space-y-1">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {today}
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display">
+            Olá, {userName}! 👋
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Aqui está o resumo dos seus estudos. Continue assim!
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}
