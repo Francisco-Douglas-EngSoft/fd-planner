@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/utils';
-import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap } from 'lucide-react';
+import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO, addDays, format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
