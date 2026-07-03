@@ -47,22 +47,13 @@ export function FDPlannerLogo({
           "transform-gpu hover:scale-105 transition-all duration-300 group"
         )}
       >
-        {/* Animated gradient glow behind logo */}
+        {/* Subtle slate/steel glow behind logo */}
         <div 
-          className="absolute inset-0 rounded-xl blur-md opacity-60 group-hover:opacity-80 transition-opacity duration-300"
+          className="absolute inset-0 rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity duration-300"
           style={{
-            background: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(262 83% 58%), hsl(217 91% 60%))',
+            background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)))',
             backgroundSize: '200% 200%',
-            animation: 'gradient-shift 3s ease-in-out infinite',
-          }}
-        />
-        
-        {/* Second rotating glow layer */}
-        <div 
-          className="absolute inset-0 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"
-          style={{
-            background: 'conic-gradient(from 0deg, hsl(217 91% 60%), hsl(262 83% 58%), hsl(280 85% 60%), hsl(217 91% 60%))',
-            animation: 'spin 8s linear infinite',
+            animation: 'gradient-shift 4s ease-in-out infinite',
           }}
         />
         
