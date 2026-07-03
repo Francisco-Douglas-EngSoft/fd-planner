@@ -550,9 +550,24 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     }
   }, [editPlan, open, initialPlanningCategory]);
 
+  const fetchStudyTimes = async (planId: string) => {
+    const { data, error } = await supabase
+      .from('study_plan_time_blocks')
+      .select('start_time, end_time')
+      .eq('study_plan_id', planId)
+      .eq('block_type', 'study');
+    if (error || !data) return;
+    const unique = new Map<string, { start: string; end: string }>();
+    data.forEach((b: { start_time: string; end_time: string }) => {
+      const start = b.start_time.slice(0, 5);
+      const end = b.end_time.slice(0, 5);
+      unique.set(`${start}-${end}`, { start, end });
+    });
+    setStudyTimes(Array.from(unique.values()).sort((a, b) => a.start.localeCompare(b.start)));
+  };
+
   const fetchModules = async () => {
     if (!user) return;
-
 
     const { data, error } = await supabase
       .from('course_modules')
