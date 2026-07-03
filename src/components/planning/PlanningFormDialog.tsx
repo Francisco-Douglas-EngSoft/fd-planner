@@ -1468,6 +1468,35 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         if (moduleError) throw moduleError;
       }
 
+      // Salvar horários de estudo (blocos de tempo) — refletem no Foco em sequência
+      if (editPlan) {
+        await supabase
+          .from('study_plan_time_blocks')
+          .delete()
+          .eq('study_plan_id', planId)
+          .eq('block_type', 'study');
+      }
+
+      if (studyTimes.length > 0 && studyDays.length > 0) {
+        const timeBlockRows = studyDays.flatMap((dayId) =>
+          studyTimes.map((t) => ({
+            study_plan_id: planId,
+            course_id: null,
+            day_of_week: dayId,
+            start_time: `${t.start}:00`,
+            end_time: `${t.end}:00`,
+            block_type: 'study' as const,
+            title: null,
+          }))
+        );
+
+        const { error: blockError } = await supabase
+          .from('study_plan_time_blocks')
+          .insert(timeBlockRows);
+
+        if (blockError) throw blockError;
+      }
+
       resetForm();
       onSuccess();
       onOpenChange(false);
