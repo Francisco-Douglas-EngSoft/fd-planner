@@ -368,7 +368,7 @@ export default function Reports() {
     return [
       { name: 'Alta', concluidas: priorityMap.high.completed, pendentes: priorityMap.high.pending, color: 'hsl(340, 82%, 52%)' },
       { name: 'Normal', concluidas: priorityMap.normal.completed, pendentes: priorityMap.normal.pending, color: 'hsl(38, 92%, 50%)' },
-      { name: 'Baixa', concluidas: priorityMap.low.completed, pendentes: priorityMap.low.pending, color: 'hsl(142, 71%, 45%)' },
+      { name: 'Baixa', concluidas: priorityMap.low.completed, pendentes: priorityMap.low.pending, color: 'hsl(var(--success))' },
     ];
   })();
 
@@ -444,7 +444,7 @@ export default function Reports() {
       );
     } else if (value < 0) {
       return (
-        <div className="flex items-center gap-1 text-red-500">
+        <div className="flex items-center gap-1 text-destructive">
           <ArrowDown className="h-3 w-3" />
           <span className="text-xs font-medium">{value}%</span>
         </div>
@@ -736,14 +736,14 @@ export default function Reports() {
                     </div>
                     <p className="text-xl font-bold text-orange-500">{stats.focusSessions}</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-red-500/10">
+                  <div className="p-4 rounded-lg bg-destructive/10">
                     <div className="flex items-center gap-2 mb-2">
-                      <Flame className="h-4 w-4 text-red-500" />
+                      <Flame className="h-4 w-4 text-destructive" />
                       <span className="text-xs text-muted-foreground">Sequência Atual</span>
                     </div>
-                    <p className="text-xl font-bold text-red-500">{stats.streakDays} dias</p>
+                    <p className="text-xl font-bold text-destructive">{stats.streakDays} dias</p>
                   </div>
-                  <div className="p-4 rounded-lg bg-green-500/10">
+                  <div className="p-4 rounded-lg bg-success/10">
                     <div className="flex items-center gap-2 mb-2">
                       <Target className="h-4 w-4 text-success" />
                       <span className="text-xs text-muted-foreground">Tarefas Pendentes</span>
@@ -809,7 +809,7 @@ export default function Reports() {
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-primary/10">
-                        <Target className="h-5 w-5 text-blue-500" />
+                        <Target className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">Sessões Completas</p>
@@ -821,7 +821,7 @@ export default function Reports() {
                   
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-green-500/10">
+                      <div className="p-2 rounded-lg bg-success/10">
                         <TrendingUp className="h-5 w-5 text-success" />
                       </div>
                       <div>
@@ -951,7 +951,7 @@ export default function Reports() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-lg bg-green-500/10 text-center">
+                  <div className="p-4 rounded-lg bg-success/10 text-center">
                     <CheckCircle2 className="h-8 w-8 text-success mx-auto mb-2" />
                     <p className="text-2xl font-bold text-success">{stats.tasksCompleted}</p>
                     <p className="text-xs text-muted-foreground">Concluídas (período)</p>
@@ -989,7 +989,7 @@ export default function Reports() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-red-500" />
+                  <Flame className="h-5 w-5 text-destructive" />
                   Sequência de Estudos
                 </CardTitle>
                 <CardDescription>Mantenha sua consistência</CardDescription>
