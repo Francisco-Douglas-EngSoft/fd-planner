@@ -25,7 +25,11 @@ export function TodaySessionsHistory() {
   const { user } = useAuth();
 
   const fetchTodaySessions = async () => {
-    if (!user) return;
+    if (!user) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

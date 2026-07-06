@@ -37,7 +37,11 @@ export function FocusEvolutionChart({ refreshKey }: { refreshKey?: number }) {
   const [data, setData] = useState<DayPoint[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     const load = async () => {
