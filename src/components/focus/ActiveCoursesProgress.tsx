@@ -41,6 +41,8 @@ export function ActiveCoursesProgress({ onCourseSelect, selectedCourseId }: Acti
   useEffect(() => {
     if (user) {
       fetchActiveCourses();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
 
