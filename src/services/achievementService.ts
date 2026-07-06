@@ -120,34 +120,19 @@ export class AchievementService {
    * Desbloqueia conquista para o usuário
    */
   static async unlockAchievement(userId: string, achievementId: string): Promise<UserAchievement> {
-    // Verifica se já está desbloqueada
-    const existing = await supabase
-      .from('user_achievements')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('achievement_id', achievementId)
-      .single();
-
-    if (existing.data) {
-      return existing.data;
-    }
-
-    // Desbloqueia
-    const { data, error } = await supabase
-      .from('user_achievements')
-      .insert({
-        user_id: userId,
-        achievement_id: achievementId,
-      })
-      .select()
-      .single();
+    // Desbloqueio validado no servidor (SECURITY DEFINER): confere os
+    // critérios da conquista para o usuário autenticado e evita que o
+    // cliente conceda conquistas arbitrárias.
+    const { data, error } = await (supabase.rpc as any)('unlock_achievement', {
+      _achievement_id: achievementId,
+    });
 
     if (error) throw new Error(error.message);
 
     // Invalida cache
     this.invalidateUserCache(userId);
 
-    return data;
+    return data as UserAchievement;
   }
 
   /**
