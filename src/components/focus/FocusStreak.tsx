@@ -16,6 +16,9 @@ export function FocusStreak() {
   useEffect(() => {
     if (user) {
       calculateStreak();
+    } else {
+      setStreak(0);
+      setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, refreshKey]);
