@@ -7,10 +7,9 @@ import { installFocusQueueAutoFlush } from "./lib/offlineFocusQueue";
 
 // Initialize theme classes before React mounts to prevent flash
 (() => {
-  const theme = localStorage.getItem('fdplanner-theme') || 
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const theme = localStorage.getItem('fdplanner-theme') || 'dark';
   const lightVariant = localStorage.getItem('fdplanner-light-variant') || 'verdant';
-  const darkVariant = localStorage.getItem('fdplanner-dark-variant') || 'cosmic';
+  const darkVariant = localStorage.getItem('fdplanner-dark-variant') || 'graphite';
   
   const root = document.documentElement;
   root.classList.add(theme);
