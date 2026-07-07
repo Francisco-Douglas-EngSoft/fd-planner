@@ -1460,6 +1460,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      unlock_achievement: {
+        Args: { _achievement_id: string }
+        Returns: {
+          achievement_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_achievements"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

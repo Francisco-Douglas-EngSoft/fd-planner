@@ -7,7 +7,7 @@ import {
 
 type Theme = 'light' | 'dark';
 type LightVariant = 'crystal' | 'ivory' | 'arctic' | 'verdant';
-type DarkVariant = 'aurora' | 'ocean' | 'neon' | 'royal';
+type DarkVariant = 'aurora' | 'ocean' | 'neon' | 'royal' | 'graphite';
 
 interface ThemeContextType {
   theme: Theme;
@@ -35,6 +35,7 @@ export const darkVariants: { id: DarkVariant; name: string; description: string 
   { id: 'ocean', name: 'Deep Ocean', description: 'Profundezas oceânicas com bioluminescência azul' },
   { id: 'neon', name: 'Neon Tokyo', description: 'Cyberpunk moderno com neon rosa e azul elétrico' },
   { id: 'royal', name: 'Royal Purple', description: 'Luxo e elegância com roxos profundos e dourado' },
+  { id: 'graphite', name: 'Grafite Fosco', description: 'Chumbo, fosco e cinza escuro com textos brancos — sóbrio e profissional' },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -58,7 +59,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [darkVariant, setDarkVariantState] = useState<DarkVariant>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('fdplanner-dark-variant') as DarkVariant;
-      if (stored && ['aurora', 'ocean', 'neon', 'royal'].includes(stored)) return stored;
+      if (stored && ['aurora', 'ocean', 'neon', 'royal', 'graphite'].includes(stored)) return stored;
     }
     return 'aurora';
   });
