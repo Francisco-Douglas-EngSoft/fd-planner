@@ -43,9 +43,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('fdplanner-theme') as Theme;
       if (stored) return stored;
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      return 'dark';
     }
-    return 'light';
+    return 'dark';
   });
 
   const [lightVariant, setLightVariantState] = useState<LightVariant>(() => {
@@ -61,7 +61,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem('fdplanner-dark-variant') as DarkVariant;
       if (stored && ['aurora', 'ocean', 'neon', 'royal', 'graphite'].includes(stored)) return stored;
     }
-    return 'aurora';
+    return 'graphite';
   });
 
   // Use the reactive hook for custom theme state
