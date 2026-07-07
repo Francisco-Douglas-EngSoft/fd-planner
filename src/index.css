@@ -586,6 +586,85 @@
     --shadow-card: 0 2px 8px rgba(0 0 0 / 0.28), 0 1px 3px rgba(0 0 0 / 0.20);
     --shadow-colored: 0 15px 35px -10px hsl(270 75% 58% / 0.42);
   }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DARK THEME: GRAPHITE (Grafite Fosco)
+     Chumbo, fosco, preto e tons de cinza escuro com textos brancos.
+     Estética profissional, sóbria e minimalista — sem cores vibrantes.
+  ═══════════════════════════════════════════════════════════════ */
+  .dark-graphite {
+    --background: 220 8% 7%;
+    --foreground: 220 12% 96%;
+
+    --card: 220 8% 10%;
+    --card-foreground: 220 12% 96%;
+
+    --popover: 220 8% 9%;
+    --popover-foreground: 220 12% 96%;
+
+    --primary: 220 9% 78%;
+    --primary-foreground: 220 12% 8%;
+    --primary-glow: 220 10% 88%;
+
+    --secondary: 220 7% 15%;
+    --secondary-foreground: 220 12% 94%;
+
+    --muted: 220 7% 13%;
+    --muted-foreground: 220 8% 60%;
+
+    --accent: 215 14% 40%;
+    --accent-foreground: 220 12% 96%;
+
+    --success: 150 40% 48%;
+    --success-foreground: 220 12% 8%;
+
+    --warning: 40 70% 55%;
+    --warning-foreground: 40 90% 10%;
+
+    --destructive: 355 60% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 7% 17%;
+    --input: 220 7% 17%;
+    --ring: 220 9% 55%;
+
+    /* Sidebar - Graphite matte style */
+    --sidebar-background: 220 9% 5%;
+    --sidebar-foreground: 220 12% 88%;
+    --sidebar-primary: 220 9% 78%;
+    --sidebar-primary-foreground: 220 12% 8%;
+    --sidebar-accent: 220 7% 12%;
+    --sidebar-accent-foreground: 220 12% 96%;
+    --sidebar-border: 220 7% 14%;
+    --sidebar-ring: 220 9% 55%;
+
+    --chart-1: 220 10% 72%;
+    --chart-2: 215 14% 50%;
+    --chart-3: 220 8% 40%;
+    --chart-4: 200 12% 60%;
+    --chart-5: 355 45% 55%;
+
+    --glass-bg: rgba(18 19 21 / 0.90);
+    --glass-border: rgba(200 205 215 / 0.10);
+    --glass-shadow: 0 8px 32px rgba(0 0 0 / 0.50);
+
+    --gradient-primary: linear-gradient(135deg, hsl(220 9% 78%), hsl(215 14% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(215 14% 45%), hsl(220 8% 30%));
+    --gradient-hero: linear-gradient(180deg, hsl(220 8% 7%) 0%, hsl(220 8% 11%) 100%);
+    --gradient-mesh: radial-gradient(at 0% 0%, hsl(220 10% 30% / 0.18) 0px, transparent 50%), radial-gradient(at 100% 0%, hsl(215 12% 25% / 0.14) 0px, transparent 50%), radial-gradient(at 100% 100%, hsl(220 8% 20% / 0.10) 0px, transparent 50%);
+    --gradient-glass: linear-gradient(135deg, rgba(24 25 28 / 0.93), rgba(18 19 21 / 0.87));
+    --gradient-card: linear-gradient(180deg, rgba(26 27 30 / 0.95), rgba(20 21 23 / 0.90));
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.42), 0 2px 4px -2px rgb(0 0 0 / 0.28);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.48), 0 4px 6px -4px rgb(0 0 0 / 0.34);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.55), 0 8px 10px -6px rgb(0 0 0 / 0.40);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.65);
+    --shadow-glow: 0 0 50px -18px hsl(220 10% 70% / 0.30);
+    --shadow-glass: 0 4px 24px rgba(0 0 0 / 0.45), inset 0 0 0 1px rgba(200 205 215 / 0.08);
+    --shadow-card: 0 2px 8px rgba(0 0 0 / 0.32), 0 1px 3px rgba(0 0 0 / 0.24);
+    --shadow-colored: 0 15px 35px -10px hsl(220 10% 40% / 0.35);
+  }
 }
 
 @layer base {
