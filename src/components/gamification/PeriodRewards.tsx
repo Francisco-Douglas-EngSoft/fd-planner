@@ -195,6 +195,17 @@ export function PeriodRewards() {
 
   const handleClaim = async (goalId: string, periodKey: string, hours: number) => {
     if (!user) return;
+    // Validação no front: impede resgate duplo no mesmo período.
+    const already = claims.some(
+      (c) => c.reward_goal_id === goalId && c.period_key === periodKey,
+    );
+    if (already) {
+      toast({
+        title: 'Já resgatada',
+        description: 'Você já resgatou esta recompensa neste período.',
+      });
+      return;
+    }
     setClaiming(goalId);
     try {
       const { error } = await db.from('reward_claims').insert({
@@ -203,7 +214,18 @@ export function PeriodRewards() {
         period_key: periodKey,
         hours_at_claim: Math.round(hours * 10) / 10,
       });
-      if (error && error.code !== '23505') throw error;
+      if (error) {
+        // 23505 = violação da restrição UNIQUE (resgate duplicado no banco).
+        if (error.code === '23505') {
+          toast({
+            title: 'Já resgatada',
+            description: 'Esta recompensa já foi resgatada neste período.',
+          });
+          fetchData();
+          return;
+        }
+        throw error;
+      }
       toast({ title: 'Recompensa resgatada! 🎉', description: 'Aproveite — você merece!' });
       fetchData();
     } catch (err) {
