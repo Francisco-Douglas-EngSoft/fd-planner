@@ -276,7 +276,10 @@ export function PeriodRewards() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.03, type: 'spring', stiffness: 220, damping: 22 }}
               >
-                <Card className={cn('tint-card h-full relative overflow-hidden', PERIOD_TINT[goal.period_type])}>
+                <Card
+                  className="tint-card h-full relative overflow-hidden"
+                  style={{ ['--tint' as string]: `var(--tint-${PERIOD_TINT[goal.period_type]})` }}
+                >
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
