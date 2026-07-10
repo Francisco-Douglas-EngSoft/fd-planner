@@ -769,6 +769,80 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_claims: {
+        Row: {
+          claimed_at: string
+          created_at: string
+          hours_at_claim: number | null
+          id: string
+          period_key: string
+          reward_goal_id: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          created_at?: string
+          hours_at_claim?: number | null
+          id?: string
+          period_key: string
+          reward_goal_id: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          created_at?: string
+          hours_at_claim?: number | null
+          id?: string
+          period_key?: string
+          reward_goal_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reward_claims_reward_goal_id_fkey"
+            columns: ["reward_goal_id"]
+            isOneToOne: false
+            referencedRelation: "reward_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reward_goals: {
+        Row: {
+          created_at: string
+          emoji: string | null
+          id: string
+          notes: string | null
+          period_type: string
+          target_hours: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          notes?: string | null
+          period_type: string
+          target_hours?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          notes?: string | null
+          period_type?: string
+          target_hours?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_notes: {
         Row: {
           content: string | null
