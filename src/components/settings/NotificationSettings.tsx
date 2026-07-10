@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { enableFcm, sendTestPush, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +25,13 @@ export function NotificationSettings() {
   const [impulseAlerts, setImpulseAlerts] = useState(true);
   const [enabling, setEnabling] = useState(false);
   const [testing, setTesting] = useState(false);
+
+  // Garante que o token deste dispositivo esteja salvo quando a permissão já foi concedida.
+  useEffect(() => {
+    if (fcmReady && permission === 'granted') {
+      void enableFcm();
+    }
+  }, [fcmReady, permission]);
 
   const handleEnableNotifications = async () => {
     setEnabling(true);
