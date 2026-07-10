@@ -214,8 +214,8 @@ export function PaceIndicatorCard({
             <div className="flex items-center gap-2 text-sm text-slate-400 min-w-0">
               <CalendarRange className="h-4 w-4 shrink-0" />
               <span className="truncate">
-                Projetando de <span className="font-semibold text-white">{formatShortDate(projectionStart)}</span>
-                {' '}até <span className="font-semibold text-white">{formatShortDate(now)}</span>
+                Semana de <span className="font-semibold text-white">{formatShortDate(weekStart)}</span>
+                {' '}até <span className="font-semibold text-white">{formatShortDate(weekEnd)}</span>
               </span>
             </div>
 
