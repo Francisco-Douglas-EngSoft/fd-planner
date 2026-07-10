@@ -34,7 +34,7 @@ export const PERIOD_LABELS: Record<PeriodType, string> = {
 
 /** Descrição do período em texto curto */
 export const PERIOD_DESCRIPTION: Record<PeriodType, string> = {
-  weekly: 'A cada semana (Seg–Dom)',
+  weekly: 'A cada semana (Seg–Sáb)',
   biweekly: 'A cada quinzena (1–15 / 16–fim)',
   monthly: 'A cada mês',
   bimonthly: 'A cada 2 meses',
@@ -60,12 +60,12 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-function isoWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+/** Formata uma data como YYYY-MM-DD no fuso local (sem UTC). */
+function fmtLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export interface PeriodRange {
@@ -93,9 +93,17 @@ export function getPeriodRange(period: PeriodType, ref: Date = new Date()): Peri
       const day = ref.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       const start = startOfDay(new Date(y, m, d + diff));
+      // Semana de estudo: Segunda a Sábado (Domingo não conta).
       const end = new Date(start);
-      end.setDate(start.getDate() + 7);
-      return { start, end, key: `${start.getFullYear()}-W${isoWeek(start)}`, label: `Semana ${isoWeek(start)}` };
+      end.setDate(start.getDate() + 6); // exclusivo → cobre Seg 00:00 até Sáb 23:59
+      const sat = new Date(start);
+      sat.setDate(start.getDate() + 5);
+      return {
+        start,
+        end,
+        key: `W${fmtLocal(start)}`,
+        label: `Semana ${start.getDate()}/${start.getMonth() + 1}–${sat.getDate()}/${sat.getMonth() + 1}`,
+      };
     }
     case 'biweekly': {
       if (d <= 15) {
@@ -177,4 +185,52 @@ export function sumHoursInRange(sessions: FocusLike[], start: Date, end: Date): 
     if (t >= s && t < e) minutes += session.duration_minutes || 0;
   }
   return minutes / 60;
+}
+
+/**
+ * Converte uma chave de período (armazenada em reward_claims.period_key) em um
+ * rótulo legível, para exibir no histórico de recompensas resgatadas.
+ */
+export function periodKeyLabel(period: PeriodType, key: string): string {
+  try {
+    switch (period) {
+      case 'weekly': {
+        // key = "WYYYY-MM-DD" (segunda-feira de início)
+        const iso = key.replace(/^W/, '');
+        const [yy, mm, dd] = iso.split('-').map(Number);
+        const start = new Date(yy, (mm || 1) - 1, dd || 1);
+        const sat = new Date(start);
+        sat.setDate(start.getDate() + 5);
+        return `Semana ${start.getDate()}/${start.getMonth() + 1} – ${sat.getDate()}/${sat.getMonth() + 1}/${sat.getFullYear()}`;
+      }
+      case 'biweekly': {
+        // key = "YYYY-M-Q1|Q2"
+        const [yy, mm, q] = key.split('-');
+        const mi = Number(mm) - 1;
+        const half = q === 'Q1' ? '1–15' : '16–fim';
+        return `${half} ${MONTHS[mi] ?? ''} ${yy}`;
+      }
+      case 'monthly': {
+        const [yy, mm] = key.split('-');
+        return `${MONTHS[Number(mm) - 1] ?? ''} ${yy}`;
+      }
+      case 'bimonthly': {
+        const [yy, b] = key.split('-');
+        return `${b?.replace('B', '')}º bimestre ${yy}`;
+      }
+      case 'quarterly': {
+        const [yy, t] = key.split('-');
+        return `${t?.replace('T', '')}º trimestre ${yy}`;
+      }
+      case 'semiannual': {
+        const [yy, s] = key.split('-');
+        return `${s?.replace('S', '')}º semestre ${yy}`;
+      }
+      case 'annual':
+        return `Ano ${key}`;
+    }
+  } catch {
+    /* fallback abaixo */
+  }
+  return key;
 }

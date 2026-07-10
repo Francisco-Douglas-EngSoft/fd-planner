@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { XPProgressBar, getLevelTier } from '@/components/gamification/XPProgressBar';
 import { DailyXPSummary } from '@/components/gamification/DailyXPSummary';
 import { PeriodRewards } from '@/components/gamification/PeriodRewards';
+import { RewardsHistory } from '@/components/gamification/RewardsHistory';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Gift, History } from 'lucide-react';
 
 interface Achievement {
   id: string;
@@ -236,6 +239,20 @@ export default function Achievements() {
         </div>
       </motion.div>
 
+      <Tabs defaultValue="conquistas" className="w-full">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="conquistas" className="gap-1.5">
+            <Trophy className="h-4 w-4" /> Conquistas
+          </TabsTrigger>
+          <TabsTrigger value="recompensas" className="gap-1.5">
+            <Gift className="h-4 w-4" /> Recompensas
+          </TabsTrigger>
+          <TabsTrigger value="resgatadas" className="gap-1.5">
+            <History className="h-4 w-4" /> Resgatadas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="conquistas" className="space-y-6 sm:space-y-8 mt-6">
       {/* XP & Daily Progress */}
       <div className="grid gap-4 lg:grid-cols-2">
         <motion.div
@@ -301,9 +318,6 @@ export default function Achievements() {
           </motion.div>
         ))}
       </div>
-
-      {/* Recompensas por período */}
-      <PeriodRewards />
 
       {/* Category Filter */}
       <motion.div
@@ -519,6 +533,16 @@ export default function Achievements() {
           <p className="text-sm text-muted-foreground/70 mt-1">Continue estudando para desbloquear conquistas!</p>
         </motion.div>
       )}
+        </TabsContent>
+
+        <TabsContent value="recompensas" className="mt-6">
+          <PeriodRewards />
+        </TabsContent>
+
+        <TabsContent value="resgatadas" className="mt-6">
+          <RewardsHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
