@@ -115,12 +115,15 @@ export function PaceIndicatorCard({
     [config.ideal, studyDays, now],
   );
 
-  // Intervalo de projeção: do max(planStart, hoje) até hoje
-  const projectionStart = useMemo(() => {
-    const parsed = startDate ? parseISO(startDate) : null;
-    if (!parsed || !isValid(parsed)) return null;
-    return parsed.getTime() > now.getTime() ? parsed : parsed;
-  }, [startDate, now]);
+  // Intervalo da semana atual (segunda → domingo), usado como janela de projeção
+  // exibida no card — coerente com "Esperado Semana".
+  const { weekStart, weekEnd } = useMemo(() => {
+    const dayOfWeek = now.getDay(); // 0=Dom, 1=Seg
+    const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    return { weekStart: monday, weekEnd: sunday };
+  }, [now]);
 
   const meta = {
     ahead: {
@@ -211,8 +214,8 @@ export function PaceIndicatorCard({
             <div className="flex items-center gap-2 text-sm text-slate-400 min-w-0">
               <CalendarRange className="h-4 w-4 shrink-0" />
               <span className="truncate">
-                Projetando de <span className="font-semibold text-white">{formatShortDate(projectionStart)}</span>
-                {' '}até <span className="font-semibold text-white">{formatShortDate(now)}</span>
+                Semana de <span className="font-semibold text-white">{formatShortDate(weekStart)}</span>
+                {' '}até <span className="font-semibold text-white">{formatShortDate(weekEnd)}</span>
               </span>
             </div>
 
