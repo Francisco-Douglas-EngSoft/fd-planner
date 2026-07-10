@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { XPProgressBar, getLevelTier } from '@/components/gamification/XPProgressBar';
 import { DailyXPSummary } from '@/components/gamification/DailyXPSummary';
 import { PeriodRewards } from '@/components/gamification/PeriodRewards';
+import { RewardsHistory } from '@/components/gamification/RewardsHistory';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Gift, History } from 'lucide-react';
 
 interface Achievement {
   id: string;
