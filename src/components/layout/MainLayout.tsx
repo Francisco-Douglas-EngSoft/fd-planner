@@ -7,18 +7,27 @@ import { GuestModeBanner } from './GuestModeBanner';
 import { PageTransition } from './PageTransition';
 import { AnimatedBackground } from '@/components/ui/AnimatedBackground';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useDeviceType } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageSwipeNavigation } from '@/hooks/usePageSwipeNavigation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { Badge } from '@/components/ui/badge';
-import { WifiOff, RefreshCw } from 'lucide-react';
+import { WifiOff, RefreshCw, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/ui/Logo';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const isMobile = useIsMobile();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const device = useDeviceType();
+  const isMobile = device === 'mobile';
+  const isTablet = device === 'tablet';
+  const isDesktop = device === 'desktop';
   const { isGuest, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const showGuestBanner = isGuest && !user;
   
@@ -39,9 +48,18 @@ export function MainLayout() {
     enabled: isMobile,
   });
 
+  // Espaçamento superior combinado: banner offline + banner convidado + header do tablet
+  const topPad =
+    (showGuestBanner ? 40 : 0) + (!isOnline ? 32 : 0) + (isTablet ? 56 : 0);
+
+  // Fecha a gaveta ao trocar de rota (tablet)
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
   // Listen for sidebar state changes (desktop only)
   useEffect(() => {
-    if (isMobile) return;
+    if (!isDesktop) return;
     
     const checkSidebar = () => {
       const sidebar = document.querySelector('aside');
@@ -57,7 +75,7 @@ export function MainLayout() {
     }
 
     return () => observer.disconnect();
-  }, [isMobile]);
+  }, [isDesktop]);
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -89,16 +107,55 @@ export function MainLayout() {
       {/* Animated Background */}
       <AnimatedBackground variant="orbs" intensity="medium" />
       
-      {/* Sidebar apenas em desktop */}
-      {!isMobile && <AppSidebar />}
+      {/* Sidebar fixa apenas em desktop */}
+      {isDesktop && <AppSidebar variant="fixed" />}
+
+      {/* Gaveta com menu hambúrguer em tablet */}
+      {isTablet && (
+        <AppSidebar variant="drawer" isOpen={drawerOpen} onOpenChange={setDrawerOpen} />
+      )}
+
+      {/* Barra superior com hambúrguer em tablet */}
+      {isTablet && (
+        <header
+          className={cn(
+            "fixed left-0 right-0 z-[95] h-14 flex items-center justify-between gap-2 px-4",
+            "bg-background/95 backdrop-blur-xl border-b border-border/60"
+          )}
+          style={{ top: (showGuestBanner ? 40 : 0) + (!isOnline ? 32 : 0) }}
+        >
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            <Logo size="md" variant="full" />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={toggleTheme}
+            aria-label="Alternar tema"
+          >
+            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+          </Button>
+        </header>
+      )}
       
       <main
         className={cn(
           "min-h-screen transition-all duration-300 ease-in-out relative z-10 overflow-x-hidden",
-          isMobile ? "ml-0 pb-20" : (sidebarCollapsed ? "ml-[72px]" : "ml-64"),
-          showGuestBanner && "pt-10",
-          !isOnline && "pt-8"
+          isMobile && "ml-0 pb-20",
+          isTablet && "ml-0",
+          isDesktop && (sidebarCollapsed ? "ml-[72px]" : "ml-64")
         )}
+        style={{ paddingTop: topPad || undefined }}
       >
         <div className="container mx-auto px-4 py-3 sm:p-6 lg:p-8 safe-area-x">
           <AnimatePresence mode="wait">
