@@ -1,3 +1,8 @@
 name = "fd-planner"
 compatibility_date = "2025-01-01"
-pages_build_output_dir = "dist"
+
+# Cloudflare Workers (Static Assets) — serve the built SPA from ./dist
+[assets]
+directory = "./dist"
+# Client-side routing: serve index.html for unknown routes (deep links / refresh)
+not_found_handling = "single-page-application"
