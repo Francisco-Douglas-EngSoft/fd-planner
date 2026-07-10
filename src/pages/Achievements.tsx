@@ -302,7 +302,7 @@ export default function Achievements() {
         ))}
       </div>
 
-      {/* Category Filter */}
+      {/* Recompensas por período */}
       <PeriodRewards />
 
       {/* Category Filter */}
