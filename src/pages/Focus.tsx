@@ -178,6 +178,8 @@ export default function Focus() {
     skipPendingBreak,
     settings,
     setSettings,
+    sessionStartTime,
+    sessionEndTime,
   } = usePomodoroTimer();
 
   const MANUAL_DAILY_GOAL_KEY_PREFIX = 'fdplanner_manual_daily_goal_hours:';
@@ -1154,6 +1156,23 @@ export default function Focus() {
                   <div className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tabular-nums tracking-tight break-all">
                     {formatSecondsToHMS(timeLeft)}
                   </div>
+                  {/* Hora de início e término previsto do foco */}
+                  {(sessionStartTime || sessionEndTime) && (
+                    <div className="mt-4 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
+                      {sessionStartTime && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs sm:text-sm font-medium backdrop-blur-sm">
+                          <Play className="h-3.5 w-3.5" />
+                          Início {new Date(sessionStartTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                      {sessionEndTime && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs sm:text-sm font-medium backdrop-blur-sm">
+                          <Square className="h-3.5 w-3.5" />
+                          Término ~{new Date(sessionEndTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {dailyProgressInfo && (
                     <div className="mt-4">
                       <div className="text-sm opacity-80 tabular-nums">
