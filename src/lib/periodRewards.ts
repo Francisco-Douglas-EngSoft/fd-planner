@@ -186,3 +186,51 @@ export function sumHoursInRange(sessions: FocusLike[], start: Date, end: Date): 
   }
   return minutes / 60;
 }
+
+/**
+ * Converte uma chave de período (armazenada em reward_claims.period_key) em um
+ * rótulo legível, para exibir no histórico de recompensas resgatadas.
+ */
+export function periodKeyLabel(period: PeriodType, key: string): string {
+  try {
+    switch (period) {
+      case 'weekly': {
+        // key = "WYYYY-MM-DD" (segunda-feira de início)
+        const iso = key.replace(/^W/, '');
+        const [yy, mm, dd] = iso.split('-').map(Number);
+        const start = new Date(yy, (mm || 1) - 1, dd || 1);
+        const sat = new Date(start);
+        sat.setDate(start.getDate() + 5);
+        return `Semana ${start.getDate()}/${start.getMonth() + 1} – ${sat.getDate()}/${sat.getMonth() + 1}/${sat.getFullYear()}`;
+      }
+      case 'biweekly': {
+        // key = "YYYY-M-Q1|Q2"
+        const [yy, mm, q] = key.split('-');
+        const mi = Number(mm) - 1;
+        const half = q === 'Q1' ? '1–15' : '16–fim';
+        return `${half} ${MONTHS[mi] ?? ''} ${yy}`;
+      }
+      case 'monthly': {
+        const [yy, mm] = key.split('-');
+        return `${MONTHS[Number(mm) - 1] ?? ''} ${yy}`;
+      }
+      case 'bimonthly': {
+        const [yy, b] = key.split('-');
+        return `${b?.replace('B', '')}º bimestre ${yy}`;
+      }
+      case 'quarterly': {
+        const [yy, t] = key.split('-');
+        return `${t?.replace('T', '')}º trimestre ${yy}`;
+      }
+      case 'semiannual': {
+        const [yy, s] = key.split('-');
+        return `${s?.replace('S', '')}º semestre ${yy}`;
+      }
+      case 'annual':
+        return `Ano ${key}`;
+    }
+  } catch {
+    /* fallback abaixo */
+  }
+  return key;
+}
