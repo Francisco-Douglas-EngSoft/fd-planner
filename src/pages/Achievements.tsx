@@ -303,6 +303,9 @@ export default function Achievements() {
       </div>
 
       {/* Category Filter */}
+      <PeriodRewards />
+
+      {/* Category Filter */}
       <motion.div
         className="flex gap-2 flex-wrap"
         initial={{ opacity: 0 }}
