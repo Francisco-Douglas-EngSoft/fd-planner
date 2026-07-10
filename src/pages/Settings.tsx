@@ -21,6 +21,7 @@ import { cn, getErrorMessage } from '@/lib/utils';
 import { DataExportDialog } from '@/components/settings/DataExportDialog';
 import { DeleteAccountDialog } from '@/components/settings/DeleteAccountDialog';
 import { ResetHistoryDialog } from '@/components/settings/ResetHistoryDialog';
+import { ResetStudyDataDialog } from '@/components/settings/ResetStudyDataDialog';
 import { NotificationSettings } from '@/components/settings/NotificationSettings';
 import { StudyRemindersManager } from '@/components/settings/StudyRemindersManager';
 import { CustomThemeBuilder } from '@/components/settings/CustomThemeBuilder';
