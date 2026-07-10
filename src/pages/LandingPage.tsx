@@ -500,6 +500,9 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Autoria, Direitos Autorais e LGPD */}
+      <AuthorshipNotice variant="section" />
+
       {/* Footer */}
       <Footer />
 
