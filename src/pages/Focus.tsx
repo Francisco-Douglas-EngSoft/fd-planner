@@ -717,13 +717,17 @@ export default function Focus() {
   // Weekly goal: sum of dailyHours for each configured study day in the current week.
   // Resets every Monday 00:00 (week starts Monday).
   const weeklyProgressInfo = useMemo(() => {
-    if (!courseDailyInfo) return null;
-    const dailyHours = courseDailyInfo.dailyHours || 0;
-    if (dailyHours <= 0) return null;
+    if (!selectedCourse) return null;
 
-    const studyDays = courseDailyInfo.planStudyDays && courseDailyInfo.planStudyDays.length > 0
-      ? courseDailyInfo.planStudyDays
-      : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    // Use plan info when available (independent of "today being a study day"),
+    // otherwise fall back to the manual daily goal so the weekly card still shows.
+    const dailyHours = paceCourseInfo?.dailyHours ?? Number(manualDailyHours);
+    if (!Number.isFinite(dailyHours) || dailyHours <= 0) return null;
+
+    const planStudyDays = paceCourseInfo?.planStudyDays ?? [];
+    const studyDays = planStudyDays.length > 0
+      ? planStudyDays
+      : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
     const studyDaysCount = studyDays.length;
     const weeklyGoalMinutes = studyDaysCount * dailyHours * 60;
@@ -745,7 +749,7 @@ export default function Focus() {
       studyDaysCount,
       dailyHours,
     };
-  }, [courseDailyInfo, weekStudiedMinutes, isRunning, mode, currentElapsedMinutes]);
+  }, [selectedCourse, paceCourseInfo, manualDailyHours, weekStudiedMinutes, isRunning, mode, currentElapsedMinutes]);
 
   const cyclesInfo = useMemo(() => {
     if (!courseDailyInfo || targetCycles <= 0) return null;
