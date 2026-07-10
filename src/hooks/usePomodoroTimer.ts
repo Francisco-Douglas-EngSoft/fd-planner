@@ -622,5 +622,8 @@ export function usePomodoroTimer() {
     presetIndex,
     customTotalTime,
     currentElapsedMinutes,
+    // Wall-clock timestamps for the running session (ms since epoch).
+    sessionStartTime: timerStartedAt,
+    sessionEndTime: endTime,
   };
 }
