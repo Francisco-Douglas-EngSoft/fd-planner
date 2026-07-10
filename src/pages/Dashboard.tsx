@@ -126,24 +126,28 @@ export default function Dashboard() {
       value: formatHoursToHMS(stats.courseCompletedHours),
       subtitle: 'Módulos concluídos',
       icon: Clock,
+      tint: 'blue',
     },
     {
       title: 'Tempo de Foco',
       value: formatFocusTime(stats.totalFocusMinutes),
       subtitle: 'Pomodoro total',
       icon: Timer,
+      tint: 'violet',
     },
     {
       title: 'Carga Horária Total',
       value: formatHoursToHMS(stats.totalCourseHours),
       subtitle: 'Cursos ativos',
       icon: Library,
+      tint: 'cyan',
     },
     {
       title: 'Cursos Ativos',
       value: stats.activeCourses,
       subtitle: `${stats.inProgressCourses} em andamento`,
       icon: BookOpen,
+      tint: 'teal',
     },
     {
       title: 'Cursos Concluídos',
@@ -151,12 +155,14 @@ export default function Dashboard() {
       subtitle: 'Finalizados',
       icon: CheckCircle,
       link: '/cursos',
+      tint: 'emerald',
     },
     {
       title: 'Tarefas Concluídas',
       value: stats.completedTasks,
       subtitle: `De ${stats.totalTasks} no total`,
       icon: Target,
+      tint: 'indigo',
     },
     {
       title: 'Sequência',
@@ -164,6 +170,7 @@ export default function Dashboard() {
       subtitle: `Nível ${stats.level}`,
       icon: Flame,
       link: '/conquistas',
+      tint: 'orange',
     },
     {
       title: 'Conquistas',
@@ -171,6 +178,7 @@ export default function Dashboard() {
       subtitle: 'Desbloqueadas',
       icon: Trophy,
       link: '/conquistas',
+      tint: 'amber',
     },
   ];
 
@@ -178,13 +186,14 @@ export default function Dashboard() {
     const Icon = card.icon;
 
     return (
-      <Card className="group relative h-full overflow-hidden border border-border/60 bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg">
-        {/* Top accent line */}
-        <div className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-gradient-to-r from-primary to-accent transition-transform duration-300 group-hover:scale-x-100" />
+      <Card
+        className="tint-card group relative h-full overflow-hidden border bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5"
+        style={{ ['--tint' as string]: `var(--tint-${card.tint})` }}
+      >
         <CardContent className="p-4 sm:p-5">
           <div className="flex flex-col h-full">
             <div className="flex items-start justify-between mb-3">
-              <div className="rounded-xl p-2.5 bg-primary/10 text-primary ring-1 ring-primary/15 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+              <div className="tint-icon rounded-xl p-2.5">
                 <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
               {card.link && (
