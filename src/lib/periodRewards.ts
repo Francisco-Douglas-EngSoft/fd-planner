@@ -93,9 +93,17 @@ export function getPeriodRange(period: PeriodType, ref: Date = new Date()): Peri
       const day = ref.getDay();
       const diff = day === 0 ? -6 : 1 - day;
       const start = startOfDay(new Date(y, m, d + diff));
+      // Semana de estudo: Segunda a Sábado (Domingo não conta).
       const end = new Date(start);
-      end.setDate(start.getDate() + 7);
-      return { start, end, key: `${start.getFullYear()}-W${isoWeek(start)}`, label: `Semana ${isoWeek(start)}` };
+      end.setDate(start.getDate() + 6); // exclusivo → cobre Seg 00:00 até Sáb 23:59
+      const sat = new Date(start);
+      sat.setDate(start.getDate() + 5);
+      return {
+        start,
+        end,
+        key: `W${fmtLocal(start)}`,
+        label: `Semana ${start.getDate()}/${start.getMonth() + 1}–${sat.getDate()}/${sat.getMonth() + 1}`,
+      };
     }
     case 'biweekly': {
       if (d <= 15) {
