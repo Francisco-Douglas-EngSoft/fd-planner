@@ -247,6 +247,8 @@ export default function Admin() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AuthorshipNotice variant="card" />
     </div>
   );
 }
