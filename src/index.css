@@ -6,6 +6,65 @@
 
 @layer base {
   /* ═══════════════════════════════════════════════════════════════
+     ACCENT TINTS — paleta de destaque compartilhada (data-viz)
+     Cores vivas porém equilibradas que funcionam em todos os temas.
+     Cada card do sistema usa uma dessas cores como destaque.
+  ═══════════════════════════════════════════════════════════════ */
+  :root {
+    --tint-blue: 217 91% 60%;
+    --tint-violet: 262 83% 63%;
+    --tint-emerald: 152 63% 45%;
+    --tint-amber: 38 92% 52%;
+    --tint-rose: 340 82% 60%;
+    --tint-cyan: 190 90% 48%;
+    --tint-orange: 22 90% 56%;
+    --tint-teal: 172 66% 45%;
+    --tint-indigo: 238 80% 64%;
+    --tint-pink: 322 80% 62%;
+  }
+
+  /* Card com cor de destaque própria. Defina --tint via inline style
+     (ex.: var(--tint-blue)) e aplique a classe .tint-card. */
+  .tint-card {
+    --tint: var(--tint-blue);
+  }
+}
+
+@layer components {
+  .tint-card {
+    border-color: hsl(var(--tint) / 0.22);
+  }
+  .tint-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    transform: scaleX(0);
+    transform-origin: left;
+    background: linear-gradient(90deg, hsl(var(--tint)), hsl(var(--tint) / 0.35));
+    transition: transform 0.35s ease;
+  }
+  .tint-card:hover::before {
+    transform: scaleX(1);
+  }
+  .tint-card:hover {
+    border-color: hsl(var(--tint) / 0.55);
+    box-shadow: 0 12px 28px -14px hsl(var(--tint) / 0.55);
+  }
+  .tint-icon {
+    background: hsl(var(--tint) / 0.14);
+    color: hsl(var(--tint));
+    box-shadow: inset 0 0 0 1px hsl(var(--tint) / 0.2);
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  .tint-card:hover .tint-icon {
+    background: hsl(var(--tint));
+    color: hsl(var(--background));
+  }
+}
+
+@layer base {
+  /* ═══════════════════════════════════════════════════════════════
      LIGHT THEME: MODERN MINIMAL (Default Light)
      Clean slate grays with refined indigo accent
   ═══════════════════════════════════════════════════════════════ */
