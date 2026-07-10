@@ -53,13 +53,13 @@ interface FocusRow {
 const EMOJI_OPTIONS = ['🎁', '🍕', '🎮', '📚', '👟', '🎬', '☕', '🍔', '🛍️', '✈️', '💆', '🎧'];
 
 const PERIOD_TINT: Record<PeriodType, string> = {
-  weekly: 'tint-blue',
-  biweekly: 'tint-cyan',
-  monthly: 'tint-violet',
-  bimonthly: 'tint-teal',
-  quarterly: 'tint-emerald',
-  semiannual: 'tint-amber',
-  annual: 'tint-orange',
+  weekly: 'blue',
+  biweekly: 'cyan',
+  monthly: 'violet',
+  bimonthly: 'teal',
+  quarterly: 'emerald',
+  semiannual: 'amber',
+  annual: 'orange',
 };
 
 interface EditorState {
