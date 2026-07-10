@@ -115,15 +115,33 @@ export function PaceIndicatorCard({
     [config.ideal, studyDays, now],
   );
 
-  // Intervalo da semana atual (segunda → domingo), usado como janela de projeção
-  // exibida no card — coerente com "Esperado Semana".
+  // Intervalo da semana atual restrito aos DIAS DE ESTUDO marcados
+  // (primeiro → último dia de estudo da semana), coerente com "Esperado Semana".
   const { weekStart, weekEnd } = useMemo(() => {
+    const dayIdToNum: Record<string, number> = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+    };
     const dayOfWeek = now.getDay(); // 0=Dom, 1=Seg
     const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
-    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
-    return { weekStart: monday, weekEnd: sunday };
-  }, [now]);
+
+    const allowed = new Set(
+      (studyDays || []).map((d) => dayIdToNum[d]).filter((n) => n !== undefined),
+    );
+
+    // Se nenhum dia de estudo marcado, cai para a semana inteira (seg → dom).
+    if (allowed.size === 0) {
+      const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+      return { weekStart: monday, weekEnd: sunday };
+    }
+
+    const studyDates: Date[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      if (allowed.has(d.getDay())) studyDates.push(d);
+    }
+    return { weekStart: studyDates[0], weekEnd: studyDates[studyDates.length - 1] };
+  }, [now, studyDays]);
 
   const meta = {
     ahead: {
