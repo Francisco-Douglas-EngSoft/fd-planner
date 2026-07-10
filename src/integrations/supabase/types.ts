@@ -497,6 +497,36 @@ export type Database = {
           },
         ]
       }
+      fcm_tokens: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          token: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          token: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       focus_sessions: {
         Row: {
           completed_at: string
@@ -651,6 +681,39 @@ export type Database = {
           read?: boolean
           title?: string
           type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          admin_messages: boolean
+          antivicio_alerts: boolean
+          created_at: string
+          id: string
+          study_reminders: boolean
+          task_reminders: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_messages?: boolean
+          antivicio_alerts?: boolean
+          created_at?: string
+          id?: string
+          study_reminders?: boolean
+          task_reminders?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_messages?: boolean
+          antivicio_alerts?: boolean
+          created_at?: string
+          id?: string
+          study_reminders?: boolean
+          task_reminders?: boolean
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -838,6 +901,48 @@ export type Database = {
           period_type?: string
           target_hours?: number
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scheduled_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          data: Json
+          dedupe_key: string | null
+          id: string
+          send_at: string
+          sent_at: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          send_at?: string
+          sent_at?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          send_at?: string
+          sent_at?: string | null
+          title?: string
+          type?: string
           updated_at?: string
           user_id?: string
         }
