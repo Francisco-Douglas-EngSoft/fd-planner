@@ -782,10 +782,10 @@ export default function Planning() {
             className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6"
           >
             {[
-              { icon: BookOpen, label: 'Total Planos', value: plans.length, color: 'foreground' },
-              { icon: Clock, label: 'Horas Total', value: `${Math.round(plans.reduce((sum, p) => sum + (p.total_hours || 0), 0))}h`, color: 'primary' },
-              { icon: CalendarIcon, label: 'Cursos Totais', value: plans.reduce((sum, p) => sum + (p.study_plan_courses?.length || 0), 0), color: 'accent' },
-              { icon: CalendarCheck, label: 'Ativos Hoje', value: plans.filter(p => { const start = safeParseISO(p.start_date); const end = safeParseISO(p.end_date); return start && end && today >= start && today <= end; }).length, color: 'success' },
+              { icon: BookOpen, label: 'Total Planos', value: plans.length, tint: 'blue' },
+              { icon: Clock, label: 'Horas Total', value: `${Math.round(plans.reduce((sum, p) => sum + (p.total_hours || 0), 0))}h`, tint: 'violet' },
+              { icon: CalendarIcon, label: 'Cursos Totais', value: plans.reduce((sum, p) => sum + (p.study_plan_courses?.length || 0), 0), tint: 'cyan' },
+              { icon: CalendarCheck, label: 'Ativos Hoje', value: plans.filter(p => { const start = safeParseISO(p.start_date); const end = safeParseISO(p.end_date); return start && end && today >= start && today <= end; }).length, tint: 'emerald' },
             ].map((stat) => (
               <motion.div
                 key={stat.label}
@@ -794,19 +794,19 @@ export default function Planning() {
                   visible: { opacity: 1, y: 0, scale: 1 },
                 }}
                 transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="bg-background/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-border/30 hover:border-border/60 hover:shadow-md transition-all duration-300"
+                className="tint-card group relative overflow-hidden bg-background/60 backdrop-blur-sm rounded-xl p-3 sm:p-4 border transition-all duration-300"
+                style={{ ['--tint' as string]: `var(--tint-${stat.tint})` }}
               >
                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <stat.icon className="h-4 w-4" />
+                  <span className="tint-icon inline-flex items-center justify-center rounded-lg p-1.5">
+                    <stat.icon className="h-3.5 w-3.5" />
+                  </span>
                   <span className="text-xs font-medium">{stat.label}</span>
                 </div>
-                <p className={cn(
-                  "text-xl sm:text-2xl font-bold",
-                  stat.color === 'primary' && "text-primary",
-                  stat.color === 'accent' && "text-accent",
-                  stat.color === 'success' && "text-success",
-                  stat.color === 'foreground' && "text-foreground",
-                )}>
+                <p
+                  className="text-xl sm:text-2xl font-bold"
+                  style={{ color: 'hsl(var(--tint))' }}
+                >
                   {stat.value}
                 </p>
               </motion.div>
