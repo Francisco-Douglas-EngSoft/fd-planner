@@ -1290,41 +1290,33 @@ export default function Focus() {
           {/* ─── Stats Row ─── */}
           <div className="grid gap-3 sm:gap-4 grid-cols-3">
             {[
-              { icon: Target, label: 'Sessões', value: todayCompletedCycles, color: 'primary' as const },
+              { icon: Target, label: 'Sessões', value: todayCompletedCycles, tint: 'blue' },
               { 
                 icon: Timer, 
                 label: 'Tempo', 
                 value: formatMinutesToHMS(todayStudiedMinutes + ((isRunning && mode === 'work') ? currentElapsedMinutes : 0)), 
-                color: 'accent' as const 
+                tint: 'violet',
               },
               { 
                 icon: TrendingUp, 
                 label: 'P/ Meta', 
                 value: targetCycles > 0 ? Math.max(0, targetCycles - todayCompletedCycles) : '-', 
-                color: 'success' as const 
+                tint: 'emerald',
               },
             ].map((stat) => (
-              <Card key={stat.label} className="border-border/40 rounded-2xl hover:border-border/60 transition-all">
+              <Card
+                key={stat.label}
+                className="tint-card group relative overflow-hidden border rounded-2xl bg-card transition-all"
+                style={{ ['--tint' as string]: `var(--tint-${stat.tint})` }}
+              >
                 <CardContent className="p-3 sm:p-6 text-center">
-                  <div className={cn(
-                    "inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl mb-2 sm:mb-3 transition-colors",
-                    stat.color === 'primary' && "bg-primary/10",
-                    stat.color === 'accent' && "bg-accent/10",
-                    stat.color === 'success' && "bg-success/10"
-                  )}>
-                    <stat.icon className={cn(
-                      "h-4 w-4 sm:h-5 sm:w-5",
-                      stat.color === 'primary' && "text-primary",
-                      stat.color === 'accent' && "text-accent",
-                      stat.color === 'success' && "text-success"
-                    )} />
+                  <div className="tint-icon inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl mb-2 sm:mb-3">
+                    <stat.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                  <p className={cn(
-                    "text-lg sm:text-2xl font-bold tabular-nums mb-1",
-                    stat.color === 'primary' && "text-primary",
-                    stat.color === 'accent' && "text-accent",
-                    stat.color === 'success' && "text-success"
-                  )}>
+                  <p
+                    className="text-lg sm:text-2xl font-bold tabular-nums mb-1"
+                    style={{ color: 'hsl(var(--tint))' }}
+                  >
                     {stat.value}
                   </p>
                   <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wide">{stat.label}</p>
