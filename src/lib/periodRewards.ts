@@ -34,7 +34,7 @@ export const PERIOD_LABELS: Record<PeriodType, string> = {
 
 /** Descrição do período em texto curto */
 export const PERIOD_DESCRIPTION: Record<PeriodType, string> = {
-  weekly: 'A cada semana (Seg–Dom)',
+  weekly: 'A cada semana (Seg–Sáb)',
   biweekly: 'A cada quinzena (1–15 / 16–fim)',
   monthly: 'A cada mês',
   bimonthly: 'A cada 2 meses',
@@ -60,12 +60,12 @@ function startOfDay(d: Date): Date {
   return x;
 }
 
-function isoWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+/** Formata uma data como YYYY-MM-DD no fuso local (sem UTC). */
+function fmtLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 export interface PeriodRange {
