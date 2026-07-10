@@ -506,12 +506,14 @@ export default function Reports() {
             label: 'Horas Estudadas',
             value: formatHoursToHMS(stats.completedCourseHours),
             icon: BookOpen,
+            tint: 'blue',
             footer: <p className="mt-1 text-[10px] text-muted-foreground">Módulos concluídos</p>,
           },
           {
             label: 'Tempo de Foco',
             value: formatTime(stats.focusMinutes),
             icon: Timer,
+            tint: 'violet',
             footer: (
               <div className="mt-1 flex items-center gap-2">
                 <ChangeIndicator value={focusChange} />
@@ -523,6 +525,7 @@ export default function Reports() {
             label: 'Tarefas Concluídas',
             value: stats.tasksCompleted,
             icon: CheckCircle2,
+            tint: 'emerald',
             footer: (
               <div className="mt-1 flex items-center gap-2">
                 <ChangeIndicator value={tasksChange} />
@@ -534,6 +537,7 @@ export default function Reports() {
             label: 'Progresso Cursos',
             value: `${stats.coursesProgress}%`,
             icon: TrendingUp,
+            tint: 'orange',
             footer: <p className="mt-1 text-[10px] text-muted-foreground">{courses.length} cursos ativos</p>,
           },
         ].map((card, i) => {
@@ -541,9 +545,9 @@ export default function Reports() {
           return (
             <Card
               key={i}
-              className="group relative overflow-hidden border border-border/60 bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+              className="tint-card group relative overflow-hidden border bg-card shadow-card transition-all duration-300 hover:-translate-y-0.5"
+              style={{ ['--tint' as string]: `var(--tint-${card.tint})` }}
             >
-              <div className="absolute inset-x-0 top-0 h-0.5 scale-x-0 bg-gradient-to-r from-primary to-accent transition-transform duration-300 group-hover:scale-x-100" />
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div>
@@ -551,7 +555,7 @@ export default function Reports() {
                     <p className="mt-1 text-2xl font-bold font-display text-foreground">{card.value}</p>
                     {card.footer}
                   </div>
-                  <div className="rounded-lg bg-primary/10 p-2 text-primary ring-1 ring-primary/15 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
+                  <div className="tint-icon rounded-lg p-2">
                     <Icon className="h-5 w-5" />
                   </div>
                 </div>
