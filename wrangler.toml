@@ -1,8 +1,12 @@
 name = "fd-planner"
+main = "worker/index.ts"
 compatibility_date = "2025-01-01"
 
-# Cloudflare Workers (Static Assets) — serve the built SPA from ./dist
+# Worker + Static Assets: the Worker script (worker/index.ts) serves the built
+# SPA through the ASSETS binding. Having a script unlocks the runtime
+# "Variables and secrets" panel in the Cloudflare dashboard.
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 # Client-side routing: serve index.html for unknown routes (deep links / refresh)
 not_found_handling = "single-page-application"
