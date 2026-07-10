@@ -48,6 +48,10 @@ export function MainLayout() {
     enabled: isMobile,
   });
 
+  // Espaçamento superior combinado: banner offline + banner convidado + header do tablet
+  const topPad =
+    (showGuestBanner ? 40 : 0) + (!isOnline ? 32 : 0) + (isTablet ? 56 : 0);
+
   // Fecha a gaveta ao trocar de rota (tablet)
   useEffect(() => {
     setDrawerOpen(false);
@@ -148,11 +152,10 @@ export function MainLayout() {
         className={cn(
           "min-h-screen transition-all duration-300 ease-in-out relative z-10 overflow-x-hidden",
           isMobile && "ml-0 pb-20",
-          isTablet && "ml-0 pt-14",
-          isDesktop && (sidebarCollapsed ? "ml-[72px]" : "ml-64"),
-          showGuestBanner && "pt-10",
-          !isOnline && "pt-8"
+          isTablet && "ml-0",
+          isDesktop && (sidebarCollapsed ? "ml-[72px]" : "ml-64")
         )}
+        style={{ paddingTop: topPad || undefined }}
       >
         <div className="container mx-auto px-4 py-3 sm:p-6 lg:p-8 safe-area-x">
           <AnimatePresence mode="wait">
