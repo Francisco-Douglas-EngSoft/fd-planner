@@ -358,7 +358,7 @@
     --card-foreground: 0 0% 100%;
     
     --popover: 170 22% 8%;
-    --popover-foreground: 160 15% 94%;
+    --popover-foreground: 0 0% 100%;
     
     --primary: 155 75% 55%;
     --primary-foreground: 170 25% 6%;
@@ -516,7 +516,7 @@
     --card-foreground: 0 0% 100%;
     
     --popover: 220 28% 8%;
-    --popover-foreground: 220 15% 95%;
+    --popover-foreground: 0 0% 100%;
     
     --primary: 215 85% 60%;
     --primary-foreground: 220 30% 6%;
@@ -580,7 +580,7 @@
     --card-foreground: 0 0% 100%;
     
     --popover: 270 28% 8%;
-    --popover-foreground: 270 15% 94%;
+    --popover-foreground: 0 0% 100%;
     
     --primary: 270 75% 58%;
     --primary-foreground: 0 0% 100%;
