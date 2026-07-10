@@ -79,6 +79,9 @@ export function usePomodoroTimer() {
   const [customTotalTime, setCustomTotalTime] = useState<number | null>(null);
   const [pendingBreak, setPendingBreak] = useState<null | { mode: 'break' | 'longBreak'; seconds: number }>(null);
   const [timerStartedAt, setTimerStartedAt] = useState<number | null>(null);
+  // Absolute timestamp (ms) when the running segment will finish. Mirrored in a
+  // ref so the tick loop always reads a fresh value without re-subscribing.
+  const [endTime, setEndTime] = useState<number | null>(null);
 
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
@@ -99,8 +102,13 @@ export function usePomodoroTimer() {
     return { autoStartBreak: false, cyclesUntilLongBreak: 4 };
   });
   
-  const intervalRef = useRef<number | null>(null);
   const targetEndTimeRef = useRef<number | null>(null);
+
+  // Keep the display end-time state in sync with the ref. Piggybacks on the
+  // per-second timeLeft updates so the UI can show the projected end hour.
+  useEffect(() => {
+    setEndTime(isRunning ? targetEndTimeRef.current : null);
+  }, [isRunning, timeLeft]);
 
   const preset = presets[presetIndex] || { name: 'Padrão', work: 25, break: 5, longBreak: 15 };
 
