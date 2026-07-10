@@ -4,6 +4,7 @@ import "./index.css";
 import { initializeBranding } from "./hooks/useBranding";
 import { initializeCustomTheme } from "./hooks/useCustomTheme";
 import { installFocusQueueAutoFlush } from "./lib/offlineFocusQueue";
+import { registerAppServiceWorker } from "./pwa/registerServiceWorker";
 
 // Initialize theme classes before React mounts to prevent flash
 (() => {
@@ -27,3 +28,6 @@ initializeBranding();
 installFocusQueueAutoFlush();
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Register the PWA service worker (guarded: skips Lovable preview, iframes and dev).
+registerAppServiceWorker();

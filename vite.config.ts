@@ -55,13 +55,19 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      // The service worker is registered ONLY by src/pwa/registerServiceWorker.ts
+      // (guarded against Lovable preview / iframes / dev). Never auto-inject.
+      injectRegister: null,
+      // Never emit or register a service worker in dev / Lovable preview.
+      devOptions: { enabled: false },
+      filename: "sw.js",
       includeAssets: ["favicon.png", "icon-192.png", "icon-512.png", "og-image.png"],
       manifest: {
         name: "FD-Planner",
         short_name: "FD-Planner",
         description: "Sistema moderno de gerenciamento de cursos e estudos. Organize seus planejamentos, acompanhe seu progresso e maximize sua produtividade.",
-        theme_color: "#1D7373",
-        background_color: "#042326",
+        theme_color: "#101113",
+        background_color: "#101113",
         display: "standalone",
         display_override: ["standalone", "minimal-ui"],
         orientation: "any",
@@ -133,6 +139,13 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,jpeg,jpg}"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        // SPA fallback for client-side routing, but never intercept the OAuth
+        // callback or Supabase API paths.
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /\/[^/?]+\.[^/?]+$/],
         // Precache critical assets
         additionalManifestEntries: [
           { url: '/favicon.png', revision: null },
