@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useEffect, useState } from 'react';
-import { enableFcm, sendTestPush, isFirebaseConfigured } from '@/lib/firebase';
+import { enableFcm, sendTestPush, sendAllTestPush, TEST_NOTIFICATIONS, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export function NotificationSettings() {
@@ -25,6 +25,7 @@ export function NotificationSettings() {
   const [impulseAlerts, setImpulseAlerts] = useState(true);
   const [enabling, setEnabling] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingAll, setTestingAll] = useState(false);
 
   // Garante que o token deste dispositivo esteja salvo quando a permissão já foi concedida.
   useEffect(() => {
@@ -80,6 +81,41 @@ export function NotificationSettings() {
       }
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleTestAll = async () => {
+    setTestingAll(true);
+    try {
+      // Sem Firebase configurado: dispara as notificações locais em sequência.
+      if (!fcmReady) {
+        TEST_NOTIFICATIONS.forEach((n, i) => {
+          setTimeout(() => showNotification(n.title, n.body), i * 1500);
+        });
+        toast({
+          title: 'Enviando testes locais',
+          description: `${TEST_NOTIFICATIONS.length} notificações serão exibidas em sequência.`,
+        });
+        return;
+      }
+
+      const res = await sendAllTestPush();
+      if (res.delivered > 0) {
+        toast({
+          title: 'Testes enviados!',
+          description: `${res.total} tipos disparados • ${res.delivered} push(es) entregue(s) aos seus dispositivos.`,
+        });
+      } else if (res.ok) {
+        toast({
+          title: 'Nenhum dispositivo registrado',
+          description: 'Ative e permita as notificações neste dispositivo primeiro.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Falha em alguns envios', description: res.error, variant: 'destructive' });
+      }
+    } finally {
+      setTestingAll(false);
     }
   };
 
@@ -169,6 +205,33 @@ export function NotificationSettings() {
               <Button variant="outline" size="sm" onClick={handleTestNotification} disabled={testing}>
                 {testing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
                 Testar
+              </Button>
+            </div>
+
+            {/* Teste completo de todos os tipos */}
+            <div className="flex flex-col gap-3 p-4 rounded-lg border border-dashed border-border bg-muted/30">
+              <div className="flex items-start gap-3">
+                <BellRing className="h-5 w-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">Testar todo o sistema</p>
+                  <p className="text-sm text-muted-foreground">
+                    Dispara uma amostra de <strong>todos os {TEST_NOTIFICATIONS.length} tipos</strong> de
+                    notificação (estudo, Pomodoro, tarefas, Anti-Vício, conquistas e recompensas), em
+                    sequência, apenas para conferência.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleTestAll}
+                disabled={testingAll}
+                className="w-full sm:w-auto"
+              >
+                {testingAll ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <BellRing className="h-4 w-4 mr-2" />
+                )}
+                Enviar todas as notificações de teste
               </Button>
             </div>
 

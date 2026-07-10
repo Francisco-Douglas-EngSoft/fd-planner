@@ -136,4 +136,76 @@ export async function sendTestPush(): Promise<{ ok: boolean; error?: string; sen
   return { ok: true, sent: (data as { sent?: number })?.sent ?? 0 };
 }
 
+export interface TestNotification {
+  title: string;
+  body: string;
+  type: string;
+}
+
+/** Todos os tipos de notificação do sistema, usados no teste completo. */
+export const TEST_NOTIFICATIONS: TestNotification[] = [
+  {
+    title: "⏰ Hora de estudar!",
+    body: "Está na hora da sua sessão de estudos. Vamos focar!",
+    type: "study_reminder",
+  },
+  {
+    title: "🎯 Sessão de foco iniciada",
+    body: "Seu Pomodoro começou. Mantenha o foco pelos próximos minutos!",
+    type: "pomodoro_start",
+  },
+  {
+    title: "☕ Hora da pausa!",
+    body: "Você completou uma sessão de foco. Descanse um pouco antes de voltar.",
+    type: "pomodoro_break",
+  },
+  {
+    title: "✅ Tarefa próxima do prazo",
+    body: "Você tem uma tarefa chegando no prazo. Não esqueça de concluí-la!",
+    type: "task_reminder",
+  },
+  {
+    title: "🛡️ Alerta Anti-Vício",
+    body: "Horário crítico detectado. Mantenha o controle e foque nos seus objetivos!",
+    type: "impulse_alert",
+  },
+  {
+    title: "🏆 Conquista desbloqueada!",
+    body: "Parabéns! Você atingiu uma nova meta de estudos.",
+    type: "achievement",
+  },
+  {
+    title: "🎁 Recompensa disponível",
+    body: "Você completou seu período de estudos. Resgate a sua recompensa!",
+    type: "reward",
+  },
+];
+
+/**
+ * Dispara TODAS as notificações de teste do sistema via Edge Function (push real),
+ * uma por vez para evitar rate limit. Retorna quantos pushes foram entregues.
+ */
+export async function sendAllTestPush(): Promise<{
+  ok: boolean;
+  delivered: number;
+  total: number;
+  error?: string;
+}> {
+  let delivered = 0;
+  let lastError: string | undefined;
+  for (const n of TEST_NOTIFICATIONS) {
+    const { data, error } = await supabase.functions.invoke("send-notification", {
+      body: { title: n.title, body: n.body, type: n.type },
+    });
+    if (error) {
+      lastError = error.message;
+    } else {
+      delivered += (data as { sent?: number })?.sent ?? 0;
+    }
+    // Pequeno intervalo entre envios para não saturar o FCM.
+    await new Promise((r) => setTimeout(r, 700));
+  }
+  return { ok: lastError === undefined, delivered, total: TEST_NOTIFICATIONS.length, error: lastError };
+}
+
 export { isFirebaseConfigured };
