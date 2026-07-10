@@ -17,13 +17,13 @@ const DEVELOPER = {
 };
 
 const AUTHORSHIP_TEXT =
-  "A arquitetura de software, a estrutura do banco de dados, o design de interface e os códigos-fonte deste sistema foram integralmente desenvolvidos por Francisco Douglas, detentor dos direitos morais de autor sobre a criação tecnológica, estando o uso patrimonial cedido e licenciado para a Prefeitura Municipal de Assunção do Piauí.";
+  "A arquitetura de software, a estrutura do banco de dados, o design de interface e os códigos-fonte do FD-Planner foram integralmente concebidos e desenvolvidos por Francisco Douglas, detentor exclusivo dos direitos morais e patrimoniais de autor sobre esta plataforma de estudos e desenvolvimento pessoal.";
 
 const COPYRIGHT_TEXT =
-  "Nos termos da Lei nº 9.610/1998 (Lei de Direitos Autorais), os direitos morais sobre esta obra tecnológica são inalienáveis e permanecem com o autor. É vedada a reprodução, distribuição, modificação ou uso não autorizado, total ou parcial, do código-fonte, da estrutura de dados e do design sem a devida atribuição de autoria e autorização.";
+  "Nos termos da Lei nº 9.610/1998 (Lei de Direitos Autorais) e da Lei nº 9.609/1998 (Lei do Software), todos os direitos sobre o FD-Planner são reservados ao autor. É vedada a reprodução, distribuição, modificação, engenharia reversa ou uso não autorizado, total ou parcial, do código-fonte, da estrutura de dados e do design sem prévia autorização expressa do autor.";
 
 const LGPD_TEXT =
-  "Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), este sistema trata dados pessoais de forma transparente, com finalidade específica, e adota medidas técnicas de segurança para proteger as informações dos titulares, que podem exercer seus direitos de acesso, correção e exclusão a qualquer momento.";
+  "Em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018), o FD-Planner trata os dados de estudo e de conta de forma transparente e com finalidade específica de acompanhar o progresso do usuário. Adota medidas técnicas de segurança para proteger as informações, e o titular pode acessar, corrigir, exportar ou excluir seus dados a qualquer momento diretamente nas configurações da conta.";
 
 interface AuthorshipNoticeProps {
   readonly variant?: "section" | "card";
