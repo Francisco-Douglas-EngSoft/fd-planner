@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { History, Loader2 } from 'lucide-react';
+import { resetLocalFocusData } from './resetLocalFocusData';
 
 interface ResetStudyDataDialogProps {
   children: React.ReactNode;
@@ -33,11 +34,12 @@ export function ResetStudyDataDialog({ children }: ResetStudyDataDialogProps) {
     setIsResetting(true);
 
     try {
-      // Only study-history tables — courses/modules/plannings are preserved
-      const tables = [
-        'focus_sessions',
-        'daily_study_progress',
-      ];
+      // Clear the offline focus queue FIRST so pending sessions don't
+      // get re-synced into the database right after we delete them.
+      resetLocalFocusData();
+
+      // Only study-history tables — courses/modules/plannings are preserved.
+      const tables = ['focus_sessions', 'daily_study_progress'] as const;
 
       for (const table of tables) {
         const { error } = await supabase
@@ -45,13 +47,11 @@ export function ResetStudyDataDialog({ children }: ResetStudyDataDialogProps) {
           .delete()
           .eq('user_id', user.id);
 
-        if (error && !error.message.includes('0 rows')) {
-          console.error(`Error deleting from ${table}:`, error);
-        }
+        if (error) throw new Error(`${table}: ${error.message}`);
       }
 
-      // Reset study-related profile stats (keeps courses untouched)
-      await supabase
+      // Reset study-related profile stats (keeps courses untouched).
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           total_study_hours: 0,
@@ -62,61 +62,62 @@ export function ResetStudyDataDialog({ children }: ResetStudyDataDialogProps) {
         })
         .eq('id', user.id);
 
+      if (profileError) throw new Error(`profiles: ${profileError.message}`);
+
       toast({
         title: 'Histórico de estudos resetado!',
-        description: 'Suas horas e sessões de foco foram zeradas. Seus cursos foram mantidos.',
+        description: 'Suas horas e sessões de foco foram zeradas. Recarregando...',
       });
 
-      setConfirmText('');
+      // Reload so every screen refetches the now-empty study data.
+      setTimeout(() => window.location.reload(), 800);
     } catch (error) {
       toast({
         title: 'Erro ao resetar',
-        description: (error instanceof Error ? error.message : String(error)) || 'Não foi possível resetar o histórico.',
+        description:
+          error instanceof Error ? error.message : 'Não foi possível resetar o histórico.',
         variant: 'destructive',
       });
-    } finally {
       setIsResetting(false);
     }
   };
 
   return (
     <AlertDialog onOpenChange={(open) => { if (!open) setConfirmText(''); }}>
-      <AlertDialogTrigger asChild>
-        {children}
-      </AlertDialogTrigger>
+      <AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
             <History className="h-5 w-5" />
             Resetar Histórico de Estudos
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <p>
-              Esta ação irá zerar apenas o seu <strong>histórico de estudos</strong>:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Sessões de foco (Pomodoro)</li>
-              <li>Progresso diário de estudo</li>
-              <li>Total de horas estudadas</li>
-              <li>XP, nível e sequência (streak)</li>
-            </ul>
-            <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-              Seus cursos, módulos e planejamentos serão mantidos intactos.
-            </p>
-            <div className="space-y-2 pt-2">
-              <Label htmlFor="confirm-study">
-                Digite <strong className="text-foreground">RESETAR HISTORICO</strong> para confirmar:
-              </Label>
-              <Input
-                id="confirm-study"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="Digite: RESETAR HISTORICO"
-                className="font-mono"
-              />
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>Esta ação irá zerar apenas o seu <strong>histórico de estudos</strong>:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Sessões de foco (Pomodoro)</li>
+                <li>Progresso diário de estudo</li>
+                <li>Total de horas estudadas</li>
+                <li>XP, nível e sequência (streak)</li>
+              </ul>
+              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                Seus cursos, módulos e planejamentos serão mantidos intactos.
+              </p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="confirm-study">
+            Digite <strong className="text-foreground">RESETAR HISTORICO</strong> para confirmar:
+          </Label>
+          <Input
+            id="confirm-study"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Digite: RESETAR HISTORICO"
+            className="font-mono"
+          />
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <Button

@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertTriangle, RotateCcw, Loader2 } from 'lucide-react';
+import { resetLocalFocusData } from './resetLocalFocusData';
 
 interface ResetHistoryDialogProps {
   children: React.ReactNode;
@@ -35,6 +36,10 @@ export function ResetHistoryDialog({ children }: ResetHistoryDialogProps) {
     setIsResetting(true);
 
     try {
+      // Clear the offline focus queue FIRST so pending sessions don't
+      // get re-synced into the database right after we delete them.
+      resetLocalFocusData();
+
       // Delete all user data in the correct order to avoid foreign key issues
       const tables = [
         'daily_study_progress',
@@ -70,12 +75,12 @@ export function ResetHistoryDialog({ children }: ResetHistoryDialogProps) {
           .eq('user_id', user.id);
         
         if (error && !error.message.includes('0 rows')) {
-          console.error(`Error deleting from ${table}:`, error);
+          throw new Error(`${table}: ${error.message}`);
         }
       }
 
       // Reset profile stats
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           total_study_hours: 0,
@@ -85,21 +90,22 @@ export function ResetHistoryDialog({ children }: ResetHistoryDialogProps) {
           last_study_date: null,
         })
         .eq('id', user.id);
+      if (profileError) throw new Error(`profiles: ${profileError.message}`);
 
       toast({
         title: 'Histórico resetado!',
-        description: 'Todos os seus dados foram apagados. Você pode começar do zero.',
+        description: 'Todos os seus dados foram apagados. Recarregando...',
       });
 
       setStep('warning');
       setConfirmText('');
+      setTimeout(() => window.location.reload(), 800);
     } catch (error) {
       toast({
         title: 'Erro ao resetar',
         description: (error instanceof Error ? error.message : String(error)) || 'Não foi possível resetar o histórico.',
         variant: 'destructive',
       });
-    } finally {
       setIsResetting(false);
     }
   };
