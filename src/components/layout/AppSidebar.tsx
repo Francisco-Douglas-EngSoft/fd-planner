@@ -28,6 +28,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { Logo, LogoIcon } from '@/components/ui/Logo';
 import { GlobalSearch } from './GlobalSearch';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -48,9 +54,16 @@ interface AppSidebarProps {
   isMobile?: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** 'fixed' = sidebar fixa (desktop); 'drawer' = gaveta com menu hambúrguer (tablet) */
+  variant?: 'fixed' | 'drawer';
 }
 
-export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: AppSidebarProps) {
+export function AppSidebar({
+  isMobile = false,
+  isOpen = false,
+  onOpenChange,
+  variant = 'fixed',
+}: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,13 +75,14 @@ export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: A
     : navItems;
 
   const handleNavClick = () => {
-    if (isMobile && onOpenChange) {
+    if (variant === 'drawer' && onOpenChange) {
       onOpenChange(false);
     }
   };
 
   const handleLogout = async () => {
     await signOut();
+    if (variant === 'drawer' && onOpenChange) onOpenChange(false);
     navigate('/auth');
   };
 
@@ -77,6 +91,110 @@ export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: A
     return null;
   }
 
+  // ---- Conteúdo de navegação compartilhado ----
+  const NavContent = ({ compact }: { compact: boolean }) => (
+    <nav className="flex-1 space-y-0.5 px-3 py-2 overflow-y-auto">
+      {items.map((item) => {
+        const isActive = location.pathname === item.path;
+        return (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200",
+              compact && "justify-center px-2",
+              isActive
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+            title={compact ? item.label : undefined}
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            {!compact && <span>{item.label}</span>}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+
+  const FooterButtons = ({ compact }: { compact: boolean }) => (
+    <div className="border-t border-sidebar-border/50 p-2.5 space-y-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={toggleTheme}
+        className={cn(
+          "w-full h-8 justify-start gap-2.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          compact && "justify-center px-0"
+        )}
+      >
+        {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        {!compact && (
+          <span className="text-[13px]">{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+        )}
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleLogout}
+        className={cn(
+          "w-full h-8 justify-start gap-2.5 text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10",
+          compact && "justify-center px-0"
+        )}
+      >
+        <LogOut className="h-4 w-4" />
+        {!compact && <span className="text-[13px]">Sair</span>}
+      </Button>
+
+      {variant === 'fixed' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCollapsed(!collapsed)}
+          className={cn(
+            "w-full h-8 justify-start gap-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            compact && "justify-center px-0"
+          )}
+        >
+          {compact ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <>
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-[13px]">Recolher</span>
+            </>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+
+  // ---- Variante gaveta (tablet) ----
+  if (variant === 'drawer') {
+    return (
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="left"
+          className="w-[280px] p-0 flex flex-col bg-sidebar border-r border-sidebar-border sidebar-with-theme"
+        >
+          <SheetHeader className="px-4 h-16 flex-row items-center border-b border-sidebar-border/50 space-y-0">
+            <SheetTitle asChild>
+              <div><Logo size="lg" variant="full" /></div>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-3 py-3">
+            <GlobalSearch />
+          </div>
+          <NavContent compact={false} />
+          <FooterButtons compact={false} />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  // ---- Variante fixa (desktop) ----
   return (
     <aside
       className={cn(
@@ -104,87 +222,8 @@ export function AppSidebar({ isMobile = false, isOpen = false, onOpenChange }: A
           </div>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-0.5 px-3 py-2 overflow-y-auto">
-          {items.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={handleNavClick}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  collapsed && "justify-center px-2",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon className={cn("h-4.5 w-4.5 shrink-0", isActive && "")} />
-                {!collapsed && <span>{item.label}</span>}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="border-t border-sidebar-border/50 p-3 space-y-1">
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            onClick={toggleTheme}
-            className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              collapsed && "justify-center"
-            )}
-          >
-            {theme === 'light' ? (
-              <Moon className="h-4 w-4" />
-            ) : (
-              <Sun className="h-4 w-4" />
-            )}
-            {!collapsed && (
-              <span className="text-sm">{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
-            )}
-          </Button>
-
-          {/* Logout */}
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            onClick={handleLogout}
-            className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10",
-              collapsed && "justify-center"
-            )}
-          >
-            <LogOut className="h-4 w-4" />
-            {!collapsed && <span className="text-sm">Sair</span>}
-          </Button>
-
-          {/* Collapse Button */}
-          <Button
-            variant="ghost"
-            size={collapsed ? "icon" : "default"}
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn(
-              "w-full justify-start gap-3 text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              collapsed && "justify-center"
-            )}
-          >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4" />
-                <span className="text-sm">Recolher</span>
-              </>
-            )}
-          </Button>
-        </div>
+        <NavContent compact={collapsed} />
+        <FooterButtons compact={collapsed} />
       </div>
     </aside>
   );
