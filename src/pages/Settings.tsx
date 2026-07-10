@@ -883,6 +883,21 @@ export default function Settings() {
                 {/* Reset History */}
                 <div className="border-t pt-6">
                   <h4 className="font-medium text-amber-600 dark:text-amber-400 mb-4">Recomeçar do Zero</h4>
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-3">
+                    <div className="flex items-center gap-3">
+                      <RotateCcw className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      <div>
+                        <p className="font-medium text-amber-600 dark:text-amber-400">Resetar Apenas o Histórico de Estudos</p>
+                        <p className="text-sm text-muted-foreground">Zera horas, sessões de foco e progresso — mantém seus cursos</p>
+                      </div>
+                    </div>
+                    <ResetStudyDataDialog>
+                      <Button variant="outline" size="sm" className="gap-2 border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-400">
+                        <RotateCcw className="h-4 w-4" />
+                        Resetar
+                      </Button>
+                    </ResetStudyDataDialog>
+                  </div>
                   <div className="flex items-center justify-between p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
                     <div className="flex items-center gap-3">
                       <RotateCcw className="h-5 w-5 text-amber-600 dark:text-amber-400" />
