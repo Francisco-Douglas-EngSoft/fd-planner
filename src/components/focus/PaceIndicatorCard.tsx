@@ -115,12 +115,15 @@ export function PaceIndicatorCard({
     [config.ideal, studyDays, now],
   );
 
-  // Intervalo de projeção: do max(planStart, hoje) até hoje
-  const projectionStart = useMemo(() => {
-    const parsed = startDate ? parseISO(startDate) : null;
-    if (!parsed || !isValid(parsed)) return null;
-    return parsed.getTime() > now.getTime() ? parsed : parsed;
-  }, [startDate, now]);
+  // Intervalo da semana atual (segunda → domingo), usado como janela de projeção
+  // exibida no card — coerente com "Esperado Semana".
+  const { weekStart, weekEnd } = useMemo(() => {
+    const dayOfWeek = now.getDay(); // 0=Dom, 1=Seg
+    const offsetToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetToMonday);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+    return { weekStart: monday, weekEnd: sunday };
+  }, [now]);
 
   const meta = {
     ahead: {
