@@ -296,61 +296,37 @@ export function usePomodoroTimer() {
     }
   }, [mode, sessions, preset, selectedCourse, customTotalTime, settings]);
 
-  // Timer logic - using requestAnimationFrame for accuracy
+  // Timer logic — timestamp based so it stays accurate even when the tab is
+  // backgrounded, the page is closed, or the user navigates away. Instead of
+  // relying on requestAnimationFrame (which is throttled/paused off-screen and
+  // caused the "freeze" bug), we recompute the remaining time from the absolute
+  // targetEndTime on every tick and whenever the tab becomes visible again.
   useEffect(() => {
-    if (!isRunning || timeLeft <= 0) {
-      if (intervalRef.current) {
-        cancelAnimationFrame(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
+    if (!isRunning) return;
 
-    let lastUpdate = Date.now();
-    let animationId: number | null = null;
-
-    const tick = () => {
-      if (!targetEndTimeRef.current) {
-        if (animationId !== null) {
-          cancelAnimationFrame(animationId);
-          animationId = null;
-        }
-        return;
-      }
-      
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((targetEndTimeRef.current - now) / 1000));
-      
-      // Only update if at least 1 second has passed to avoid excessive renders
-      if (now - lastUpdate >= 1000 || remaining <= 0) {
-        lastUpdate = now;
-        setTimeLeft(remaining);
-      }
-      
-      if (remaining > 0) {
-        animationId = requestAnimationFrame(tick);
-        intervalRef.current = animationId;
-      } else {
-        animationId = null;
-        intervalRef.current = null;
-        // Timer completed - will be handled by timeLeft === 0 check
-      }
+    const sync = () => {
+      if (!targetEndTimeRef.current) return;
+      const remaining = Math.max(0, Math.round((targetEndTimeRef.current - Date.now()) / 1000));
+      setTimeLeft(remaining);
     };
 
-    animationId = requestAnimationFrame(tick);
-    intervalRef.current = animationId;
+    // Immediate sync (covers remount / return-to-tab / resume from sleep).
+    sync();
+
+    const intervalId = window.setInterval(sync, 500);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', sync);
 
     return () => {
-      if (animationId !== null) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-      }
-      if (intervalRef.current) {
-        cancelAnimationFrame(intervalRef.current);
-        intervalRef.current = null;
-      }
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', sync);
     };
-  }, [isRunning, handleTimerComplete]);
+  }, [isRunning]);
 
   // Watch for timer completion
   useEffect(() => {
