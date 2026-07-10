@@ -533,6 +533,16 @@ export default function Achievements() {
           <p className="text-sm text-muted-foreground/70 mt-1">Continue estudando para desbloquear conquistas!</p>
         </motion.div>
       )}
+        </TabsContent>
+
+        <TabsContent value="recompensas" className="mt-6">
+          <PeriodRewards />
+        </TabsContent>
+
+        <TabsContent value="resgatadas" className="mt-6">
+          <RewardsHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
