@@ -120,9 +120,9 @@ export function MainLayout() {
         <header
           className={cn(
             "fixed left-0 right-0 z-[95] h-14 flex items-center justify-between gap-2 px-4",
-            "bg-background/95 backdrop-blur-xl border-b border-border/60",
-            showGuestBanner ? "top-10" : (!isOnline ? "top-8" : "top-0")
+            "bg-background/95 backdrop-blur-xl border-b border-border/60"
           )}
+          style={{ top: (showGuestBanner ? 40 : 0) + (!isOnline ? 32 : 0) }}
         >
           <div className="flex items-center gap-2">
             <Button
