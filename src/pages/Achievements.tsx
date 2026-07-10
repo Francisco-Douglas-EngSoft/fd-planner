@@ -319,9 +319,6 @@ export default function Achievements() {
         ))}
       </div>
 
-      {/* Recompensas por período */}
-      <PeriodRewards />
-
       {/* Category Filter */}
       <motion.div
         className="flex gap-2 flex-wrap"
