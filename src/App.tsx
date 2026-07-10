@@ -11,6 +11,7 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { CookieConsentBanner } from "@/components/security/CookieConsentBanner";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FcmForegroundListener } from "@/components/notifications/FcmForegroundListener";
 import { lazy, Suspense } from "react";
 
 // Eager: rota inicial e auth (críticas)
@@ -125,6 +126,7 @@ function AppContent() {
         <AuthenticatedInstallPrompt />
         <CookieConsentBanner />
         <OfflineIndicator />
+        <FcmForegroundListener />
       </BrowserRouter>
     </>
   );

@@ -1,34 +1,86 @@
-import { Bell, BellOff, BellRing, Clock, CheckCircle } from 'lucide-react';
+import { Bell, BellOff, BellRing, Clock, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { enableFcm, sendTestPush, isFirebaseConfigured } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export function NotificationSettings() {
-  const { 
-    isSupported, 
-    permission, 
-    isSubscribed, 
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
     requestPermission,
-    showNotification 
+    showNotification,
   } = usePushNotifications();
+  const { toast } = useToast();
+  const fcmReady = isFirebaseConfigured();
 
   const [studyReminders, setStudyReminders] = useState(true);
   const [pomodoroAlerts, setPomodoroAlerts] = useState(true);
   const [taskReminders, setTaskReminders] = useState(true);
   const [impulseAlerts, setImpulseAlerts] = useState(true);
+  const [enabling, setEnabling] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  // Garante que o token deste dispositivo esteja salvo quando a permissão já foi concedida.
+  useEffect(() => {
+    if (fcmReady && permission === 'granted') {
+      void enableFcm();
+    }
+  }, [fcmReady, permission]);
 
   const handleEnableNotifications = async () => {
-    await requestPermission();
+    setEnabling(true);
+    try {
+      const granted = await requestPermission();
+      if (granted && fcmReady) {
+        const res = await enableFcm();
+        if (res.ok) {
+          toast({
+            title: 'Push ativado!',
+            description: 'Este dispositivo foi registrado para receber notificações.',
+          });
+        } else if (res.error !== 'permission_denied') {
+          toast({
+            title: 'Não foi possível registrar o push',
+            description: res.error === 'not_authenticated'
+              ? 'Faça login para registrar as notificações.'
+              : `Detalhe: ${res.error}`,
+            variant: 'destructive',
+          });
+        }
+      }
+    } finally {
+      setEnabling(false);
+    }
   };
 
-  const handleTestNotification = () => {
-    showNotification(
-      '🔔 Teste de Notificação',
-      'As notificações estão funcionando corretamente!'
-    );
+  const handleTestNotification = async () => {
+    if (!fcmReady) {
+      showNotification('🔔 Teste de Notificação', 'As notificações locais estão funcionando!');
+      return;
+    }
+    setTesting(true);
+    try {
+      const res = await sendTestPush();
+      if (res.ok && (res.sent ?? 0) > 0) {
+        toast({ title: 'Push enviado!', description: 'Verifique a notificação do sistema.' });
+      } else if (res.ok) {
+        toast({
+          title: 'Nenhum dispositivo registrado',
+          description: 'Clique em "Permitir Notificações" primeiro.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Falha no envio', description: res.error, variant: 'destructive' });
+      }
+    } finally {
+      setTesting(false);
+    }
   };
 
   if (!isSupported) {
@@ -59,6 +111,18 @@ export function NotificationSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {!fcmReady && (
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+            <div>
+              <p className="font-medium">Push do Firebase não configurado</p>
+              <p className="text-sm text-muted-foreground">
+                As credenciais públicas do Firebase ainda não foram adicionadas. Por enquanto só
+                funcionam notificações locais (com o app aberto).
+              </p>
+            </div>
+          </div>
+        )}
         {/* Permission status */}
         {permission === 'default' && (
           <div className="flex flex-col gap-4 p-4 rounded-lg bg-muted/50 border border-border">
@@ -71,8 +135,8 @@ export function NotificationSettings() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleEnableNotifications} className="w-full sm:w-auto">
-              <Bell className="h-4 w-4 mr-2" />
+            <Button onClick={handleEnableNotifications} disabled={enabling} className="w-full sm:w-auto">
+              {enabling ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bell className="h-4 w-4 mr-2" />}
               Permitir Notificações
             </Button>
           </div>
@@ -102,7 +166,8 @@ export function NotificationSettings() {
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={handleTestNotification}>
+              <Button variant="outline" size="sm" onClick={handleTestNotification} disabled={testing}>
+                {testing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
                 Testar
               </Button>
             </div>
