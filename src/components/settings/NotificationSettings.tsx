@@ -208,6 +208,33 @@ export function NotificationSettings() {
               </Button>
             </div>
 
+            {/* Teste completo de todos os tipos */}
+            <div className="flex flex-col gap-3 p-4 rounded-lg border border-dashed border-border bg-muted/30">
+              <div className="flex items-start gap-3">
+                <BellRing className="h-5 w-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium">Testar todo o sistema</p>
+                  <p className="text-sm text-muted-foreground">
+                    Dispara uma amostra de <strong>todos os {TEST_NOTIFICATIONS.length} tipos</strong> de
+                    notificação (estudo, Pomodoro, tarefas, Anti-Vício, conquistas e recompensas), em
+                    sequência, apenas para conferência.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleTestAll}
+                disabled={testingAll}
+                className="w-full sm:w-auto"
+              >
+                {testingAll ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <BellRing className="h-4 w-4 mr-2" />
+                )}
+                Enviar todas as notificações de teste
+              </Button>
+            </div>
+
             {/* Notification preferences */}
             <div className="space-y-4">
               <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
