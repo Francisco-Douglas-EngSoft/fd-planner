@@ -51,6 +51,7 @@ import { Footer } from "@/components/landing/Footer";
 import { ContactForm } from "@/components/landing/ContactForm";
 import { WhatsAppButton, WhatsAppInlineButton } from "@/components/landing/WhatsAppButton";
 import { DashboardPreview } from "@/components/landing/DashboardPreview";
+import { AuthorshipNotice } from "@/components/legal/AuthorshipNotice";
 
 const WHATSAPP_NUMBER = "+5586981625526";
 
