@@ -178,6 +178,8 @@ export default function Focus() {
     skipPendingBreak,
     settings,
     setSettings,
+    sessionStartTime,
+    sessionEndTime,
   } = usePomodoroTimer();
 
   const MANUAL_DAILY_GOAL_KEY_PREFIX = 'fdplanner_manual_daily_goal_hours:';
