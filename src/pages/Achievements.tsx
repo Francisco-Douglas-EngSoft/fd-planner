@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { XPProgressBar, getLevelTier } from '@/components/gamification/XPProgressBar';
 import { DailyXPSummary } from '@/components/gamification/DailyXPSummary';
+import { PeriodRewards } from '@/components/gamification/PeriodRewards';
 
 interface Achievement {
   id: string;
@@ -300,6 +301,9 @@ export default function Achievements() {
           </motion.div>
         ))}
       </div>
+
+      {/* Recompensas por período */}
+      <PeriodRewards />
 
       {/* Category Filter */}
       <motion.div
