@@ -239,6 +239,20 @@ export default function Achievements() {
         </div>
       </motion.div>
 
+      <Tabs defaultValue="conquistas" className="w-full">
+        <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsTrigger value="conquistas" className="gap-1.5">
+            <Trophy className="h-4 w-4" /> Conquistas
+          </TabsTrigger>
+          <TabsTrigger value="recompensas" className="gap-1.5">
+            <Gift className="h-4 w-4" /> Recompensas
+          </TabsTrigger>
+          <TabsTrigger value="resgatadas" className="gap-1.5">
+            <History className="h-4 w-4" /> Resgatadas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="conquistas" className="space-y-6 sm:space-y-8 mt-6">
       {/* XP & Daily Progress */}
       <div className="grid gap-4 lg:grid-cols-2">
         <motion.div
