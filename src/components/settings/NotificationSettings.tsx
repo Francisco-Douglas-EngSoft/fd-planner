@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useEffect, useState } from 'react';
-import { enableFcm, sendTestPush, isFirebaseConfigured } from '@/lib/firebase';
+import { enableFcm, sendTestPush, sendAllTestPush, TEST_NOTIFICATIONS, isFirebaseConfigured } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export function NotificationSettings() {
@@ -25,6 +25,7 @@ export function NotificationSettings() {
   const [impulseAlerts, setImpulseAlerts] = useState(true);
   const [enabling, setEnabling] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testingAll, setTestingAll] = useState(false);
 
   // Garante que o token deste dispositivo esteja salvo quando a permissão já foi concedida.
   useEffect(() => {
@@ -80,6 +81,41 @@ export function NotificationSettings() {
       }
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleTestAll = async () => {
+    setTestingAll(true);
+    try {
+      // Sem Firebase configurado: dispara as notificações locais em sequência.
+      if (!fcmReady) {
+        TEST_NOTIFICATIONS.forEach((n, i) => {
+          setTimeout(() => showNotification(n.title, n.body), i * 1500);
+        });
+        toast({
+          title: 'Enviando testes locais',
+          description: `${TEST_NOTIFICATIONS.length} notificações serão exibidas em sequência.`,
+        });
+        return;
+      }
+
+      const res = await sendAllTestPush();
+      if (res.delivered > 0) {
+        toast({
+          title: 'Testes enviados!',
+          description: `${res.total} tipos disparados • ${res.delivered} push(es) entregue(s) aos seus dispositivos.`,
+        });
+      } else if (res.ok) {
+        toast({
+          title: 'Nenhum dispositivo registrado',
+          description: 'Ative e permita as notificações neste dispositivo primeiro.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Falha em alguns envios', description: res.error, variant: 'destructive' });
+      }
+    } finally {
+      setTestingAll(false);
     }
   };
 
