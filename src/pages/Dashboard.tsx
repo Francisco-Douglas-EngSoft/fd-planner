@@ -202,7 +202,7 @@ export default function Dashboard() {
             <div className="space-y-1 flex-1">
               <p className={cn(
                 "font-bold font-display leading-none text-foreground",
-                typeof card.value === 'string' && (card.value.includes(':') || card.value.includes('min'))
+                typeof card.value === 'string' && /[:h]|min/.test(card.value)
                   ? "text-base sm:text-lg font-mono" 
                   : "text-2xl sm:text-3xl"
               )}>
