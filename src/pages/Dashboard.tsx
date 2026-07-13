@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { formatHoursToHMS } from '@/lib/timeUtils';
+import { formatDurationHuman } from '@/lib/timeUtils';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
