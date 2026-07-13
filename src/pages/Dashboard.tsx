@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGuestMode } from '@/hooks/useGuestMode';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { formatHoursToHMS } from '@/lib/timeUtils';
+import { formatDurationHuman } from '@/lib/timeUtils';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -113,31 +113,28 @@ export default function Dashboard() {
     }
   };
 
-  const formatFocusTime = (minutes: number) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h > 0) return `${h}h ${m}min`;
-    return `${m}min`;
-  };
+  // Fonte única de formatação de tempo em todo o Dashboard.
+  // Recebe SEMPRE minutos e exibe de forma humana e consistente (ex.: "3h 11min").
+  const formatTime = (minutes: number) => formatDurationHuman(minutes);
 
   const statCards = [
     {
       title: 'Horas Estudadas',
-      value: formatHoursToHMS(stats.courseCompletedHours),
+      value: formatTime(stats.courseCompletedHours * 60),
       subtitle: 'Progresso concluído nos cursos',
       icon: Clock,
       tint: 'blue',
     },
     {
       title: 'Tempo de Foco',
-      value: formatFocusTime(stats.totalFocusMinutes),
+      value: formatTime(stats.totalFocusMinutes),
       subtitle: 'Cronômetro Pomodoro (sessões)',
       icon: Timer,
       tint: 'violet',
     },
     {
       title: 'Carga Horária Total',
-      value: formatHoursToHMS(stats.totalCourseHours),
+      value: formatTime(stats.totalCourseHours * 60),
       subtitle: 'Meta dos cursos ativos',
       icon: Library,
       tint: 'cyan',
@@ -205,7 +202,7 @@ export default function Dashboard() {
             <div className="space-y-1 flex-1">
               <p className={cn(
                 "font-bold font-display leading-none text-foreground",
-                typeof card.value === 'string' && (card.value.includes(':') || card.value.includes('min'))
+                typeof card.value === 'string' && /[:h]|min/.test(card.value)
                   ? "text-base sm:text-lg font-mono" 
                   : "text-2xl sm:text-3xl"
               )}>
