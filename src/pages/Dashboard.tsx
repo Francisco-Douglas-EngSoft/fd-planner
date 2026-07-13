@@ -113,31 +113,28 @@ export default function Dashboard() {
     }
   };
 
-  const formatFocusTime = (minutes: number) => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h > 0) return `${h}h ${m}min`;
-    return `${m}min`;
-  };
+  // Fonte única de formatação de tempo em todo o Dashboard.
+  // Recebe SEMPRE minutos e exibe de forma humana e consistente (ex.: "3h 11min").
+  const formatTime = (minutes: number) => formatDurationHuman(minutes);
 
   const statCards = [
     {
       title: 'Horas Estudadas',
-      value: formatHoursToHMS(stats.courseCompletedHours),
+      value: formatTime(stats.courseCompletedHours * 60),
       subtitle: 'Progresso concluído nos cursos',
       icon: Clock,
       tint: 'blue',
     },
     {
       title: 'Tempo de Foco',
-      value: formatFocusTime(stats.totalFocusMinutes),
+      value: formatTime(stats.totalFocusMinutes),
       subtitle: 'Cronômetro Pomodoro (sessões)',
       icon: Timer,
       tint: 'violet',
     },
     {
       title: 'Carga Horária Total',
-      value: formatHoursToHMS(stats.totalCourseHours),
+      value: formatTime(stats.totalCourseHours * 60),
       subtitle: 'Meta dos cursos ativos',
       icon: Library,
       tint: 'cyan',
