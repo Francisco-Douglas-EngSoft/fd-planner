@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { libraryService, type BookRow } from "@/services/libraryService";
@@ -171,6 +171,22 @@ export default function Reader() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={addBookmark} className="gap-2">
             <Bookmark className="h-4 w-4" /> Marcar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={async () => {
+              if (!book) return;
+              toast.info("Indexando PDF com IA... isso pode levar alguns instantes");
+              const { data, error } = await supabase.functions.invoke("parse-pdf", {
+                body: { book_id: book.id, summarize: false, max_pages: 50 },
+              });
+              if (error) toast.error(error.message);
+              else toast.success(`${data?.pages_indexed ?? 0} páginas indexadas`);
+            }}
+          >
+            <Sparkles className="h-4 w-4" /> Indexar
           </Button>
         </div>
       </motion.div>

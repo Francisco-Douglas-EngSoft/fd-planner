@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMindMaps } from "@/hooks/useMindMaps";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,12 +15,17 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Network, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Network, ExternalLink, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function MindMaps() {
   const { data, isLoading, create, remove } = useMindMaps();
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiContent, setAiContent] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
 
@@ -33,6 +40,24 @@ export default function MindMaps() {
     }
   };
 
+  const handleGenerate = async () => {
+    if (aiTopic.trim().length < 2) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-mindmap", {
+        body: { topic: aiTopic, content: aiContent || undefined, title: aiTopic },
+      });
+      if (error) throw error;
+      toast.success(`Mapa gerado com ${data?.branches ?? 0} ramos`);
+      setAiOpen(false); setAiTopic(""); setAiContent("");
+      qc.invalidateQueries({ queryKey: ["mind_maps"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar mapa mental");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -42,6 +67,29 @@ export default function MindMaps() {
             Organize ideias em nós conectados
           </p>
         </div>
+        <div className="flex gap-2">
+        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline"><Wand2 className="h-4 w-4 mr-2" />Gerar com IA</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Gerar mapa mental com IA</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium">Tópico</label>
+                <Input value={aiTopic} onChange={(e) => setAiTopic(e.target.value)} placeholder="Ex.: Sistema Solar" />
+              </div>
+              <div>
+                <label className="text-xs font-medium">Contexto (opcional)</label>
+                <Textarea value={aiContent} onChange={(e) => setAiContent(e.target.value)} rows={5} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setAiOpen(false)}>Cancelar</Button>
+              <Button onClick={handleGenerate} disabled={aiLoading}>{aiLoading ? "Gerando..." : "Gerar"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Novo mapa</Button>
@@ -64,6 +112,7 @@ export default function MindMaps() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {isLoading ? (

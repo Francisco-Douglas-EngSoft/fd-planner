@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useFlashcards } from "@/hooks/useFlashcards";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Sparkles, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Sparkles, RotateCcw, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { FlashcardRow } from "@/services/flashcardService";
 
@@ -83,7 +85,13 @@ function ReviewMode({ cards, onReview, onExit }: {
 
 export default function Flashcards() {
   const { all, due, create, review, remove } = useFlashcards();
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiContent, setAiContent] = useState("");
+  const [aiTopic, setAiTopic] = useState("");
+  const [aiCount, setAiCount] = useState(10);
+  const [aiLoading, setAiLoading] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
@@ -102,6 +110,28 @@ export default function Flashcards() {
 
   const handleReview = async (card: FlashcardRow, quality: number) => {
     await review.mutateAsync({ card, quality });
+  };
+
+  const handleGenerate = async () => {
+    if (aiContent.trim().length < 20) {
+      toast.error("Conteúdo muito curto (mínimo 20 caracteres)");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-flashcards", {
+        body: { content: aiContent, topic: aiTopic || undefined, count: aiCount, persist: true },
+      });
+      if (error) throw error;
+      toast.success(`${data?.cards?.length ?? 0} flashcards gerados`);
+      setAiOpen(false);
+      setAiContent(""); setAiTopic("");
+      qc.invalidateQueries({ queryKey: ["flashcards"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar flashcards");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   if (reviewing) {
@@ -134,6 +164,34 @@ export default function Flashcards() {
             <RotateCcw className="h-4 w-4 mr-2" />
             Revisar hoje ({due.data?.length ?? 0})
           </Button>
+          <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><Wand2 className="h-4 w-4 mr-2" />Gerar com IA</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Gerar flashcards com IA</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium">Tópico (opcional)</label>
+                  <Input value={aiTopic} onChange={(e) => setAiTopic(e.target.value)} placeholder="Ex.: Direito Constitucional" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Quantidade</label>
+                  <Input type="number" min={1} max={30} value={aiCount} onChange={(e) => setAiCount(Number(e.target.value) || 10)} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Conteúdo base</label>
+                  <Textarea value={aiContent} onChange={(e) => setAiContent(e.target.value)} rows={8} placeholder="Cole o texto, resumo ou material de estudo..." />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setAiOpen(false)}>Cancelar</Button>
+                <Button onClick={handleGenerate} disabled={aiLoading}>
+                  {aiLoading ? "Gerando..." : "Gerar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Novo</Button>
