@@ -19,7 +19,9 @@ import {
   User,
   Shield,
   StickyNote,
-  Share2
+  Share2,
+  Library,
+  Bookmark
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +44,8 @@ const navItems = [
   { path: '/foco', label: 'Foco', icon: Target },
   { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
   { path: '/notas', label: 'Notas', icon: StickyNote },
+  { path: '/biblioteca', label: 'Biblioteca', icon: Library },
+  { path: '/marcadores', label: 'Marcadores', icon: Bookmark },
   { path: '/antivicio', label: 'AntiVício', icon: Shield },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { path: '/conquistas', label: 'Conquistas', icon: Trophy },
