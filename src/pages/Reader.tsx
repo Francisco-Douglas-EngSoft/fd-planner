@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { EpubReader } from "@/components/reader/EpubReader";
+import { NotesPanel } from "@/components/reader/NotesPanel";
+import { PageSummarizer } from "@/components/reader/PageSummarizer";
 
 // pdfjs worker (Vite-friendly)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,6 +36,7 @@ export default function Reader() {
   const [loading, setLoading] = useState(true);
   const [rendering, setRendering] = useState(false);
   const sessionStart = useMemo(() => new Date(), []);
+  const [epubCfi, setEpubCfi] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -155,6 +159,14 @@ export default function Reader() {
   }
 
   const isPdf = book?.file_path.toLowerCase().endsWith(".pdf");
+  const isEpub = book?.file_path.toLowerCase().endsWith(".epub");
+
+  async function getCurrentPageText(): Promise<string> {
+    if (!pdf) return "";
+    const p = await pdf.getPage(page);
+    const content = await p.getTextContent();
+    return content.items.map((i: { str?: string }) => i.str ?? "").join(" ");
+  }
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-6 space-y-4">
@@ -191,9 +203,23 @@ export default function Reader() {
         </div>
       </motion.div>
 
-      {!isPdf ? (
+      {isEpub && signedUrl ? (
+        <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+          <EpubReader
+            url={signedUrl}
+            initialCfi={book?.last_read_position ?? null}
+            onLocationChange={(cfi, pct) => {
+              setEpubCfi(cfi);
+              if (book) libraryService.update(book.id, { last_read_position: cfi, progress: pct }).catch(console.error);
+            }}
+          />
+          {book && user && (
+            <NotesPanel bookId={book.id} userId={user.id} currentPage={null} />
+          )}
+        </div>
+      ) : !isPdf ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
-          Formato EPUB estará disponível em breve. Por enquanto, apenas PDFs são renderizados no leitor embutido.
+          Formato não suportado no leitor embutido.
           {signedUrl && (
             <div className="mt-4">
               <Button asChild size="sm">
@@ -203,11 +229,20 @@ export default function Reader() {
           )}
         </Card>
       ) : (
-        <>
-          <Card className="p-4 overflow-auto max-h-[75vh] flex justify-center bg-muted/30">
-            <canvas ref={canvasRef} className="shadow-sm rounded" />
-          </Card>
+        <div className="grid lg:grid-cols-[1fr_320px] gap-4">
+          <div className="space-y-3">
+            <Card className="p-4 overflow-auto max-h-[75vh] flex justify-center bg-muted/30">
+              <canvas ref={canvasRef} className="shadow-sm rounded" />
+            </Card>
+            <PageSummarizer getPageText={getCurrentPageText} page={page} />
+          </div>
+          {book && user && (
+            <NotesPanel bookId={book.id} userId={user.id} currentPage={page} />
+          )}
+        </div>
+      )}
 
+      {isPdf && (
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering}>
               <ChevronLeft className="h-4 w-4" /> Anterior
@@ -235,7 +270,6 @@ export default function Reader() {
               Próxima <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-        </>
       )}
     </div>
   );
