@@ -207,10 +207,10 @@ export default function Reader() {
         <div className="grid lg:grid-cols-[1fr_320px] gap-4">
           <EpubReader
             url={signedUrl}
-            initialCfi={book?.last_read_position ?? null}
+            initialCfi={null}
             onLocationChange={(cfi, pct) => {
               setEpubCfi(cfi);
-              if (book) libraryService.update(book.id, { last_read_position: cfi, progress: pct }).catch(console.error);
+              if (book) libraryService.update(book.id, { last_read_page: pct }).catch(console.error);
             }}
           />
           {book && user && (
