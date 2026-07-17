@@ -19,7 +19,7 @@ export function useFlashcards() {
   });
 
   const create = useMutation({
-    mutationFn: (payload: { front: string; back: string; deck?: string | null }) => {
+    mutationFn: (payload: { front: string; back: string; topic?: string | null }) => {
       if (!user) throw new Error("Sem sessão");
       return flashcardService.create({ ...payload, user_id: user.id });
     },
@@ -33,13 +33,15 @@ export function useFlashcards() {
     mutationFn: async ({ card, quality }: { card: FlashcardRow; quality: number }) => {
       if (!user) throw new Error("Sem sessão");
       const next = scheduleSm2(card, quality);
-      await flashcardService.update(card.id, { ...next, last_reviewed_at: new Date().toISOString() });
+      await flashcardService.update(card.id, next);
       await flashcardService.logReview({
         flashcard_id: card.id,
         user_id: user.id,
         quality,
-        interval_days: next.interval_days,
-        ease_factor: next.ease_factor,
+        interval_before: card.interval_days,
+        ease_factor_before: card.ease_factor,
+        interval_after: next.interval_days,
+        ease_factor_after: next.ease_factor,
       });
     },
     onSuccess: () => {

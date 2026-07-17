@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { libraryService, type BookRow } from "@/services/libraryService";
+import { libraryService, type BookRow, type BookInsert, type BookUpdate } from "@/services/libraryService";
 
 export function useBooks() {
   const { user } = useAuth();
@@ -13,7 +13,7 @@ export function useBooks() {
   });
 
   const create = useMutation({
-    mutationFn: (payload: Partial<BookRow> & { title: string }) => {
+    mutationFn: (payload: Omit<BookInsert, "user_id">) => {
       if (!user) throw new Error("Sem sessão");
       return libraryService.create({ ...payload, user_id: user.id });
     },
@@ -21,7 +21,7 @@ export function useBooks() {
   });
 
   const update = useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Partial<BookRow> }) => libraryService.update(id, patch),
+    mutationFn: ({ id, patch }: { id: string; patch: BookUpdate }) => libraryService.update(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["books", user?.id] }),
   });
 
