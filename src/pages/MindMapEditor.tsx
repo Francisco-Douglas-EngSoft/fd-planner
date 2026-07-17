@@ -82,7 +82,7 @@ export default function MindMapEditor() {
   const handleDeleteSelected = async () => {
     if (!selectedId) return;
     try {
-      await mindMapService.deleteNode(selectedId);
+      await mindMapService.removeNode(selectedId);
       setNodes((ns) => ns.filter((n) => n.id !== selectedId));
       setEdges((es) => es.filter((e) => e.source !== selectedId && e.target !== selectedId));
       setSelectedId(null);
