@@ -36,6 +36,9 @@ const Notes = lazy(() => import("./pages/Notes"));
 const Redes = lazy(() => import("./pages/Redes"));
 const Install = lazy(() => import("./pages/Install"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Library = lazy(() => import("./pages/Library"));
+const Reader = lazy(() => import("./pages/Reader"));
+const Bookmarks = lazy(() => import("./pages/Bookmarks"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -103,6 +106,9 @@ function AppRoutes() {
           <Route path="/tarefas" element={<Tasks />} />
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/notas" element={<Notes />} />
+          <Route path="/biblioteca" element={<Library />} />
+          <Route path="/leitor/:id" element={<Reader />} />
+          <Route path="/marcadores" element={<Bookmarks />} />
           <Route path="/conquistas" element={<Achievements />} />
           <Route path="/antivicio" element={<AntiVicio />} />
           <Route path="/redes" element={<Redes />} />
