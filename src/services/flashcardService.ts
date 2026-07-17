@@ -1,19 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-export type FlashcardRow = {
-  id: string;
-  user_id: string;
-  deck: string | null;
-  front: string;
-  back: string;
-  interval_days: number | null;
-  ease_factor: number | null;
-  repetitions: number | null;
-  due_at: string | null;
-  last_reviewed_at: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type FlashcardRow = Database["public"]["Tables"]["flashcards"]["Row"];
+export type FlashcardInsert = Database["public"]["Tables"]["flashcards"]["Insert"];
+export type FlashcardUpdate = Database["public"]["Tables"]["flashcards"]["Update"];
 
 export const flashcardService = {
   async list(userId: string): Promise<FlashcardRow[]> {
@@ -23,24 +13,24 @@ export const flashcardService = {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as FlashcardRow[];
+    return data ?? [];
   },
   async dueToday(userId: string): Promise<FlashcardRow[]> {
     const { data, error } = await supabase
       .from("flashcards")
       .select("*")
       .eq("user_id", userId)
-      .lte("due_at", new Date().toISOString())
-      .order("due_at", { ascending: true });
+      .lte("next_review", new Date().toISOString())
+      .order("next_review", { ascending: true });
     if (error) throw error;
-    return (data ?? []) as FlashcardRow[];
+    return data ?? [];
   },
-  async create(payload: { user_id: string; front: string; back: string; deck?: string | null }): Promise<FlashcardRow> {
+  async create(payload: FlashcardInsert): Promise<FlashcardRow> {
     const { data, error } = await supabase.from("flashcards").insert(payload).select("*").single();
     if (error) throw error;
-    return data as FlashcardRow;
+    return data;
   },
-  async update(id: string, patch: Partial<FlashcardRow>): Promise<void> {
+  async update(id: string, patch: FlashcardUpdate): Promise<void> {
     const { error } = await supabase.from("flashcards").update(patch).eq("id", id);
     if (error) throw error;
   },
@@ -48,7 +38,15 @@ export const flashcardService = {
     const { error } = await supabase.from("flashcards").delete().eq("id", id);
     if (error) throw error;
   },
-  async logReview(payload: { flashcard_id: string; user_id: string; quality: number; interval_days: number; ease_factor: number }): Promise<void> {
+  async logReview(payload: {
+    flashcard_id: string;
+    user_id: string;
+    quality: number;
+    interval_before?: number | null;
+    interval_after?: number | null;
+    ease_factor_before?: number | null;
+    ease_factor_after?: number | null;
+  }): Promise<void> {
     const { error } = await supabase.from("review_history").insert(payload);
     if (error) throw error;
   },
@@ -74,5 +72,5 @@ export function scheduleSm2(card: Pick<FlashcardRow, "interval_days" | "ease_fac
 
   const due = new Date();
   due.setDate(due.getDate() + interval);
-  return { interval_days: interval, ease_factor: ef, repetitions: reps, due_at: due.toISOString() };
+  return { interval_days: interval, ease_factor: ef, repetitions: reps, next_review: due.toISOString() };
 }
