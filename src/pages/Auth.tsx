@@ -1,39 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Home, UserCheck, Sparkles, Shield, Zap } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, UserCheck, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { validatePasswordStrength } from '@/lib/security';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
-import { Logo } from '@/components/ui/Logo';
 
 type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
 
-// Floating orb component
-const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ delay, duration: 1, ease: "easeOut" }}
-    className={`absolute rounded-full blur-3xl ${className}`}
-    style={{
-      animation: `blob ${8 + delay * 2}s ease-in-out infinite`,
-      animationDelay: `${delay}s`
-    }}
-  />
-);
+const INPUT =
+  'w-full bg-[#141432] border border-[#1e1e5a] rounded-xl h-12 px-4 pl-10 text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:border-[#4f46e5] focus:outline-none transition-colors';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [authView, setAuthView] = useState<AuthView>('login');
-  
+
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
@@ -42,19 +29,23 @@ export default function Auth() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   const { signIn, signUp, user, resetPassword, updatePassword, enterAsGuest } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const mode = searchParams.get('mode');
-    if (mode === 'reset') setAuthView('reset');
+    if (searchParams.get('mode') === 'reset') setAuthView('reset');
   }, [searchParams]);
 
   useEffect(() => {
     if (user && authView !== 'reset') navigate('/dashboard');
   }, [user, navigate, authView]);
+
+  const validatePassword = (password: string) => {
+    const result = validatePasswordStrength(password);
+    return result.valid ? { valid: true, message: '' } : { valid: false, message: result.errors[0] };
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +54,8 @@ export default function Auth() {
     if (error) {
       toast({
         title: 'Erro ao entrar',
-        description: error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message,
+        description:
+          error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message,
         variant: 'destructive',
       });
     } else {
@@ -73,20 +65,12 @@ export default function Auth() {
     setIsLoading(false);
   };
 
-  const validatePassword = (password: string): { valid: boolean; message: string } => {
-    const result = validatePasswordStrength(password);
-    if (!result.valid) {
-      return { valid: false, message: result.errors[0] };
-    }
-    return { valid: true, message: '' };
-  };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const passwordValidation = validatePassword(signupPassword);
-    if (!passwordValidation.valid) {
-      toast({ title: 'Senha inválida', description: passwordValidation.message, variant: 'destructive' });
+    const v = validatePassword(signupPassword);
+    if (!v.valid) {
+      toast({ title: 'Senha inválida', description: v.message, variant: 'destructive' });
       setIsLoading(false);
       return;
     }
@@ -94,31 +78,32 @@ export default function Auth() {
     if (error) {
       toast({
         title: 'Erro ao criar conta',
-        description: error.message === 'User already registered' ? 'Este email já está cadastrado' : error.message,
+        description:
+          error.message === 'User already registered' ? 'Este email já está cadastrado' : error.message,
         variant: 'destructive',
       });
     } else {
-      toast({ title: 'Conta criada!', description: 'Você já pode começar a usar o FD-Planner.' });
+      toast({ title: 'Conta criada!', description: 'Bem-vindo ao FD-Planner.' });
       navigate('/onboarding');
     }
     setIsLoading(false);
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const { error } = await resetPassword(forgotEmail);
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Email enviado!', description: 'Verifique sua caixa de entrada para redefinir sua senha.' });
+      toast({ title: 'Email enviado', description: 'Verifique sua caixa de entrada.' });
       setAuthView('login');
       setForgotEmail('');
     }
     setIsLoading(false);
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     if (newPassword !== confirmPassword) {
@@ -126,9 +111,9 @@ export default function Auth() {
       setIsLoading(false);
       return;
     }
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.valid) {
-      toast({ title: 'Senha inválida', description: passwordValidation.message, variant: 'destructive' });
+    const v = validatePassword(newPassword);
+    if (!v.valid) {
+      toast({ title: 'Senha inválida', description: v.message, variant: 'destructive' });
       setIsLoading(false);
       return;
     }
@@ -136,358 +121,375 @@ export default function Auth() {
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Senha atualizada!', description: 'Sua senha foi redefinida com sucesso.' });
+      toast({ title: 'Senha atualizada', description: 'Sua senha foi redefinida.' });
       navigate('/');
     }
     setIsLoading(false);
   };
 
-  const features = [
-    { icon: Shield, text: 'Dados protegidos' },
-    { icon: Zap, text: 'Interface rápida' },
-    { icon: Sparkles, text: 'Recursos premium' },
-  ];
+  return (
+    <div className="min-h-screen w-full bg-[#0a0a1a] text-white font-body flex selection:bg-[#4f46e5]/30">
+      {/* Painel de marca (esquerda) */}
+      <aside className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#0a0a1a] via-[#141432] to-[#1e1e5a] p-12 xl:p-16 flex-col justify-between">
+        <div aria-hidden className="absolute -top-40 -right-40 w-[70%] h-[70%] bg-[#4f46e5]/20 blur-[120px] rounded-full" />
+        <div aria-hidden className="absolute -bottom-40 -left-20 w-[50%] h-[50%] bg-[#1e1e5a]/40 blur-[100px] rounded-full" />
 
-  const renderForgotPassword = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="glass-panel border-0 shadow-2xl">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-2xl font-display">Recuperar Senha</CardTitle>
-          <CardDescription>Digite seu email para receber o link de recuperação</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleForgotPassword} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="forgot-email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary"
-                  required
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold" disabled={isLoading}>
-              {isLoading ? 'Enviando...' : 'Enviar Link de Recuperação'}
-            </Button>
-            <Button type="button" variant="ghost" className="w-full gap-2" onClick={() => setAuthView('login')}>
-              <ArrowLeft className="h-4 w-4" /> Voltar ao login
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10 flex items-center gap-2"
+        >
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#4f46e5] to-[#1e1e5a] grid place-items-center shadow-lg shadow-[#4f46e5]/30">
+            <Zap className="h-5 w-5 text-white" />
+          </div>
+          <span className="font-display text-xl font-bold tracking-tight">FD-Planner</span>
+        </motion.div>
 
-  const renderResetPassword = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card className="glass-panel border-0 shadow-2xl">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-2xl font-display">Nova Senha</CardTitle>
-          <CardDescription>Digite sua nova senha</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleResetPassword} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="new-password">Nova Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="new-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-10 pr-10 h-12 bg-background/50 border-border/50"
-                  required
-                  minLength={8}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirmar Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirm-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-10 h-12 bg-background/50 border-border/50"
-                  required
-                  minLength={8}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">Mínimo 8 caracteres com maiúscula, minúscula, número e caractere especial</p>
-            </div>
-            <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : 'Salvar Nova Senha'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          className="relative z-10 space-y-8"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4f46e5]/10 border border-[#4f46e5]/20 text-[#4f46e5] text-sm font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4f46e5] animate-pulse" />
+            Plataforma de estudos
+          </div>
+          <h1 className="font-display text-4xl xl:text-5xl font-bold leading-tight max-w-md">
+            O sucesso não é um destino — é um sistema de{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4f46e5] to-[#818cf8]">
+              hábitos consistentes
+            </span>
+            .
+          </h1>
+          <p className="text-gray-400 max-w-md text-lg leading-relaxed">
+            Foco, biblioteca, flashcards, mapas mentais e IA — tudo integrado para desenhar sua rotina de aprendizado.
+          </p>
 
-  const renderLoginSignup = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full"
-    >
-      <Card className="glass-panel border-0 shadow-2xl overflow-hidden">
-        <CardHeader className="text-center pb-4">
-          <div className="flex items-center justify-between mb-4">
-            <Link to="/">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2 group border-border/60 hover:border-primary/50 hover:bg-primary/10 hover:shadow-md hover:shadow-primary/20 transition-all duration-300"
+          <div className="grid grid-cols-3 gap-3 max-w-md">
+            {[
+              { k: '12+', v: 'módulos' },
+              { k: 'SM-2', v: 'flashcards' },
+              { k: 'IA', v: 'assistente' },
+            ].map((s) => (
+              <div
+                key={s.v}
+                className="rounded-2xl border border-[#1e1e5a]/50 bg-[#141432]/40 backdrop-blur-md p-4 text-center"
               >
-                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                <Home className="h-4 w-4 text-primary/80 group-hover:text-primary transition-colors" />
-                <span className="font-medium">Início</span>
+                <p className="font-display text-xl font-bold text-[#818cf8]">{s.k}</p>
+                <p className="text-[11px] uppercase tracking-widest text-gray-400 mt-1">{s.v}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <p className="relative z-10 text-xs text-gray-500 uppercase tracking-[0.2em]">
+          Estudo · Foco · Evolução
+        </p>
+      </aside>
+
+      {/* Formulário (direita) */}
+      <main className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 relative bg-[#0a0a1a]">
+        <div aria-hidden className="absolute inset-0 pointer-events-none lg:hidden">
+          <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#4f46e5]/15 blur-[100px] rounded-full" />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md relative z-10"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <Link to="/">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-gray-400 hover:text-white hover:bg-[#141432]"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Início
               </Button>
             </Link>
-            <div className="w-20" /> {/* Spacer for centering */}
+            <div className="lg:hidden flex items-center gap-2">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#4f46e5] to-[#1e1e5a] grid place-items-center">
+                <Zap className="h-4 w-4 text-white" />
+              </div>
+              <span className="font-display font-bold">FD-Planner</span>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-2xl font-display">Bem-vindo ao FD-Planner</CardTitle>
-            <CardDescription className="text-base">Entre ou crie sua conta para continuar</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 p-1">
-              <TabsTrigger value="login" className="font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Entrar</TabsTrigger>
-              <TabsTrigger value="signup" className="font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Criar Conta</TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="login" className="space-y-5 mt-0">
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+          {authView === 'forgot' && (
+            <div>
+              <h2 className="font-display text-3xl font-bold mb-2">Recuperar senha</h2>
+              <p className="text-gray-400 mb-8">Enviaremos um link de recuperação para seu email.</p>
+              <form onSubmit={handleForgot} className="space-y-5">
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                     <Input
-                      id="login-email"
                       type="email"
                       placeholder="seu@email.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
                       required
+                      className={INPUT}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <button type="button" onClick={() => setAuthView('forgot')} className="text-xs text-primary hover:underline font-medium">
-                      Esqueceu a senha?
-                    </button>
-                  </div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-xl shadow-lg shadow-[#4f46e5]/20"
+                >
+                  {isLoading ? 'Enviando...' : 'Enviar link'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-gray-400 hover:text-white hover:bg-[#141432]"
+                  onClick={() => setAuthView('login')}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+                </Button>
+              </form>
+            </div>
+          )}
+
+          {authView === 'reset' && (
+            <div>
+              <h2 className="font-display text-3xl font-bold mb-2">Nova senha</h2>
+              <p className="text-gray-400 mb-8">Defina uma nova senha para sua conta.</p>
+              <form onSubmit={handleReset} className="space-y-5">
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Nova senha</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                     <Input
-                      id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
-                      required
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold text-base" disabled={isLoading}>
-                  {isLoading ? 'Entrando...' : 'Fazer Login'}
-                </Button>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="space-y-5 mt-0">
-              <form onSubmit={handleSignup} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Seu nome"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      className="pl-10 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Mín. 8 caracteres"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      className="pl-10 pr-10 h-12 bg-background/50 border-border/50 focus:border-primary transition-colors"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
                       required
                       minLength={8}
+                      className={INPUT}
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                    >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Inclua maiúscula, minúscula, número e caractere especial</p>
                 </div>
-                <Button type="submit" className="w-full h-12 btn-animated bg-gradient-primary text-primary-foreground font-semibold text-base" disabled={isLoading}>
-                  {isLoading ? 'Criando conta...' : 'Criar Minha Conta'}
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Confirmar senha</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className={INPUT}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Mín. 8 caracteres com maiúscula, minúscula, número e caractere especial.
+                  </p>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-xl shadow-lg shadow-[#4f46e5]/20"
+                >
+                  {isLoading ? 'Salvando...' : 'Salvar nova senha'}
                 </Button>
               </form>
-            </TabsContent>
-          </Tabs>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border/50" />
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-3 text-muted-foreground">ou</span>
+          )}
+
+          {(authView === 'login' || authView === 'signup') && (
+            <div>
+              <h2 className="font-display text-3xl font-bold mb-2">Bem-vindo de volta</h2>
+              <p className="text-gray-400 mb-8">Insira seus dados para continuar sua jornada.</p>
+
+              <Tabs
+                value={authView}
+                onValueChange={(v) => setAuthView(v as AuthView)}
+                className="w-full"
+              >
+                <TabsList className="grid grid-cols-2 w-full bg-[#141432] border border-[#1e1e5a] p-1 rounded-xl mb-6">
+                  <TabsTrigger
+                    value="login"
+                    className="rounded-lg data-[state=active]:bg-[#4f46e5] data-[state=active]:text-white text-gray-400"
+                  >
+                    Entrar
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="signup"
+                    className="rounded-lg data-[state=active]:bg-[#4f46e5] data-[state=active]:text-white text-gray-400"
+                  >
+                    Criar conta
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="login" className="mt-0">
+                  <form onSubmit={handleLogin} className="space-y-5">
+                    <div>
+                      <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          required
+                          className={INPUT}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-xs uppercase tracking-widest text-gray-400">Senha</Label>
+                        <button
+                          type="button"
+                          onClick={() => setAuthView('forgot')}
+                          className="text-xs text-[#818cf8] hover:text-[#4f46e5] font-medium"
+                        >
+                          Esqueceu?
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          required
+                          className={INPUT}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-xl shadow-lg shadow-[#4f46e5]/20"
+                    >
+                      {isLoading ? 'Entrando...' : 'Entrar na plataforma'}
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                <TabsContent value="signup" className="mt-0">
+                  <form onSubmit={handleSignup} className="space-y-5">
+                    <div>
+                      <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Nome</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          type="text"
+                          placeholder="Seu nome"
+                          value={signupName}
+                          onChange={(e) => setSignupName(e.target.value)}
+                          required
+                          className={INPUT}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={signupEmail}
+                          onChange={(e) => setSignupEmail(e.target.value)}
+                          required
+                          className={INPUT}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs uppercase tracking-widest text-gray-400 mb-2 block">Senha</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Mín. 8 caracteres"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          required
+                          minLength={8}
+                          className={INPUT}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Inclua maiúscula, minúscula, número e caractere especial.
+                      </p>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full h-12 bg-[#4f46e5] hover:bg-[#4338ca] text-white font-semibold rounded-xl shadow-lg shadow-[#4f46e5]/20"
+                    >
+                      {isLoading ? 'Criando conta...' : 'Criar minha conta'}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#1e1e5a]" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase tracking-widest">
+                  <span className="bg-[#0a0a1a] px-3 text-gray-500">ou</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 gap-2 bg-transparent border-[#1e1e5a] text-white hover:bg-[#141432] hover:border-[#4f46e5]/50 rounded-xl"
+                onClick={() => {
+                  enterAsGuest();
+                  navigate('/dashboard');
+                }}
+              >
+                <UserCheck className="h-4 w-4" />
+                Explorar como visitante
+              </Button>
+              <p className="mt-3 text-center text-xs text-gray-500">
+                Acesse todas as telas em modo demonstração.
+              </p>
             </div>
-          </div>
-
-          {/* Guest Access */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 gap-2 border-border/50 hover:bg-muted/50 transition-colors"
-            onClick={() => { enterAsGuest(); navigate('/dashboard'); }}
-          >
-            <UserCheck className="h-4 w-4" />
-            Explorar como Visitante
-          </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            Acesse todas as telas em modo demonstração
-          </p>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-
-  return (
-    <div className="min-h-screen flex bg-background overflow-hidden">
-      {/* Left Side - Branding (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-hero">
-        {/* Animated Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <FloatingOrb className="w-96 h-96 bg-primary/30 top-10 -left-20" delay={0} />
-          <FloatingOrb className="w-80 h-80 bg-accent/30 bottom-20 right-10" delay={2} />
-          <FloatingOrb className="w-64 h-64 bg-primary/20 top-1/2 left-1/3" delay={4} />
-        </div>
-
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(var(--primary)/0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(var(--primary)/0.03)_1px,transparent_1px)] bg-[size:50px_50px]" />
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center p-12 xl:p-16">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <Logo size="lg" className="mb-8" />
-            
-            <h1 className="text-4xl xl:text-5xl font-display font-bold mb-6 leading-tight">
-              Organize seus estudos.
-              <span className="block text-gradient mt-2">Alcance seus objetivos.</span>
-            </h1>
-            
-            <p className="text-lg text-muted-foreground mb-10 max-w-md leading-relaxed">
-              FD-Planner - A plataforma mais completa para foco em produtividade, 
-              acompanhamento de progresso e bem-estar.
-            </p>
-
-            {/* Features */}
-            <div className="space-y-4">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={feature.text}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center gap-3"
-                >
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <feature.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-foreground font-medium">{feature.text}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Right Side - Auth Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8 relative">
-        {/* Mobile Background */}
-        <div className="absolute inset-0 bg-gradient-mesh lg:hidden" />
-        
-        <div className="w-full max-w-md relative z-10">
-          {/* Mobile Logo */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden flex justify-center mb-8"
-          >
-            <Logo size="md" />
-          </motion.div>
-
-          {authView === 'forgot' && renderForgotPassword()}
-          {authView === 'reset' && renderResetPassword()}
-          {(authView === 'login' || authView === 'signup') && renderLoginSignup()}
-        </div>
-      </div>
+          )}
+        </motion.div>
+      </main>
     </div>
   );
 }
