@@ -184,6 +184,47 @@ export type Database = {
         }
         Relationships: []
       }
+      annotations: {
+        Row: {
+          book_id: string
+          color: string | null
+          created_at: string
+          highlight: string | null
+          id: string
+          page: number
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          color?: string | null
+          created_at?: string
+          highlight?: string | null
+          id?: string
+          page: number
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          color?: string | null
+          created_at?: string
+          highlight?: string | null
+          id?: string
+          page?: number
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "annotations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -226,6 +267,182 @@ export type Database = {
         }
         Relationships: []
       }
+      book_collections: {
+        Row: {
+          book_id: string
+          collection_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          book_id: string
+          collection_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          book_id?: string
+          collection_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_collections_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_notes: {
+        Row: {
+          content: string | null
+          created_at: string
+          folder: string | null
+          id: string
+          mind_map_id: string | null
+          node_id: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          folder?: string | null
+          id?: string
+          mind_map_id?: string | null
+          node_id?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          folder?: string | null
+          id?: string
+          mind_map_id?: string | null
+          node_id?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_notes_mind_map_id_fkey"
+            columns: ["mind_map_id"]
+            isOneToOne: false
+            referencedRelation: "mind_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_notes_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "mind_map_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookmarks: {
+        Row: {
+          book_id: string
+          chapter: string | null
+          created_at: string
+          id: string
+          page: number
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          chapter?: string | null
+          created_at?: string
+          id?: string
+          page: number
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          chapter?: string | null
+          created_at?: string
+          id?: string
+          page?: number
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      books: {
+        Row: {
+          author: string | null
+          category: string | null
+          cover_path: string | null
+          created_at: string
+          file_path: string
+          file_size: number | null
+          id: string
+          last_read_page: number | null
+          status: string | null
+          title: string
+          total_pages: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          cover_path?: string | null
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          last_read_page?: number | null
+          status?: string | null
+          title: string
+          total_pages?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          cover_path?: string | null
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          last_read_page?: number | null
+          status?: string | null
+          title?: string
+          total_pages?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clean_streaks: {
         Row: {
           addiction_type: string
@@ -255,6 +472,33 @@ export type Database = {
           last_clean_date?: string
           longest_streak?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      collections: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -527,6 +771,48 @@ export type Database = {
         }
         Relationships: []
       }
+      flashcards: {
+        Row: {
+          back: string
+          created_at: string
+          ease_factor: number | null
+          front: string
+          id: string
+          interval_days: number | null
+          next_review: string | null
+          repetitions: number | null
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string
+          ease_factor?: number | null
+          front: string
+          id?: string
+          interval_days?: number | null
+          next_review?: string | null
+          repetitions?: number | null
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string
+          ease_factor?: number | null
+          front?: string
+          id?: string
+          interval_days?: number | null
+          next_review?: string | null
+          repetitions?: number | null
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       focus_sessions: {
         Row: {
           completed_at: string
@@ -603,6 +889,93 @@ export type Database = {
           resisted?: boolean
           trigger_context?: string | null
           trigger_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mind_map_nodes: {
+        Row: {
+          color: string | null
+          content: string | null
+          created_at: string
+          id: string
+          mind_map_id: string
+          parent_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          x: number | null
+          y: number | null
+        }
+        Insert: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          mind_map_id: string
+          parent_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          x?: number | null
+          y?: number | null
+        }
+        Update: {
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          mind_map_id?: string
+          parent_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          x?: number | null
+          y?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mind_map_nodes_mind_map_id_fkey"
+            columns: ["mind_map_id"]
+            isOneToOne: false
+            referencedRelation: "mind_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mind_map_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "mind_map_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mind_maps: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -718,6 +1091,53 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_pages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          key_concepts: string[] | null
+          page_number: number
+          pdf_id: string
+          read_at: string | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          key_concepts?: string[] | null
+          page_number: number
+          pdf_id: string
+          read_at?: string | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          key_concepts?: string[] | null
+          page_number?: number
+          pdf_id?: string
+          read_at?: string | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_pages_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "study_pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -762,6 +1182,231 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      questions: {
+        Row: {
+          category: string | null
+          correct_answer: string
+          created_at: string
+          explanation: string | null
+          id: string
+          last_answered_at: string | null
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          pdf_id: string
+          question: string
+          revision_number: number | null
+          times_answered: number | null
+          times_correct: number | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          correct_answer: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          last_answered_at?: string | null
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          pdf_id: string
+          question: string
+          revision_number?: number | null
+          times_answered?: number | null
+          times_correct?: number | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          correct_answer?: string
+          created_at?: string
+          explanation?: string | null
+          id?: string
+          last_answered_at?: string | null
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          pdf_id?: string
+          question?: string
+          revision_number?: number | null
+          times_answered?: number | null
+          times_correct?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "study_pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_answers: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          quiz_result_id: string
+          selected_answer: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          question_id: string
+          quiz_result_id: string
+          selected_answer: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          quiz_result_id?: string
+          selected_answer?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_answers_quiz_result_id_fkey"
+            columns: ["quiz_result_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_results: {
+        Row: {
+          completed_at: string
+          correct_answers: number
+          created_at: string
+          id: string
+          is_final_simulado: boolean | null
+          pdf_id: string | null
+          percentage: number | null
+          total_questions: number
+          user_id: string
+          weak_categories: string[] | null
+          wrong_answers: number
+        }
+        Insert: {
+          completed_at?: string
+          correct_answers: number
+          created_at?: string
+          id?: string
+          is_final_simulado?: boolean | null
+          pdf_id?: string | null
+          percentage?: number | null
+          total_questions: number
+          user_id: string
+          weak_categories?: string[] | null
+          wrong_answers: number
+        }
+        Update: {
+          completed_at?: string
+          correct_answers?: number
+          created_at?: string
+          id?: string
+          is_final_simulado?: boolean | null
+          pdf_id?: string | null
+          percentage?: number | null
+          total_questions?: number
+          user_id?: string
+          weak_categories?: string[] | null
+          wrong_answers?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_results_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "study_pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_goals: {
+        Row: {
+          created_at: string
+          daily_minutes_goal: number | null
+          daily_pages_goal: number | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_minutes_goal?: number | null
+          daily_pages_goal?: number | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_minutes_goal?: number | null
+          daily_pages_goal?: number | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reading_sessions: {
+        Row: {
+          book_id: string
+          created_at: string
+          date: string
+          duration_minutes: number | null
+          id: string
+          pages_read: number | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string
+          date?: string
+          duration_minutes?: number | null
+          id?: string
+          pages_read?: number | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string
+          date?: string
+          duration_minutes?: number | null
+          id?: string
+          pages_read?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_sessions_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recovery_goals: {
         Row: {
@@ -831,6 +1476,91 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      review_history: {
+        Row: {
+          ease_factor_after: number | null
+          ease_factor_before: number | null
+          flashcard_id: string
+          id: string
+          interval_after: number | null
+          interval_before: number | null
+          quality: number
+          reviewed_at: string
+          user_id: string
+        }
+        Insert: {
+          ease_factor_after?: number | null
+          ease_factor_before?: number | null
+          flashcard_id: string
+          id?: string
+          interval_after?: number | null
+          interval_before?: number | null
+          quality: number
+          reviewed_at?: string
+          user_id: string
+        }
+        Update: {
+          ease_factor_after?: number | null
+          ease_factor_before?: number | null
+          flashcard_id?: string
+          id?: string
+          interval_after?: number | null
+          interval_before?: number | null
+          quality?: number
+          reviewed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_history_flashcard_id_fkey"
+            columns: ["flashcard_id"]
+            isOneToOne: false
+            referencedRelation: "flashcards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_schedule: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          is_completed: boolean | null
+          pdf_id: string
+          revision_number: number
+          scheduled_date: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          pdf_id: string
+          revision_number: number
+          scheduled_date: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          is_completed?: boolean | null
+          pdf_id?: string
+          revision_number?: number
+          scheduled_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_schedule_pdf_id_fkey"
+            columns: ["pdf_id"]
+            isOneToOne: false
+            referencedRelation: "study_pdfs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reward_claims: {
         Row: {
@@ -991,6 +1721,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      study_pdfs: {
+        Row: {
+          completed: boolean | null
+          content: string | null
+          created_at: string
+          id: string
+          name: string
+          questions_generated: boolean | null
+          storage_path: string | null
+          total_pages: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          questions_generated?: boolean | null
+          storage_path?: string | null
+          total_pages?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          questions_generated?: boolean | null
+          storage_path?: string | null
+          total_pages?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       study_plan_courses: {
         Row: {
@@ -1582,6 +2351,66 @@ export type Database = {
           url?: string | null
           user_id?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_read_date: string | null
+          longest_streak: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_read_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_read_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_study_config: {
+        Row: {
+          created_at: string
+          id: string
+          revision_frequency: string | null
+          setup_completed: boolean | null
+          total_pdfs_planned: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          revision_frequency?: string | null
+          setup_completed?: boolean | null
+          total_pdfs_planned?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          revision_frequency?: string | null
+          setup_completed?: boolean | null
+          total_pdfs_planned?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
