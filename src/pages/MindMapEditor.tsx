@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { mindMapService, type MindMapNodeRow } from "@/services/mindMapService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Plus, Save } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 function toFlowNode(n: MindMapNodeRow): Node {
@@ -36,6 +36,7 @@ export default function MindMapEditor() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -75,6 +76,19 @@ export default function MindMapEditor() {
       setNewTitle("");
     } catch {
       toast.error("Erro ao criar nó");
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!selectedId) return;
+    try {
+      await mindMapService.deleteNode(selectedId);
+      setNodes((ns) => ns.filter((n) => n.id !== selectedId));
+      setEdges((es) => es.filter((e) => e.source !== selectedId && e.target !== selectedId));
+      setSelectedId(null);
+      toast.success("Nó removido");
+    } catch {
+      toast.error("Erro ao remover nó");
     }
   };
 
@@ -127,6 +141,9 @@ export default function MindMapEditor() {
           <Button size="sm" onClick={handleAddNode} disabled={!newTitle.trim()}>
             <Plus className="h-4 w-4 mr-1" /> Nó
           </Button>
+          <Button size="sm" variant="destructive" onClick={handleDeleteSelected} disabled={!selectedId}>
+            <Trash2 className="h-4 w-4 mr-1" /> Remover
+          </Button>
           <Button size="sm" variant="secondary" onClick={handleSave}>
             <Save className="h-4 w-4 mr-1" /> Salvar
           </Button>
@@ -142,6 +159,8 @@ export default function MindMapEditor() {
             onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeClick={(_, n) => setSelectedId(n.id)}
+            onPaneClick={() => setSelectedId(null)}
             fitView
           >
             <Background />
