@@ -1,32 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Home, UserCheck, Sparkles, Shield, Zap } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Home, UserCheck, Zap } from 'lucide-react';
 import { validatePasswordStrength } from '@/lib/security';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Logo } from '@/components/ui/Logo';
 
 type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
-
-// Floating orb component
-const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ delay, duration: 1, ease: "easeOut" }}
-    className={`absolute rounded-full blur-3xl ${className}`}
-    style={{
-      animation: `blob ${8 + delay * 2}s ease-in-out infinite`,
-      animationDelay: `${delay}s`
-    }}
-  />
-);
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
