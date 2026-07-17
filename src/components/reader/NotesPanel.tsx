@@ -8,8 +8,8 @@ import { toast } from "sonner";
 
 interface Note {
   id: string;
-  content: string;
-  page: number | null;
+  text: string | null;
+  page: number;
   created_at: string;
 }
 
@@ -17,10 +17,9 @@ interface Props {
   bookId: string;
   userId: string;
   currentPage?: number | null;
-  currentLocation?: string | null;
 }
 
-export function NotesPanel({ bookId, userId, currentPage, currentLocation }: Readonly<Props>) {
+export function NotesPanel({ bookId, userId, currentPage }: Readonly<Props>) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,8 +29,8 @@ export function NotesPanel({ bookId, userId, currentPage, currentLocation }: Rea
     (async () => {
       setLoading(true);
       const { data, error } = await supabase
-        .from("book_notes")
-        .select("id, content, page, created_at")
+        .from("annotations")
+        .select("id, text, page, created_at")
         .eq("book_id", bookId)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -46,14 +45,13 @@ export function NotesPanel({ bookId, userId, currentPage, currentLocation }: Rea
     const payload = {
       book_id: bookId,
       user_id: userId,
-      content: draft.trim(),
-      page: currentPage ?? null,
-      location: currentLocation ?? null,
+      text: draft.trim(),
+      page: currentPage ?? 0,
     };
     const { data, error } = await supabase
-      .from("book_notes")
+      .from("annotations")
       .insert(payload)
-      .select("id, content, page, created_at")
+      .select("id, text, page, created_at")
       .single();
     setSaving(false);
     if (error) return toast.error("Erro ao salvar nota");
@@ -63,7 +61,7 @@ export function NotesPanel({ bookId, userId, currentPage, currentLocation }: Rea
   }
 
   async function handleDelete(id: string) {
-    const { error } = await supabase.from("book_notes").delete().eq("id", id);
+    const { error } = await supabase.from("annotations").delete().eq("id", id);
     if (error) return toast.error("Erro ao remover");
     setNotes((n) => n.filter((x) => x.id !== id));
   }
@@ -96,13 +94,13 @@ export function NotesPanel({ bookId, userId, currentPage, currentLocation }: Rea
             <div key={n.id} className="rounded-md border bg-muted/30 p-2 text-xs space-y-1">
               <div className="flex items-start justify-between gap-2">
                 <span className="text-[10px] uppercase text-muted-foreground">
-                  {n.page ? `Pág. ${n.page}` : "Geral"} · {new Date(n.created_at).toLocaleDateString("pt-BR")}
+                  {n.page > 0 ? `Pág. ${n.page}` : "Geral"} · {new Date(n.created_at).toLocaleDateString("pt-BR")}
                 </span>
                 <button onClick={() => handleDelete(n.id)} className="text-muted-foreground hover:text-destructive">
                   <Trash2 className="h-3 w-3" />
                 </button>
               </div>
-              <p className="whitespace-pre-wrap leading-relaxed">{n.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{n.text}</p>
             </div>
           ))
         )}
