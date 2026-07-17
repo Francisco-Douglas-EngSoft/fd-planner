@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import { CommandPalette } from '@/components/CommandPalette';
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -79,6 +80,7 @@ export function MainLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-surface">
+      <CommandPalette />
       {/* Offline indicator */}
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-[200] bg-warning/90 text-warning-foreground py-1 px-4 flex items-center justify-center gap-2 text-sm">
