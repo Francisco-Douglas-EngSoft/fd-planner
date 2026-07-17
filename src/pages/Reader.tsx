@@ -114,23 +114,35 @@ export default function Reader() {
     return () => clearTimeout(t);
   }, [page, book, totalPages]);
 
-  // Record reading session on unmount
+  // Record reading session on unmount + integra com Foco/XP
+  // (grava também uma focus_session do tipo "work" para alimentar horas/XP/conquistas)
   useEffect(() => {
     return () => {
       if (!book || !user) return;
       const end = new Date();
       const minutes = Math.max(1, Math.round((end.getTime() - sessionStart.getTime()) / 60000));
+      // Ignora leituras muito curtas (< 1 min efetivo)
+      if (minutes < 1) return;
+      const today = end.toISOString().slice(0, 10);
       supabase
         .from("reading_sessions")
         .insert({
           user_id: user.id,
           book_id: book.id,
-          date: end.toISOString().slice(0, 10),
+          date: today,
           duration_minutes: minutes,
         })
-        .then(({ error }) => {
-          if (error) console.error(error);
-        });
+        .then(({ error }) => error && console.error(error));
+      // Reading conta como foco: alimenta horas, streaks, XP e conquistas.
+      supabase
+        .from("focus_sessions")
+        .insert({
+          user_id: user.id,
+          duration_minutes: minutes,
+          session_type: "work",
+          notes: `Leitura: ${book.title}`,
+        })
+        .then(({ error }) => error && console.error(error));
     };
   }, [book, user, sessionStart]);
 

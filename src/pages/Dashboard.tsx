@@ -15,6 +15,7 @@ import { FocusSessionsChart } from '@/components/dashboard/FocusSessionsChart';
 import { CourseStudyChart } from '@/components/dashboard/CourseStudyChart';
 import { StudyComparisonChart } from '@/components/dashboard/StudyComparisonChart';
 import { StudyHoursEvolutionChart } from '@/components/dashboard/StudyHoursEvolutionChart';
+import { StudyHubWidgets } from '@/components/dashboard/StudyHubWidgets';
 
 import { CompletedCoursesStats } from '@/components/dashboard/CompletedCoursesStats';
 import { CategoryProgressReport } from '@/components/dashboard/CategoryProgressReport';
@@ -272,6 +273,7 @@ export default function Dashboard() {
         {/* Visão geral */}
         <TabsContent value="overview" className="space-y-6 mt-0">
           <TaskReminders />
+          <StudyHubWidgets />
           <StudyHoursEvolutionChart />
           <WeeklyStats />
           <UpcomingTasks />
