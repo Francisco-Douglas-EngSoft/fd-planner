@@ -1,20 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-export type BookRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  author: string | null;
-  file_path: string | null;
-  file_type: string | null;
-  cover_url: string | null;
-  total_pages: number | null;
-  current_page: number | null;
-  progress: number | null;
-  status: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type BookRow = Database["public"]["Tables"]["books"]["Row"];
+export type BookInsert = Database["public"]["Tables"]["books"]["Insert"];
+export type BookUpdate = Database["public"]["Tables"]["books"]["Update"];
 
 export const libraryService = {
   async list(userId: string): Promise<BookRow[]> {
@@ -24,22 +13,22 @@ export const libraryService = {
       .eq("user_id", userId)
       .order("updated_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as BookRow[];
+    return data ?? [];
   },
 
   async get(id: string): Promise<BookRow | null> {
     const { data, error } = await supabase.from("books").select("*").eq("id", id).maybeSingle();
     if (error) throw error;
-    return (data as BookRow) ?? null;
+    return data ?? null;
   },
 
-  async create(payload: Partial<BookRow> & { user_id: string; title: string }): Promise<BookRow> {
+  async create(payload: BookInsert): Promise<BookRow> {
     const { data, error } = await supabase.from("books").insert(payload).select("*").single();
     if (error) throw error;
-    return data as BookRow;
+    return data;
   },
 
-  async update(id: string, patch: Partial<BookRow>): Promise<void> {
+  async update(id: string, patch: BookUpdate): Promise<void> {
     const { error } = await supabase.from("books").update(patch).eq("id", id);
     if (error) throw error;
   },
