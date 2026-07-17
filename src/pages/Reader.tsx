@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 // pdfjs worker (Vite-friendly)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - Vite worker import
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,8 +121,7 @@ export default function Reader() {
         .insert({
           user_id: user.id,
           book_id: book.id,
-          started_at: sessionStart.toISOString(),
-          ended_at: end.toISOString(),
+          date: end.toISOString().slice(0, 10),
           duration_minutes: minutes,
         })
         .then(({ error }) => {
@@ -138,7 +136,7 @@ export default function Reader() {
       user_id: user.id,
       book_id: book.id,
       page,
-      title: `Página ${page}`,
+      chapter: `Página ${page}`,
     });
     if (error) {
       console.error(error);

@@ -12,8 +12,8 @@ type BookmarkRow = {
   id: string;
   book_id: string;
   page: number | null;
-  title: string | null;
-  note: string | null;
+  chapter: string | null;
+  text: string | null;
   created_at: string;
   books?: { title: string | null; author: string | null } | null;
 };
@@ -29,7 +29,7 @@ export default function Bookmarks() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bookmarks")
-      .select("id, book_id, page, title, note, created_at, books ( title, author )")
+      .select("id, book_id, page, chapter, text, created_at, books ( title, author )")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) {
@@ -86,7 +86,8 @@ export default function Bookmarks() {
                   {b.books?.author && (
                     <p className="text-xs text-muted-foreground line-clamp-1">{b.books.author}</p>
                   )}
-                  {b.note && <p className="text-sm mt-2 text-muted-foreground line-clamp-2">{b.note}</p>}
+                  {b.chapter && <p className="text-xs text-muted-foreground mt-1">{b.chapter}</p>}
+                  {b.text && <p className="text-sm mt-2 text-muted-foreground line-clamp-2">{b.text}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <Button size="sm" variant="outline" onClick={() => navigate(`/leitor/${b.book_id}`)}>
