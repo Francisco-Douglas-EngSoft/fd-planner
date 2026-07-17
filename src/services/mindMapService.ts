@@ -1,26 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-export type MindMapRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type MindMapNodeRow = {
-  id: string;
-  mind_map_id: string;
-  parent_id: string | null;
-  label: string;
-  content: string | null;
-  position_x: number | null;
-  position_y: number | null;
-  color: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type MindMapRow = Database["public"]["Tables"]["mind_maps"]["Row"];
+export type MindMapInsert = Database["public"]["Tables"]["mind_maps"]["Insert"];
+export type MindMapNodeRow = Database["public"]["Tables"]["mind_map_nodes"]["Row"];
+export type MindMapNodeInsert = Database["public"]["Tables"]["mind_map_nodes"]["Insert"];
 
 export const mindMapService = {
   async list(userId: string): Promise<MindMapRow[]> {
@@ -30,12 +14,12 @@ export const mindMapService = {
       .eq("user_id", userId)
       .order("updated_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as MindMapRow[];
+    return data ?? [];
   },
-  async create(payload: { user_id: string; title: string; description?: string | null }): Promise<MindMapRow> {
+  async create(payload: MindMapInsert): Promise<MindMapRow> {
     const { data, error } = await supabase.from("mind_maps").insert(payload).select("*").single();
     if (error) throw error;
-    return data as MindMapRow;
+    return data;
   },
   async remove(id: string): Promise<void> {
     const { error } = await supabase.from("mind_maps").delete().eq("id", id);
@@ -47,12 +31,12 @@ export const mindMapService = {
       .select("*")
       .eq("mind_map_id", mindMapId);
     if (error) throw error;
-    return (data ?? []) as MindMapNodeRow[];
+    return data ?? [];
   },
-  async upsertNode(node: Partial<MindMapNodeRow> & { mind_map_id: string; label: string }): Promise<MindMapNodeRow> {
+  async upsertNode(node: MindMapNodeInsert): Promise<MindMapNodeRow> {
     const { data, error } = await supabase.from("mind_map_nodes").upsert(node).select("*").single();
     if (error) throw error;
-    return data as MindMapNodeRow;
+    return data;
   },
   async removeNode(id: string): Promise<void> {
     const { error } = await supabase.from("mind_map_nodes").delete().eq("id", id);
