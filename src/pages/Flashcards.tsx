@@ -15,8 +15,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Sparkles, RotateCcw, Wand2 } from "lucide-react";
+import { Plus, Trash2, Sparkles, RotateCcw, Wand2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import type { FlashcardRow } from "@/services/flashcardService";
 
 function ReviewMode({ cards, onReview, onExit }: {
@@ -156,6 +157,9 @@ export default function Flashcards() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button asChild variant="ghost">
+            <Link to="/flashcards/estatisticas"><BarChart3 className="h-4 w-4 mr-2" />Estatísticas</Link>
+          </Button>
           <Button
             variant="secondary"
             onClick={() => setReviewing(true)}

@@ -20,7 +20,7 @@ import {
 
 interface ReviewRow {
   quality: number;
-  created_at: string;
+  reviewed_at: string;
 }
 
 export default function FlashcardStats() {
@@ -38,9 +38,9 @@ export default function FlashcardStats() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("review_history")
-        .select("quality, created_at")
+        .select("quality, reviewed_at")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
+        .order("reviewed_at", { ascending: false })
         .limit(500);
       if (error) throw error;
       return (data ?? []) as ReviewRow[];
@@ -93,7 +93,7 @@ export default function FlashcardStats() {
     if (!rs.length) return { rate: 0, total: 0, correct: 0, last7: 0 };
     const correct = rs.filter((r) => r.quality >= 3).length;
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const last7 = rs.filter((r) => new Date(r.created_at).getTime() >= cutoff).length;
+    const last7 = rs.filter((r) => new Date(r.reviewed_at).getTime() >= cutoff).length;
     return {
       rate: Math.round((correct / rs.length) * 100),
       total: rs.length,
