@@ -1025,6 +1025,47 @@ export type Database = {
         }
         Relationships: []
       }
+      note_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "note_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_history: {
         Row: {
           body: string | null
@@ -1683,6 +1724,7 @@ export type Database = {
           content: string | null
           course_id: string | null
           created_at: string
+          folder_id: string | null
           id: string
           mood: string | null
           tags: string[] | null
@@ -1694,6 +1736,7 @@ export type Database = {
           content?: string | null
           course_id?: string | null
           created_at?: string
+          folder_id?: string | null
           id?: string
           mood?: string | null
           tags?: string[] | null
@@ -1705,6 +1748,7 @@ export type Database = {
           content?: string | null
           course_id?: string | null
           created_at?: string
+          folder_id?: string | null
           id?: string
           mood?: string | null
           tags?: string[] | null
@@ -1718,6 +1762,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_notes_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "note_folders"
             referencedColumns: ["id"]
           },
         ]
