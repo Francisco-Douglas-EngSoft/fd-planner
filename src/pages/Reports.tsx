@@ -569,15 +569,11 @@ export default function Reports() {
       {/* Tabs for different report types */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
-          <TabsList className="grid w-max sm:w-full grid-cols-6 h-auto gap-1 bg-muted/50 p-1 min-w-[480px] sm:min-w-0">
+          <TabsList className="grid w-max sm:w-full grid-cols-5 h-auto gap-1 bg-muted/50 p-1 min-w-[400px] sm:min-w-0">
             <TabsTrigger value="overview" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
               <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden xs:inline sm:inline">Visão</span>
               <span className="hidden sm:inline"> Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="advanced" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
-              <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Avançado</span>
             </TabsTrigger>
             <TabsTrigger value="focus" className="gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
               <Timer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
