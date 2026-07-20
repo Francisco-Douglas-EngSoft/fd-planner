@@ -5,6 +5,10 @@ import { initializeBranding } from "./hooks/useBranding";
 import { initializeCustomTheme } from "./hooks/useCustomTheme";
 import { installFocusQueueAutoFlush } from "./lib/offlineFocusQueue";
 import { registerAppServiceWorker } from "./pwa/registerServiceWorker";
+import { initSentry } from "./lib/sentry";
+
+// Initialize Sentry before anything else so early errors are captured.
+initSentry();
 
 // Initialize theme classes before React mounts to prevent flash
 (() => {
