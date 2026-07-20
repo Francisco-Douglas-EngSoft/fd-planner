@@ -1234,3 +1234,15 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL SQUARE OVERRIDE — remove all border-radius system-wide
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --radius: 0px !important;
+}
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
