@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RichTextEditor } from './RichTextEditor';
+import type { NoteFolder } from './FolderSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +39,10 @@ interface NoteDialogProps {
     content: string;
     mood: string | null;
     course_id: string | null;
+    folder_id?: string | null;
   } | null;
+  folders?: NoteFolder[];
+  defaultFolderId?: string | null;
 }
 
 const moods = [
@@ -49,11 +53,12 @@ const moods = [
   { value: 'frustrated', label: 'Frustrado', icon: Frown, color: 'text-destructive' },
 ];
 
-export function NoteDialog({ open, onOpenChange, onSuccess, editNote }: NoteDialogProps) {
+export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = [], defaultFolderId = null }: NoteDialogProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<string>('');
   const [courseId, setCourseId] = useState<string>('');
+  const [folderId, setFolderId] = useState<string>('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -68,14 +73,16 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote }: NoteDial
         setContent(editNote.content || '');
         setMood(editNote.mood || '');
         setCourseId(editNote.course_id || '');
+        setFolderId(editNote.folder_id || '');
       } else {
         setTitle('');
         setContent('');
         setMood('');
         setCourseId('');
+        setFolderId(defaultFolderId || '');
       }
     }
-  }, [open, user, editNote]);
+  }, [open, user, editNote, defaultFolderId]);
 
   const fetchCourses = async () => {
     if (!user) return;
@@ -98,18 +105,19 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote }: NoteDial
     setIsLoading(true);
 
     try {
-      const noteData = {
+      const noteData: Record<string, unknown> = {
         user_id: user.id,
         title: title.trim(),
         content,
         mood: mood || null,
         course_id: courseId || null,
+        folder_id: folderId || null,
       };
 
       if (editNote) {
         const { error } = await supabase
           .from('study_notes')
-          .update(noteData)
+          .update(noteData as never)
           .eq('id', editNote.id);
 
         if (error) throw error;
@@ -121,7 +129,7 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote }: NoteDial
       } else {
         const { error } = await supabase
           .from('study_notes')
-          .insert(noteData);
+          .insert(noteData as never);
 
         if (error) throw error;
 
@@ -207,6 +215,28 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote }: NoteDial
               </SelectContent>
             </Select>
           </div>
+
+          {folders.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="folder">Pasta</Label>
+              <Select value={folderId || 'none'} onValueChange={(val) => setFolderId(val === 'none' ? '' : val)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {folders.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5" style={{ backgroundColor: f.color || '#64748b' }} />
+                        {f.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Conteúdo</Label>
