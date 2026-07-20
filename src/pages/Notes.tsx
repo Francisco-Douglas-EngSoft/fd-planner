@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Calendar, Tag, BookOpen, MoreVertical, Edit, Trash2, StickyNote } from 'lucide-react';
+import { Plus, Search, FileText, Calendar, Tag, BookOpen, MoreVertical, Edit, Trash2, StickyNote, FolderInput } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,9 +8,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NoteDialog } from '@/components/notes/NoteDialog';
+import { FolderSidebar, type NoteFolder } from '@/components/notes/FolderSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +28,7 @@ interface Note {
   title: string;
   content: string | null;
   course_id: string | null;
+  folder_id: string | null;
   tags: string[] | null;
   mood: string | null;
   created_at: string;
@@ -42,6 +48,8 @@ const moodEmojis: Record<string, string> = {
 
 export default function Notes() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<NoteFolder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNoteDialog, setShowNoteDialog] = useState(false);
@@ -54,8 +62,19 @@ export default function Notes() {
   useEffect(() => {
     if (user) {
       fetchNotes();
+      fetchFolders();
     }
   }, [user]);
+
+  const fetchFolders = async () => {
+    if (!user) return;
+    const { data, error } = await (supabase as any)
+      .from('note_folders')
+      .select('id, name, color')
+      .eq('user_id', user.id)
+      .order('name');
+    if (!error && data) setFolders(data as NoteFolder[]);
+  };
 
   const fetchNotes = async () => {
     if (!user) return;
@@ -77,7 +96,7 @@ export default function Notes() {
         variant: 'destructive',
       });
     } else {
-      setNotes(data || []);
+      setNotes((data || []) as Note[]);
     }
     setIsLoading(false);
   };
@@ -103,6 +122,19 @@ export default function Notes() {
     }
   };
 
+  const moveNoteToFolder = async (noteId: string, folderId: string | null) => {
+    const { error } = await (supabase as any)
+      .from('study_notes')
+      .update({ folder_id: folderId })
+      .eq('id', noteId);
+    if (error) {
+      toast({ title: 'Erro ao mover', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setNotes((prev) => prev.map((n) => (n.id === noteId ? { ...n, folder_id: folderId } : n)));
+    toast({ title: 'Nota movida' });
+  };
+
   const handleEdit = (note: Note) => {
     setEditNote(note);
     setShowNoteDialog(true);
@@ -118,9 +150,20 @@ export default function Notes() {
       (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesTag = !selectedTag || (note.tags && note.tags.includes(selectedTag));
-    
-    return matchesSearch && matchesTag;
+
+    const matchesFolder =
+      selectedFolderId === 'all' ? true :
+      selectedFolderId === null ? note.folder_id === null :
+      note.folder_id === selectedFolderId;
+
+    return matchesSearch && matchesTag && matchesFolder;
   });
+
+  const folderCounts = notes.reduce<Record<string, number>>((acc, n) => {
+    if (n.folder_id) acc[n.folder_id] = (acc[n.folder_id] || 0) + 1;
+    return acc;
+  }, {});
+  const uncategorizedCount = notes.filter((n) => !n.folder_id).length;
 
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -152,7 +195,7 @@ export default function Notes() {
             Notas de Estudo
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Organize suas anotações e insights de aprendizado
+            Organize suas anotações em pastas, com formatação profissional, imagens e código
           </p>
         </div>
         <Button 
@@ -167,6 +210,18 @@ export default function Notes() {
         </Button>
       </div>
 
+      <div className="flex flex-col lg:flex-row gap-4">
+        <FolderSidebar
+          folders={folders}
+          selectedFolderId={selectedFolderId}
+          onSelect={setSelectedFolderId}
+          counts={folderCounts}
+          totalCount={notes.length}
+          uncategorizedCount={uncategorizedCount}
+          onRefresh={fetchFolders}
+        />
+
+        <div className="flex-1 min-w-0 space-y-4">
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -290,6 +345,24 @@ export default function Notes() {
                         <Edit className="h-4 w-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                          <FolderInput className="h-4 w-4 mr-2" />
+                          Mover para
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); moveNoteToFolder(note.id, null); }}>
+                            Sem categoria
+                          </DropdownMenuItem>
+                          {folders.length > 0 && <DropdownMenuSeparator />}
+                          {folders.map((f) => (
+                            <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); moveNoteToFolder(note.id, f.id); }}>
+                              <span className="h-2.5 w-2.5 mr-2" style={{ backgroundColor: f.color || '#64748b' }} />
+                              {f.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                       <DropdownMenuItem 
                         className="text-destructive"
                         onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
@@ -360,6 +433,8 @@ export default function Notes() {
           </div>
         </div>
       )}
+        </div>
+      </div>
 
       {/* Note Dialog */}
       <NoteDialog
@@ -367,6 +442,8 @@ export default function Notes() {
         onOpenChange={setShowNoteDialog}
         onSuccess={fetchNotes}
         editNote={editNote}
+        folders={folders}
+        defaultFolderId={selectedFolderId && selectedFolderId !== 'all' ? selectedFolderId : null}
       />
     </div>
   );
