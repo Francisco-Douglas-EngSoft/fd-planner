@@ -8,6 +8,8 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import TextStyle from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
 import { createLowlight, common } from 'lowlight';
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading1, Heading2, Heading3,
@@ -15,6 +17,9 @@ import {
   AlignLeft, AlignCenter, AlignRight, Minus, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,6 +101,8 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
       Image.configure({ HTMLAttributes: { class: 'rounded-md max-w-full h-auto my-3' } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       CodeBlockLowlight.configure({ lowlight, defaultLanguage: 'typescript' }),
+      TextStyle,
+      FontFamily.configure({ types: ['textStyle'] }),
       ProfessionalIndentBehavior,
     ],
     content,
