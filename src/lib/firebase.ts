@@ -1,34 +1,29 @@
-import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
-import {
-  getMessaging,
-  getToken,
-  onMessage,
-  isSupported,
-  type Messaging,
-  type MessagePayload,
-} from "firebase/messaging";
+import type { FirebaseApp } from "firebase/app";
+import type { Messaging, MessagePayload } from "firebase/messaging";
 import { supabase } from "@/integrations/supabase/client";
 import { firebaseConfig, firebaseVapidKey, isFirebaseConfigured } from "./firebaseConfig";
 
 let appInstance: FirebaseApp | null = null;
 
-function getFirebaseApp(): FirebaseApp | null {
+async function getFirebaseApp(): Promise<FirebaseApp | null> {
   if (!isFirebaseConfigured()) return null;
   if (!appInstance) {
+    const { initializeApp, getApp, getApps } = await import("firebase/app");
     appInstance = getApps().length ? getApp() : initializeApp(firebaseConfig);
   }
   return appInstance;
 }
 
 async function getMessagingIfSupported(): Promise<Messaging | null> {
-  const app = getFirebaseApp();
+  const app = await getFirebaseApp();
   if (!app) return null;
   try {
+    const { isSupported, getMessaging } = await import("firebase/messaging");
     if (!(await isSupported())) return null;
+    return getMessaging(app);
   } catch {
     return null;
   }
-  return getMessaging(app);
 }
 
 async function registerMessagingServiceWorker(): Promise<ServiceWorkerRegistration | undefined> {
@@ -71,6 +66,7 @@ export async function enableFcm(): Promise<EnableFcmResult> {
     if (!messaging) return { ok: false, error: "unsupported" };
 
     const swReg = await registerMessagingServiceWorker();
+    const { getToken } = await import("firebase/messaging");
     const token = await getToken(messaging, {
       vapidKey: firebaseVapidKey,
       serviceWorkerRegistration: swReg,
@@ -106,6 +102,7 @@ export async function disableFcm(): Promise<void> {
   try {
     const messaging = await getMessagingIfSupported();
     if (!messaging) return;
+    const { getToken } = await import("firebase/messaging");
     const token = await getToken(messaging, { vapidKey: firebaseVapidKey }).catch(() => null);
     if (!token) return;
     await supabase.from("fcm_tokens").update({ enabled: false }).eq("token", token);
@@ -120,6 +117,7 @@ export async function listenForegroundMessages(
 ): Promise<() => void> {
   const messaging = await getMessagingIfSupported();
   if (!messaging) return () => {};
+  const { onMessage } = await import("firebase/messaging");
   return onMessage(messaging, cb);
 }
 
