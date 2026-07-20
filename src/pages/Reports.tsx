@@ -46,6 +46,7 @@ import { generateStudyReport } from '@/lib/pdfExport';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatHoursToHMS } from '@/lib/timeUtils';
+import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 
 interface Course {
   id: string;
@@ -762,6 +763,10 @@ export default function Reports() {
 
         {/* Focus Tab */}
         <TabsContent value="focus" className="space-y-6">
+          <AdvancedAnalytics
+            title="Análises avançadas de foco"
+            description="Padrões, comparativos, distribuição e metas"
+          />
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>

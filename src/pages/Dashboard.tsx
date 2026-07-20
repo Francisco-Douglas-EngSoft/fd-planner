@@ -16,6 +16,7 @@ import { CourseStudyChart } from '@/components/dashboard/CourseStudyChart';
 import { StudyComparisonChart } from '@/components/dashboard/StudyComparisonChart';
 import { StudyHoursEvolutionChart } from '@/components/dashboard/StudyHoursEvolutionChart';
 import { StudyHubWidgets } from '@/components/dashboard/StudyHubWidgets';
+import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 
 import { CompletedCoursesStats } from '@/components/dashboard/CompletedCoursesStats';
 import { CategoryProgressReport } from '@/components/dashboard/CategoryProgressReport';
@@ -282,6 +283,10 @@ export default function Dashboard() {
         {/* Estudos */}
         <TabsContent value="studies" className="space-y-6 mt-0">
           <StudyComparisonChart />
+          <AdvancedAnalytics
+            title="Análises avançadas"
+            description="Padrões de foco, comparativos e metas"
+          />
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
             <FocusSessionsChart />
             <CourseStudyChart />

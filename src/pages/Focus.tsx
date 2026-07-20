@@ -42,6 +42,7 @@ import { DailyAgenda } from '@/components/focus/DailyAgenda';
 import { MotivationalQuote } from '@/components/focus/MotivationalQuote';
 import { PaceIndicatorCard } from '@/components/focus/PaceIndicatorCard';
 import { FocusEvolutionChart } from '@/components/focus/FocusEvolutionChart';
+import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatSecondsToHMS, formatMinutesToHMS, formatHoursToHMS } from '@/lib/timeUtils';
@@ -1350,6 +1351,14 @@ export default function Focus() {
 
           {/* ─── Evolution Chart ─── */}
           <FocusEvolutionChart refreshKey={focusRefreshKey} />
+
+          {/* ─── Análises avançadas ─── */}
+          <AdvancedAnalytics
+            courseId={selectedCourse || undefined}
+            hide={selectedCourse ? ['distribution'] : []}
+            title="Análises avançadas"
+            description={selectedCourse ? 'Filtrado pelo curso selecionado' : 'Padrões de foco dos últimos 90 dias'}
+          />
         </div>
 
         {/* ─── Sidebar ─── */}
