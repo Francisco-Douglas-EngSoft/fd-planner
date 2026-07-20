@@ -377,7 +377,7 @@ export default function Notes() {
                 {/* Content Preview */}
                 {note.content && (
                   <div 
-                    className="prose prose-sm max-w-none text-muted-foreground line-clamp-6 
+                    className="prose prose-sm max-w-none text-muted-foreground line-clamp-6 whitespace-pre-wrap
                                prose-headings:text-foreground prose-headings:font-semibold prose-headings:mb-2
                                prose-p:my-2 prose-p:leading-relaxed
                                prose-strong:text-foreground prose-strong:font-semibold

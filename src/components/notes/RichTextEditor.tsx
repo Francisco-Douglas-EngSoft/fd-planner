@@ -37,9 +37,43 @@ const ProfessionalEnterBehavior = Extension.create({
         return this.editor.chain().focus().splitBlock().run();
       },
       'Shift-Enter': () => this.editor.chain().focus().setHardBreak().run(),
+      Tab: () => {
+        if (
+          this.editor.isActive('bulletList') ||
+          this.editor.isActive('orderedList') ||
+          this.editor.isActive('codeBlock')
+        ) {
+          return false;
+        }
+        // Insere 2 espaços não colapsáveis para indentação visual.
+        return this.editor.chain().focus().insertContent('\u00A0\u00A0').run();
+      },
     };
   },
 });
+
+/**
+ * Converte texto plano colado (com \n / \n\n) em HTML preservando parágrafos,
+ * quebras de linha e múltiplos espaços (via &nbsp;). Exportado para testes.
+ */
+export function plainTextToHtml(text: string): string {
+  const escape = (s: string) =>
+    s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  const preserveSpaces = (s: string) =>
+    // 2+ espaços consecutivos viram nbsp para não colapsar no HTML.
+    s.replace(/ {2,}/g, (m) => '\u00A0'.repeat(m.length));
+
+  const paragraphs = text.replace(/\r\n/g, '\n').split(/\n{2,}/);
+  return paragraphs
+    .map((p) => {
+      const lines = p.split('\n').map((l) => preserveSpaces(escape(l)));
+      return `<p>${lines.join('<br>')}</p>`;
+    })
+    .join('');
+}
 
 interface RichTextEditorProps {
   content: string;
@@ -69,6 +103,18 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
     editorProps: {
       attributes: {
         class: 'prose prose-base dark:prose-invert max-w-none px-8 py-6 min-h-full focus:outline-none text-base leading-relaxed',
+      },
+      handlePaste: (_view, event) => {
+        const cd = event.clipboardData;
+        if (!cd) return false;
+        const html = cd.getData('text/html');
+        if (html && html.trim().length > 0) return false;
+        const text = cd.getData('text/plain');
+        if (!text || !/\n/.test(text)) return false;
+        event.preventDefault();
+        const htmlOut = plainTextToHtml(text);
+        editor?.chain().focus().insertContent(htmlOut).run();
+        return true;
       },
     },
   });
