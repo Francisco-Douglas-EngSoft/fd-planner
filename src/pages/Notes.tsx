@@ -28,7 +28,7 @@ interface Note {
   title: string;
   content: string | null;
   course_id: string | null;
-  folder_id: string | null;
+  folder_id?: string | null;
   tags: string[] | null;
   mood: string | null;
   created_at: string;
@@ -96,7 +96,7 @@ export default function Notes() {
         variant: 'destructive',
       });
     } else {
-      setNotes((data || []) as Note[]);
+      setNotes(((data || []) as unknown) as Note[]);
     }
     setIsLoading(false);
   };
