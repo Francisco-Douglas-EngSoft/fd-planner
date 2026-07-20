@@ -85,7 +85,7 @@ export default function Profile() {
       const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
 
       const [coursesRes, tasksRes, focusRes, achievementsRes, userAchievementsRes, todayFocusRes, notesRes] = await Promise.all([
-        supabase.from('courses').select('id, status').eq('user_id', user?.id),
+        supabase.from('courses').select('id, status, completed_hours').eq('user_id', user?.id),
         supabase.from('tasks').select('id, status').eq('user_id', user?.id),
         supabase.from('focus_sessions').select('id', { count: 'exact' }).eq('user_id', user?.id),
         supabase.from('achievements').select('id', { count: 'exact' }),
@@ -96,6 +96,10 @@ export default function Profile() {
 
       const completedTasks = tasksRes.data?.filter(t => t.status === 'completed').length || 0;
       const todayStudyMinutes = todayFocusRes.data?.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) || 0;
+      const completedCourseHours = coursesRes.data?.reduce(
+        (sum, c: { completed_hours?: number | null }) => sum + (Number(c.completed_hours) || 0),
+        0,
+      ) || 0;
 
       setStats({
         totalCourses: coursesRes.data?.length || 0,
@@ -107,6 +111,7 @@ export default function Profile() {
         unlockedAchievements: userAchievementsRes.count || 0,
         todayStudyMinutes,
         totalNotes: notesRes.count || 0,
+        completedCourseHours,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
