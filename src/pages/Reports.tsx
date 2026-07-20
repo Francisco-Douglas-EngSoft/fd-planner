@@ -767,6 +767,7 @@ export default function Reports() {
 
         {/* Focus Tab */}
         <TabsContent value="focus" className="space-y-6">
+          {/* injected above via Advanced tab below */}
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
