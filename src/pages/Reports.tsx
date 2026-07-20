@@ -767,6 +767,10 @@ export default function Reports() {
 
         {/* Focus Tab */}
         <TabsContent value="focus" className="space-y-6">
+          <AdvancedAnalytics
+            title="Análises avançadas de foco"
+            description="Padrões, comparativos, distribuição e metas"
+          />
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
