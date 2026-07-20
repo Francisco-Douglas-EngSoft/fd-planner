@@ -166,6 +166,42 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
+            // Offline queue: retry mutations to Supabase REST/RPC quando voltar a rede.
+            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
+            handler: "NetworkOnly",
+            method: "POST",
+            options: {
+              backgroundSync: {
+                name: "supabase-mutations-queue",
+                options: {
+                  maxRetentionTime: 24 * 60, // minutos (24h)
+                },
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
+            handler: "NetworkOnly",
+            method: "PATCH",
+            options: {
+              backgroundSync: {
+                name: "supabase-mutations-queue",
+                options: { maxRetentionTime: 24 * 60 },
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
+            handler: "NetworkOnly",
+            method: "DELETE",
+            options: {
+              backgroundSync: {
+                name: "supabase-mutations-queue",
+                options: { maxRetentionTime: 24 * 60 },
+              },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "StaleWhileRevalidate",
             options: {

@@ -21,6 +21,7 @@ import {
   ListChecks,
   Trophy,
   Settings as SettingsIcon,
+  FileText,
 } from "lucide-react";
 
 interface Result {
@@ -70,15 +71,17 @@ export function CommandPalette() {
     const q = query.trim();
     const like = `%${q}%`;
     (async () => {
-      const [books, maps, cards] = await Promise.all([
+      const [books, maps, cards, notes] = await Promise.all([
         supabase.from("books").select("id, title").ilike("title", like).eq("user_id", user.id).limit(5),
         supabase.from("mind_maps").select("id, title").ilike("title", like).eq("user_id", user.id).limit(5),
         supabase.from("flashcards").select("id, front").ilike("front", like).eq("user_id", user.id).limit(5),
+        supabase.from("study_notes").select("id, title").ilike("title", like).eq("user_id", user.id).limit(5),
       ]);
       const rs: Result[] = [];
       books.data?.forEach((b) => rs.push({ id: `b-${b.id}`, label: b.title, hint: "Livro", to: `/leitor/${b.id}`, icon: BookOpen }));
       maps.data?.forEach((m) => rs.push({ id: `m-${m.id}`, label: m.title, hint: "Mapa Mental", to: `/mapas/${m.id}`, icon: Brain }));
       cards.data?.forEach((c) => rs.push({ id: `c-${c.id}`, label: c.front, hint: "Flashcard", to: `/flashcards`, icon: Layers }));
+      notes.data?.forEach((n) => rs.push({ id: `n-${n.id}`, label: n.title, hint: "Nota", to: `/notas`, icon: FileText }));
       setDynamic(rs);
     })();
   }, [query, open, user]);

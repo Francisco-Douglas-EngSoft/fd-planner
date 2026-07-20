@@ -1280,13 +1280,37 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GLOBAL SQUARE OVERRIDE — remove all border-radius system-wide
+   SCOPED SQUARE OVERRIDE — square shells only, keep Radix internals
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --radius: 0px !important;
 }
-*,
-*::before,
-*::after {
+.card,
+[class*="card-"],
+button,
+.btn,
+input,
+textarea,
+select,
+[role="tab"],
+[role="tablist"],
+[role="dialog"],
+[role="alertdialog"],
+aside,
+nav,
+section,
+article,
+dialog,
+.badge,
+img,
+table,
+.rounded,
+.rounded-sm,
+.rounded-md,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-full {
   border-radius: 0 !important;
 }
