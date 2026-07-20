@@ -158,8 +158,8 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
       <DialogContent
         className={cn(
           "p-0 gap-0 overflow-hidden flex flex-col",
-          "w-[96vw] sm:w-[92vw] lg:w-[84vw] xl:w-[82vw]",
-          "!max-w-[1680px] sm:!max-w-[1680px] h-[90vh] sm:h-[88vh] sm:!max-h-[92vh]"
+          "w-[98vw] sm:w-[95vw]",
+          "!max-w-[1720px] sm:!max-w-[1720px] h-[95vh] sm:!max-h-[95vh]"
         )}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
@@ -181,9 +181,9 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
           </DialogHeader>
 
           {/* Body: sidebar + editor */}
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] overflow-hidden">
+          <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
             {/* Sidebar metadata */}
-            <aside className="border-b lg:border-b-0 lg:border-r bg-muted/20 p-4 space-y-4 overflow-y-auto">
+            <aside className="border-b md:border-b-0 md:border-r bg-muted/20 p-4 space-y-4 overflow-y-auto md:w-[220px] md:shrink-0 md:max-h-none max-h-[30vh]">
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-xs uppercase tracking-wide text-muted-foreground">
                   Título *
@@ -277,7 +277,7 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
             </aside>
 
             {/* Editor */}
-            <section className="flex flex-col min-h-0 overflow-hidden bg-background">
+            <section className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden bg-background">
               <RichTextEditor
                 content={content}
                 onChange={setContent}
