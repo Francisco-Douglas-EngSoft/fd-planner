@@ -8,6 +8,8 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-font-family';
 import { createLowlight, common } from 'lowlight';
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Heading1, Heading2, Heading3,
@@ -15,6 +17,9 @@ import {
   AlignLeft, AlignCenter, AlignRight, Minus, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -96,6 +101,8 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
       Image.configure({ HTMLAttributes: { class: 'rounded-md max-w-full h-auto my-3' } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       CodeBlockLowlight.configure({ lowlight, defaultLanguage: 'typescript' }),
+      TextStyle,
+      FontFamily.configure({ types: ['textStyle'] }),
       ProfessionalIndentBehavior,
     ],
     content,
@@ -187,6 +194,21 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
   );
   const Divider = () => <div className="w-px h-6 bg-border mx-1" />;
 
+  const DEFAULT_FONT = '__default__';
+  const FONT_OPTIONS: { label: string; value: string }[] = [
+    { label: 'Padrão', value: DEFAULT_FONT },
+    { label: 'Inter', value: 'Inter, sans-serif' },
+    { label: 'Space Grotesk', value: '"Space Grotesk", sans-serif' },
+    { label: 'Serif', value: 'Georgia, "Times New Roman", serif' },
+    { label: 'Mono', value: '"JetBrains Mono", ui-monospace, monospace' },
+    { label: 'System', value: 'system-ui, sans-serif' },
+  ];
+  const currentFont = (editor.getAttributes('textStyle').fontFamily as string | undefined) || DEFAULT_FONT;
+  const setFont = (value: string) => {
+    if (!value || value === DEFAULT_FONT) editor.chain().focus().unsetFontFamily().run();
+    else editor.chain().focus().setFontFamily(value).run();
+  };
+
   return (
     <div className="flex flex-col h-full min-h-0 bg-background overflow-hidden">
       <div className="flex items-center gap-0.5 overflow-x-auto overflow-y-hidden whitespace-nowrap p-2 border-b border-border bg-muted/40 shrink-0">
@@ -194,6 +216,19 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
         <ToolButton title="Itálico" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}><Italic className="h-4 w-4" /></ToolButton>
         <ToolButton title="Sublinhado" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')}><UnderlineIcon className="h-4 w-4" /></ToolButton>
         <ToolButton title="Código inline" onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive('code')}><Code className="h-4 w-4" /></ToolButton>
+        <Divider />
+        <Select value={currentFont} onValueChange={setFont}>
+          <SelectTrigger className="h-8 w-[150px] text-xs" title="Fonte">
+            <SelectValue placeholder="Fonte" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_OPTIONS.map((f) => (
+              <SelectItem key={f.label} value={f.value} style={{ fontFamily: f.value !== DEFAULT_FONT ? f.value : undefined }}>
+                {f.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Divider />
         <ToolButton title="Título 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive('heading', { level: 1 })}><Heading1 className="h-4 w-4" /></ToolButton>
         <ToolButton title="Título 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive('heading', { level: 2 })}><Heading2 className="h-4 w-4" /></ToolButton>
