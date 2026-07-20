@@ -34,9 +34,15 @@ const ProfessionalEnterBehavior = Extension.create({
           return false;
         }
 
-        return this.editor.chain().focus().splitBlock().run();
+        // Cria um novo parágrafo real para que a quebra seja salva como HTML (<p>...</p><p>...</p>).
+        return this.editor.commands.first(({ commands }) => [
+          () => commands.splitBlock(),
+          () => commands.createParagraphNear(),
+          () => commands.setParagraph(),
+        ]);
       },
-      'Shift-Enter': () => this.editor.chain().focus().setHardBreak().run(),
+      // Quebra simples persistente dentro do mesmo parágrafo (<br>).
+      'Shift-Enter': () => this.editor.commands.setHardBreak(),
       Tab: () => {
         if (
           this.editor.isActive('bulletList') ||
@@ -115,6 +121,15 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
         const htmlOut = plainTextToHtml(text);
         editor?.chain().focus().insertContent(htmlOut).run();
         return true;
+      },
+      handleDOMEvents: {
+        keydown: (_view, event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            // Impede atalhos globais/parents de capturarem, sem bloquear o ProseMirror.
+            event.stopPropagation();
+          }
+          return false;
+        },
       },
     },
   });
@@ -227,11 +242,6 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
       >
         <EditorContent
           editor={editor}
-          onKeyDownCapture={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.stopPropagation();
-            }
-          }}
           className="h-full [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:w-full [&_.ProseMirror]:cursor-text [&_.ProseMirror]:whitespace-pre-wrap [&_.ProseMirror]:leading-7 [&_.ProseMirror_p]:my-3 [&_.ProseMirror_p]:min-h-[1.75rem] [&_.ProseMirror_br]:block [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:text-foreground [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
         />
       </div>
