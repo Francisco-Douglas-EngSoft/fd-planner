@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Layers, CalendarDays, TrendingUp, Brain } from "lucide-react";
+import { AdvancedAnalytics } from "@/components/analytics/AdvancedAnalytics";
 import {
   BarChart,
   Bar,
@@ -185,6 +186,12 @@ export default function FlashcardStats() {
           ))}
         </CardContent>
       </Card>
+
+      <AdvancedAnalytics
+        title="Análises de estudo"
+        description="Padrões de foco relacionados às suas revisões"
+        hide={["distribution"]}
+      />
     </div>
   );
 }
