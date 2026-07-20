@@ -60,6 +60,36 @@ describe("RichTextEditor - teclado", () => {
     expect(outerKeyDown).not.toHaveBeenCalled();
   });
 
+  it("Enter cria novo parágrafo persistente no HTML", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <RichTextEditor content="<p>linha 1</p>" onChange={onChange} />,
+    );
+    const pm = container.querySelector(".ProseMirror") as HTMLElement;
+    pm.focus();
+
+    fireEvent.keyDown(pm, { key: "Enter", code: "Enter" });
+    fireEvent.input(pm, { inputType: "insertParagraph", data: null });
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] ?? pm.innerHTML;
+    expect(lastHtml).toMatch(/<p>linha 1<\/p><p>|<p><\/p>|<p><br><\/p>/);
+  });
+
+  it("Shift+Enter cria quebra simples persistente no HTML", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <RichTextEditor content="<p>linha 1</p>" onChange={onChange} />,
+    );
+    const pm = container.querySelector(".ProseMirror") as HTMLElement;
+    pm.focus();
+
+    fireEvent.keyDown(pm, { key: "Enter", code: "Enter", shiftKey: true });
+    fireEvent.input(pm, { inputType: "insertLineBreak", data: null });
+
+    const lastHtml = onChange.mock.calls.at(-1)?.[0] ?? pm.innerHTML;
+    expect(lastHtml).toContain("<br");
+  });
+
   it("expõe barra de ferramentas com botão de negrito", () => {
     render(<RichTextEditor content="" onChange={() => {}} />);
     expect(screen.getByTitle("Negrito")).toBeInTheDocument();

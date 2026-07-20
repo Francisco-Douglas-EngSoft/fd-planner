@@ -11,6 +11,21 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+    dedupe: [
+      "prosemirror-model",
+      "prosemirror-transform",
+      "prosemirror-state",
+      "prosemirror-view",
+      "prosemirror-commands",
+      "prosemirror-keymap",
+      "prosemirror-schema-list",
+      "prosemirror-history",
+      "prosemirror-inputrules",
+      "prosemirror-dropcursor",
+      "prosemirror-gapcursor",
+    ],
   },
 });
