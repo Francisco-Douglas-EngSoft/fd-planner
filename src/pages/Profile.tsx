@@ -37,6 +37,7 @@ interface Stats {
   unlockedAchievements: number;
   todayStudyMinutes: number;
   totalNotes: number;
+  completedCourseHours: number;
 }
 
 export default function Profile() {
@@ -46,7 +47,7 @@ export default function Profile() {
   const [stats, setStats] = useState<Stats>({
     totalCourses: 0, completedCourses: 0, completedTasks: 0, totalTasks: 0,
     focusSessions: 0, totalAchievements: 0, unlockedAchievements: 0,
-    todayStudyMinutes: 0, totalNotes: 0,
+    todayStudyMinutes: 0, totalNotes: 0, completedCourseHours: 0,
   });
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -192,7 +193,7 @@ export default function Profile() {
   }
 
   const statItems = [
-    { icon: Clock, value: formatStudyTime(profile?.total_study_hours || 0), label: 'Horas Estudadas', gradient: 'from-accent to-primary' },
+    { icon: Clock, value: formatStudyTime(stats.completedCourseHours), label: 'Horas Estudadas', gradient: 'from-accent to-primary' },
     { icon: Target, value: stats.focusSessions, label: 'Sessões de Foco', gradient: 'from-primary to-accent' },
     { icon: BookOpen, value: stats.totalCourses, label: 'Cursos', gradient: 'from-success to-accent' },
     { icon: CheckCircle2, value: `${stats.completedTasks}/${stats.totalTasks}`, label: 'Tarefas', gradient: 'from-primary to-primary/70' },
