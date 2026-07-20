@@ -158,13 +158,13 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
       <DialogContent
         className={cn(
           "p-0 gap-0 overflow-hidden flex flex-col",
-          "w-[95vw] sm:w-[85vw] lg:w-[70vw] xl:w-[70vw]",
-          "!max-w-[1400px] sm:!max-w-[1400px] h-[85vh] sm:h-[80vh] sm:!max-h-[85vh]"
+          "w-[96vw] sm:w-[92vw] lg:w-[84vw] xl:w-[82vw]",
+          "!max-w-[1680px] sm:!max-w-[1680px] h-[90vh] sm:h-[88vh] sm:!max-h-[92vh]"
         )}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
           {/* Header */}
-          <DialogHeader className="px-6 py-4 border-b bg-muted/30 shrink-0">
+          <DialogHeader className="px-5 py-3 border-b bg-muted/30 shrink-0">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 flex items-center justify-center bg-primary/10 text-primary">
                 <FileText className="h-5 w-5" />
@@ -181,9 +181,9 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
           </DialogHeader>
 
           {/* Body: sidebar + editor */}
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[280px_1fr] overflow-hidden">
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] overflow-hidden">
             {/* Sidebar metadata */}
-            <aside className="border-b lg:border-b-0 lg:border-r bg-muted/20 p-5 space-y-5 overflow-y-auto">
+            <aside className="border-b lg:border-b-0 lg:border-r bg-muted/20 p-4 space-y-4 overflow-y-auto">
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-xs uppercase tracking-wide text-muted-foreground">
                   Título *
@@ -268,7 +268,7 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
                 </div>
               )}
 
-              <div className="pt-2 border-t">
+              <div className="pt-2 border-t hidden xl:block">
                 <div className="flex items-start gap-2 text-xs text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
                   <span>Use a barra de ferramentas para títulos, código, imagens e mais.</span>
@@ -287,7 +287,7 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t bg-muted/30 shrink-0">
+          <div className="flex items-center justify-between gap-3 px-5 py-3 border-t bg-muted/30 shrink-0">
             <p className="text-xs text-muted-foreground hidden sm:block">
               {content ? `${content.replace(/<[^>]+>/g, '').length} caracteres` : 'Rascunho vazio'}
             </p>
