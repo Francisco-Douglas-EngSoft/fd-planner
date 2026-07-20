@@ -132,6 +132,22 @@ Deno.serve(async (req) => {
     let sent = 0;
     const staleTokens: string[] = [];
 
+    // Fetch com retry exponencial para erros 5xx/rede (3 tentativas).
+    const fetchWithRetry = async (url: string, init: RequestInit, tries = 3): Promise<Response> => {
+      let lastErr: unknown;
+      for (let i = 0; i < tries; i++) {
+        try {
+          const r = await fetch(url, init);
+          if (r.status < 500 || r.status === 501) return r;
+          lastErr = new Error(`HTTP ${r.status}`);
+        } catch (e) {
+          lastErr = e;
+        }
+        await new Promise((res) => setTimeout(res, 300 * Math.pow(2, i)));
+      }
+      throw lastErr instanceof Error ? lastErr : new Error("fetch failed");
+    };
+
     for (const { token } of tokens) {
       const message = {
         message: {
@@ -144,14 +160,20 @@ Deno.serve(async (req) => {
           },
         },
       };
-      const resp = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-      });
+      let resp: Response;
+      try {
+        resp = await fetchWithRetry(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(message),
+        });
+      } catch (e) {
+        console.error("[send-notification] retry exhausted", e);
+        continue;
+      }
       if (resp.ok) {
         sent++;
       } else {
