@@ -49,7 +49,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none px-7 py-6 min-h-full focus:outline-none',
+        class: 'prose prose-base dark:prose-invert max-w-none px-8 py-6 min-h-full focus:outline-none text-base leading-relaxed',
       },
     },
   });
@@ -156,10 +156,15 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
         <ToolButton title="Refazer" onClick={() => editor.chain().focus().redo().run()}><Redo className="h-4 w-4" /></ToolButton>
       </div>
 
-      <EditorContent
-        editor={editor}
-        className="flex-1 min-h-0 overflow-y-auto [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:w-full [&_.ProseMirror]:cursor-text [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:text-foreground [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
-      />
+      <div
+        className="flex-1 min-h-0 overflow-y-auto cursor-text"
+        onClick={() => editor.chain().focus().run()}
+      >
+        <EditorContent
+          editor={editor}
+          className="h-full [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:w-full [&_.ProseMirror]:cursor-text [&_.ProseMirror]:whitespace-pre-wrap [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:text-foreground [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+        />
+      </div>
     </div>
   );
 }
