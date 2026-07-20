@@ -194,17 +194,18 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
   );
   const Divider = () => <div className="w-px h-6 bg-border mx-1" />;
 
+  const DEFAULT_FONT = '__default__';
   const FONT_OPTIONS: { label: string; value: string }[] = [
-    { label: 'Padrão', value: '' },
+    { label: 'Padrão', value: DEFAULT_FONT },
     { label: 'Inter', value: 'Inter, sans-serif' },
     { label: 'Space Grotesk', value: '"Space Grotesk", sans-serif' },
     { label: 'Serif', value: 'Georgia, "Times New Roman", serif' },
     { label: 'Mono', value: '"JetBrains Mono", ui-monospace, monospace' },
     { label: 'System', value: 'system-ui, sans-serif' },
   ];
-  const currentFont = (editor.getAttributes('textStyle').fontFamily as string | undefined) ?? '';
+  const currentFont = (editor.getAttributes('textStyle').fontFamily as string | undefined) || DEFAULT_FONT;
   const setFont = (value: string) => {
-    if (!value) editor.chain().focus().unsetFontFamily().run();
+    if (!value || value === DEFAULT_FONT) editor.chain().focus().unsetFontFamily().run();
     else editor.chain().focus().setFontFamily(value).run();
   };
 
@@ -222,7 +223,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
           </SelectTrigger>
           <SelectContent>
             {FONT_OPTIONS.map((f) => (
-              <SelectItem key={f.label} value={f.value} style={{ fontFamily: f.value || undefined }}>
+              <SelectItem key={f.label} value={f.value} style={{ fontFamily: f.value !== DEFAULT_FONT ? f.value : undefined }}>
                 {f.label}
               </SelectItem>
             ))}
