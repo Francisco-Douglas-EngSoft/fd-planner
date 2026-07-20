@@ -3,6 +3,7 @@ import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -22,6 +23,10 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Ad-hoc rate limit: 10 generations / minute per user.
+    const rl = checkRateLimit({ key: `generate-flashcards:${user.id}`, limit: 10, windowMs: 60_000 });
+    if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
 
     const body = await req.json();
     const parsed = z.object({
