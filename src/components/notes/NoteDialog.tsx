@@ -278,13 +278,11 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
 
             {/* Editor */}
             <section className="flex flex-col min-h-0 overflow-hidden bg-background">
-              <div className="flex-1 min-h-0 overflow-y-auto p-6">
-                <RichTextEditor
-                  content={content}
-                  onChange={setContent}
-                  placeholder="Comece a escrever suas anotações, reflexões e insights..."
-                />
-              </div>
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                placeholder="Comece a escrever suas anotações, reflexões e insights..."
+              />
             </section>
           </div>
 
