@@ -29,19 +29,34 @@ export function StudyHoursEvolutionChart() {
 
     setIsLoading(true);
 
-    // Get focus sessions from the last 30 days
+    // "Horas Estudadas" = soma das horas dos MÓDULOS concluídos por dia
+    // (não confundir com Tempo de Foco, que vem de focus_sessions).
     const thirtyDaysAgo = subDays(new Date(), 30);
-    
-    const { data: sessions, error } = await supabase
-      .from('focus_sessions')
-      .select('completed_at, duration_minutes')
-      .eq('user_id', user.id)
-      .eq('session_type', 'work')
+
+    // 1) IDs dos cursos do usuário
+    const { data: userCourses } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('user_id', user.id);
+    const courseIds = (userCourses ?? []).map((c) => c.id);
+
+    if (courseIds.length === 0) {
+      setData([]);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2) Módulos concluídos no período
+    const { data: modules, error } = await supabase
+      .from('course_modules')
+      .select('completed_at, hours')
+      .in('course_id', courseIds)
+      .eq('is_completed', true)
       .gte('completed_at', thirtyDaysAgo.toISOString())
       .order('completed_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('Error fetching completed modules:', error);
       setIsLoading(false);
       return;
     }
@@ -55,10 +70,11 @@ export function StudyHoursEvolutionChart() {
       dailyMap.set(date, 0);
     }
 
-    // Sum hours per day
-    sessions?.forEach(session => {
-      const date = format(parseISO(session.completed_at), 'yyyy-MM-dd');
-      const hours = (session.duration_minutes || 0) / 60;
+    // Somar horas de módulos concluídos por dia
+    modules?.forEach((m) => {
+      if (!m.completed_at) return;
+      const date = format(parseISO(m.completed_at), 'yyyy-MM-dd');
+      const hours = Number(m.hours) || 0;
       dailyMap.set(date, (dailyMap.get(date) || 0) + hours);
     });
 
