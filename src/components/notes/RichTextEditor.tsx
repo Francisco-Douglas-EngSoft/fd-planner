@@ -49,7 +49,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none px-6 py-5 min-h-[280px] focus:outline-none',
+        class: 'prose prose-sm dark:prose-invert max-w-none px-7 py-6 min-h-full focus:outline-none',
       },
     },
   });
@@ -115,7 +115,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-background overflow-hidden">
-      <div className="flex items-center gap-0.5 flex-wrap p-2 border-b border-border bg-muted/40 shrink-0">
+      <div className="flex items-center gap-0.5 overflow-x-auto overflow-y-hidden whitespace-nowrap p-2 border-b border-border bg-muted/40 shrink-0">
         <ToolButton title="Negrito" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')}><Bold className="h-4 w-4" /></ToolButton>
         <ToolButton title="Itálico" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive('italic')}><Italic className="h-4 w-4" /></ToolButton>
         <ToolButton title="Sublinhado" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive('underline')}><UnderlineIcon className="h-4 w-4" /></ToolButton>
@@ -158,7 +158,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
 
       <EditorContent
         editor={editor}
-        className="flex-1 min-h-0 overflow-y-auto [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:text-foreground [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+        className="flex-1 min-h-0 overflow-y-auto [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:w-full [&_.ProseMirror]:cursor-text [&_.ProseMirror_pre]:bg-muted [&_.ProseMirror_pre]:text-foreground [&_.ProseMirror_pre]:p-3 [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_pre_code]:bg-transparent [&_.ProseMirror_code]:bg-muted [&_.ProseMirror_code]:px-1.5 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:text-primary [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-muted-foreground [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
       />
     </div>
   );
