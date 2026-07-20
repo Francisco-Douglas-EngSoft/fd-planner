@@ -28,7 +28,8 @@ interface CourseRow {
 
 interface WeeklyGoalRow {
   week_start: string;
-  focus_minutes_goal: number | null;
+  target_value: number | null;
+  goal_type: string | null;
 }
 
 const DAYS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -75,8 +76,9 @@ export function AdvancedAnalytics({ courseId, hide = [], title, description }: P
         supabase.from('courses').select('id, name, category').eq('user_id', user.id),
         supabase
           .from('weekly_goals')
-          .select('week_start, focus_minutes_goal')
+          .select('week_start, target_value, goal_type')
           .eq('user_id', user.id)
+          .eq('goal_type', 'focus_minutes')
           .gte('week_start', subWeeks(new Date(), 8).toISOString().slice(0, 10)),
       ]);
       if (cancelled) return;
@@ -159,7 +161,7 @@ export function AdvancedAnalytics({ courseId, hide = [], title, description }: P
           return t >= start && t <= end;
         })
         .reduce((a, s) => a + (s.duration_minutes ?? 0), 0);
-      const goal = goals.find((g) => g.week_start === key)?.focus_minutes_goal ?? 0;
+      const goal = goals.find((g) => g.week_start === key)?.target_value ?? 0;
       weeks.push({
         label: format(start, 'dd/MM', { locale: ptBR }),
         realizado: Math.round(realizedMin / 60 * 10) / 10,
