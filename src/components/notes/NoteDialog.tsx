@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Smile, Meh, Frown, Zap, Heart } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Meh, Frown, Zap, Heart, Download, Printer, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import {
+  computeNoteStats,
+  noteHtmlToMarkdown,
+  downloadText,
+  printNote,
+} from '@/lib/notesExport';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Course {
   id: string;
@@ -65,6 +77,8 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
   
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const stats = useMemo(() => computeNoteStats(content), [content]);
 
   useEffect(() => {
     if (open && user) {
@@ -153,6 +167,13 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
     }
   };
 
+  const handleExportMarkdown = () => {
+    const md = `# ${title || 'Nota'}\n\n${noteHtmlToMarkdown(content)}`;
+    const safe = (title || 'nota').trim().replace(/[^\w\-À-ÿ ]+/g, '').replace(/\s+/g, '-').toLowerCase() || 'nota';
+    downloadText(`${safe}.md`, md, 'text/markdown');
+  };
+  const handleExportPdf = () => printNote(title, content);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -177,6 +198,21 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
                   Registre reflexões, insights e aprendizados com formatação profissional
                 </DialogDescription>
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5">
+                    <Download className="h-4 w-4" /> Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportMarkdown}>
+                    <FileDown className="h-4 w-4 mr-2" /> Markdown (.md)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPdf}>
+                    <Printer className="h-4 w-4 mr-2" /> Imprimir / PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </DialogHeader>
 
@@ -284,12 +320,48 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
                 placeholder="Comece a escrever suas anotações, reflexões e insights..."
               />
             </section>
+
+            {/* TOC sidebar */}
+            <aside className="hidden lg:flex flex-col border-l bg-muted/20 w-[240px] shrink-0 overflow-hidden">
+              <div className="px-4 py-3 border-b">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Sumário</p>
+              </div>
+              <div className="flex-1 overflow-y-auto px-3 py-2 text-sm">
+                {stats.headings.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-1 py-2">
+                    Use Título 1/2/3 para gerar o sumário automaticamente.
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {stats.headings.map((h, i) => (
+                      <li
+                        key={`${i}-${h.text}`}
+                        className={cn(
+                          'truncate text-muted-foreground',
+                          h.level === 1 && 'font-semibold text-foreground',
+                          h.level === 2 && 'pl-3',
+                          h.level === 3 && 'pl-6 text-xs',
+                        )}
+                        title={h.text}
+                      >
+                        {h.text || '—'}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div className="border-t px-4 py-3 space-y-1 text-xs text-muted-foreground">
+                <div className="flex justify-between"><span>Palavras</span><span className="text-foreground font-medium">{stats.words}</span></div>
+                <div className="flex justify-between"><span>Caracteres</span><span className="text-foreground font-medium">{stats.chars}</span></div>
+                <div className="flex justify-between"><span>Leitura</span><span className="text-foreground font-medium">~{stats.readingMinutes} min</span></div>
+              </div>
+            </aside>
           </div>
 
           {/* Footer */}
           <div className="flex items-center justify-between gap-3 px-5 py-3 border-t bg-muted/30 shrink-0">
             <p className="text-xs text-muted-foreground hidden sm:block">
-              {content ? `${content.replace(/<[^>]+>/g, '').length} caracteres` : 'Rascunho vazio'}
+              {stats.words} palavras • {stats.chars} caracteres • ~{stats.readingMinutes} min
             </p>
             <div className="flex gap-2 ml-auto">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
