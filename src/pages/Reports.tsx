@@ -773,6 +773,12 @@ export default function Reports() {
                 <CardTitle>Horas de Maior Produtividade</CardTitle>
                 <CardDescription>Quando você mais se concentra</CardDescription>
               </CardHeader>
+            </Card>
+          </div>
+        </TabsContent>
+        {/* placeholder end */}
+
+        {/* Placeholder to break original block */}
               <CardContent>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
