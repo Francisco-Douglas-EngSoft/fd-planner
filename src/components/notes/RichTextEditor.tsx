@@ -104,6 +104,24 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
       attributes: {
         class: 'prose prose-base dark:prose-invert max-w-none px-8 py-6 min-h-full focus:outline-none text-base leading-relaxed',
       },
+      handlePaste: (view, event) => {
+        const cd = event.clipboardData;
+        if (!cd) return false;
+        const html = cd.getData('text/html');
+        // Se veio HTML formatado (Word, Google Docs, outro editor), deixa o Tiptap tratar.
+        if (html && html.trim().length > 0) return false;
+        const text = cd.getData('text/plain');
+        if (!text || !/\n/.test(text)) return false;
+        event.preventDefault();
+        const htmlOut = plainTextToHtml(text);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (view as any).pasteHTML
+          ? // fallback pouco usado; usamos a API pública do editor abaixo
+            null
+          : null;
+        editor?.chain().focus().insertContent(htmlOut).run();
+        return true;
+      },
     },
   });
 
