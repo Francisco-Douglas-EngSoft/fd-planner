@@ -17,6 +17,8 @@ import { StudyComparisonChart } from '@/components/dashboard/StudyComparisonChar
 import { StudyHoursEvolutionChart } from '@/components/dashboard/StudyHoursEvolutionChart';
 import { StudyHubWidgets } from '@/components/dashboard/StudyHubWidgets';
 import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
+import { WeeklyDeltaCard } from '@/components/dashboard/WeeklyDeltaCard';
+import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
 
 import { CompletedCoursesStats } from '@/components/dashboard/CompletedCoursesStats';
 import { CategoryProgressReport } from '@/components/dashboard/CategoryProgressReport';
@@ -229,6 +231,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <OnboardingTour />
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/[0.06] via-card to-accent/[0.05] p-5 sm:p-6">
         <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
@@ -274,6 +277,7 @@ export default function Dashboard() {
         {/* Visão geral */}
         <TabsContent value="overview" className="space-y-6 mt-0">
           <TaskReminders />
+          <WeeklyDeltaCard />
           <StudyHubWidgets />
           <StudyHoursEvolutionChart />
           <WeeklyStats />
