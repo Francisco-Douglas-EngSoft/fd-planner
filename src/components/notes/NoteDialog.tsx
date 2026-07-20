@@ -159,7 +159,7 @@ export function NoteDialog({ open, onOpenChange, onSuccess, editNote, folders = 
         className={cn(
           "p-0 gap-0 overflow-hidden flex flex-col",
           "w-[95vw] sm:w-[85vw] lg:w-[70vw] xl:w-[70vw]",
-          "max-w-[1400px] h-[85vh] sm:h-[80vh]"
+          "!max-w-[1400px] sm:!max-w-[1400px] h-[85vh] sm:h-[80vh] sm:!max-h-[85vh]"
         )}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
