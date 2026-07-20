@@ -4,6 +4,7 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 import { generateText } from "npm:ai@5.0.60";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -20,6 +21,11 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser();
     const user = userData.user;
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Heavy operation — 5 parses / 5 minutes per user is generous enough for
+    // real usage while blocking abuse.
+    const rl = checkRateLimit({ key: `parse-pdf:${user.id}`, limit: 5, windowMs: 5 * 60_000 });
+    if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
 
     const parsed = z.object({
       book_id: z.string().uuid(),

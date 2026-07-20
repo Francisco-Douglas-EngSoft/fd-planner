@@ -47,6 +47,7 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, each
 import { ptBR } from 'date-fns/locale';
 import { formatHoursToHMS } from '@/lib/timeUtils';
 import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
+import { fetchAllPaginated } from '@/lib/supabasePagination';
 
 interface Course {
   id: string;
@@ -172,8 +173,22 @@ export default function Reports() {
       supabase.from('courses').select('id, name, category, total_hours, completed_hours, status').eq('user_id', user.id),
       supabase.from('tasks').select('id, status, completed_at, priority').eq('user_id', user.id).gte('completed_at', startStr).lte('completed_at', endStr),
       supabase.from('focus_sessions').select('id, duration_minutes, completed_at, session_type').eq('user_id', user.id).gte('completed_at', startStr).lte('completed_at', endStr),
-      supabase.from('tasks').select('id, status, completed_at, priority').eq('user_id', user.id),
-      supabase.from('focus_sessions').select('id, duration_minutes, completed_at, session_type').eq('user_id', user.id),
+      // Full history — paginated in 500-row chunks to bypass the 1000-row default
+      // and to keep large accounts responsive. See src/lib/supabasePagination.ts.
+      fetchAllPaginated<Task>(() =>
+        supabase
+          .from('tasks')
+          .select('id, status, completed_at, priority')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false }) as never,
+      ).then((data) => ({ data, error: null })),
+      fetchAllPaginated<FocusSession>(() =>
+        supabase
+          .from('focus_sessions')
+          .select('id, duration_minutes, completed_at, session_type')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false }) as never,
+      ).then((data) => ({ data, error: null })),
       supabase.from('focus_sessions').select('duration_minutes').eq('user_id', user.id).eq('session_type', 'work').gte('completed_at', prevStartStr).lte('completed_at', prevEndStr),
       supabase.from('tasks').select('id').eq('user_id', user.id).eq('status', 'completed').gte('completed_at', prevStartStr).lte('completed_at', prevEndStr),
       supabase.from('clean_streaks').select('current_streak, longest_streak, addiction_type').eq('user_id', user.id),

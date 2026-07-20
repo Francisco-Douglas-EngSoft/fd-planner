@@ -962,8 +962,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         description: `${plan.modulesCount} módulos distribuídos em ${plan.totalDays} dias`,
       });
       
-      // TODO: Implementar a lógica de salvar os blocos de tempo no banco
-      // Isso será feito no handleSubmit, salvando os study_plan_time_blocks
+      // Os blocos de tempo (study_plan_time_blocks) são persistidos em
+      // handleSubmit junto com o restante do planejamento, então aqui apenas
+      // aplicamos o layout gerado ao estado local — nada mais a fazer.
       
     } catch (error) {
       console.error('Erro ao aplicar plano gerado:', error);
