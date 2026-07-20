@@ -29,6 +29,14 @@ const ProfessionalIndentBehavior = Extension.create({
 
   addKeyboardShortcuts() {
     return {
+      Enter: () => {
+        // Garante uma nova linha/parágrafo persistente sem depender de handlers externos.
+        return this.editor.chain().focus().insertContent('<p></p>').run();
+      },
+      'Shift-Enter': () => {
+        // Quebra simples dentro do mesmo parágrafo.
+        return this.editor.chain().focus().insertContent('<br>').run();
+      },
       Tab: () => {
         if (
           this.editor.isActive('bulletList') ||
