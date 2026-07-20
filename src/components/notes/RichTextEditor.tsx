@@ -24,25 +24,11 @@ const lowlight = createLowlight(common);
 // Signed URL válida por ~10 anos para uso prático em conteúdo persistido.
 const IMAGE_SIGNED_TTL = 60 * 60 * 24 * 365 * 10;
 
-const ProfessionalEnterBehavior = Extension.create({
-  name: 'professionalEnterBehavior',
+const ProfessionalIndentBehavior = Extension.create({
+  name: 'professionalIndentBehavior',
 
   addKeyboardShortcuts() {
     return {
-      Enter: () => {
-        if (this.editor.isActive('codeBlock') || this.editor.isActive('bulletList') || this.editor.isActive('orderedList')) {
-          return false;
-        }
-
-        // Cria um novo parágrafo real para que a quebra seja salva como HTML (<p>...</p><p>...</p>).
-        return this.editor.commands.first(({ commands }) => [
-          () => commands.splitBlock(),
-          () => commands.createParagraphNear(),
-          () => commands.setParagraph(),
-        ]);
-      },
-      // Quebra simples persistente dentro do mesmo parágrafo (<br>).
-      'Shift-Enter': () => this.editor.commands.setHardBreak(),
       Tab: () => {
         if (
           this.editor.isActive('bulletList') ||
@@ -95,14 +81,14 @@ export function RichTextEditor({ content, onChange, placeholder = 'Escreva suas 
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ codeBlock: false }),
+      StarterKit.configure({ codeBlock: false, link: false, underline: false }),
       Placeholder.configure({ placeholder }),
       Underline,
       Link.configure({ openOnClick: false, autolink: true, HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' } }),
       Image.configure({ HTMLAttributes: { class: 'rounded-md max-w-full h-auto my-3' } }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       CodeBlockLowlight.configure({ lowlight, defaultLanguage: 'typescript' }),
-      ProfessionalEnterBehavior,
+      ProfessionalIndentBehavior,
     ],
     content,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
