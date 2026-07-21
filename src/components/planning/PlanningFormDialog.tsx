@@ -410,6 +410,7 @@ function ModuleSelectionSection({
                     {courseModules.map(module => {
                       const isInOtherPlan = modulesInOtherPlans.has(module.id);
                       const isSelected = selectedModules.includes(module.id);
+                      const sequenceInCourse = courseModules.findIndex(m => m.id === module.id) + 1;
                       
                       return (
                         <div
@@ -417,7 +418,7 @@ function ModuleSelectionSection({
                           className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
                             isSelected
                               ? 'border-primary/30 bg-primary/5'
-                              : isInOtherPlan
+                              : isInOtherPlan || module.is_completed
                               ? 'border-border/50 bg-muted/30'
                               : 'border-border hover:border-primary/20'
                           }`}
@@ -426,14 +427,22 @@ function ModuleSelectionSection({
                             <Checkbox
                               id={`module-${module.id}`}
                               checked={isSelected}
-                              onCheckedChange={() => toggleModule(module.id)}
-                              disabled={isInOtherPlan}
+                              onCheckedChange={() => applySequentialToggle(courseModules, module.id)}
+                              disabled={isInOtherPlan || module.is_completed}
                             />
+                            <span className="text-[10px] font-mono font-semibold text-muted-foreground w-6 text-center bg-muted rounded px-1 py-0.5">
+                              #{sequenceInCourse}
+                            </span>
                             <label
                               htmlFor={`module-${module.id}`}
-                              className={`text-sm cursor-pointer ${isInOtherPlan ? 'text-muted-foreground' : ''}`}
+                              className={`text-sm cursor-pointer ${isInOtherPlan || module.is_completed ? 'text-muted-foreground line-through' : ''}`}
                             >
                               {module.name}
+                              {module.is_completed && (
+                                <span className="ml-2 text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                                  Concluído
+                                </span>
+                              )}
                               {isInOtherPlan && (
                                 <span className="ml-2 text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
                                   Em outro plano
