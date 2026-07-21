@@ -61,6 +61,17 @@ export default function Library() {
       toast.error("Título e arquivo são obrigatórios");
       return;
     }
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!["pdf", "epub"].includes(ext)) {
+      toast.error("Formato inválido. Envie um PDF ou EPUB.");
+      return;
+    }
+    // Limite prático do Supabase Storage por request: 50MB.
+    const MAX_MB = 50;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo ${MAX_MB}MB.`);
+      return;
+    }
     try {
       setUploading(true);
       const path = await libraryService.uploadFile(user.id, file);
@@ -79,8 +90,9 @@ export default function Library() {
       setCategory("");
       setFile(null);
     } catch (err) {
-      console.error(err);
-      toast.error("Falha ao enviar arquivo");
+      console.error("[Library] upload error", err);
+      const msg = err instanceof Error ? err.message : "Falha ao enviar arquivo";
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
