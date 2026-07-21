@@ -295,6 +295,7 @@ interface ModuleSelectionSectionProps {
   selectedModules: string[];
   modulesInOtherPlans: Set<string>;
   toggleModule: (moduleId: string) => void;
+  applySequentialToggle: (courseModules: Module[], targetModuleId: string) => void;
   totalCourseHours: number;
 }
 
@@ -303,6 +304,7 @@ function ModuleSelectionSection({
   selectedModules,
   modulesInOtherPlans,
   toggleModule,
+  applySequentialToggle,
   totalCourseHours,
 }: ModuleSelectionSectionProps) {
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
