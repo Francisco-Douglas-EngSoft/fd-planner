@@ -885,6 +885,68 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     });
   };
 
+  /**
+   * Seleção sequencial dentro de um curso:
+   * - Se o módulo alvo estiver desmarcado, marca ele e TODOS os anteriores (respeita pré-requisitos).
+   * - Se o módulo alvo estiver marcado, desmarca ele e TODOS os seguintes.
+   */
+  const applySequentialToggle = (courseModules: Module[], targetModuleId: string) => {
+    const targetIdx = courseModules.findIndex(m => m.id === targetModuleId);
+    if (targetIdx === -1) return;
+
+    const isCurrentlySelected = selectedModules.includes(targetModuleId);
+
+    // IDs afetados pela ação
+    const idsToSelect = isCurrentlySelected
+      ? []
+      : courseModules
+          .slice(0, targetIdx + 1)
+          .filter(m => !m.is_completed && !modulesInOtherPlans.has(m.id))
+          .map(m => m.id);
+
+    const idsToDeselect = isCurrentlySelected
+      ? courseModules.slice(targetIdx).map(m => m.id)
+      : [];
+
+    setSelectedModules(prev => {
+      const set = new Set(prev);
+      idsToDeselect.forEach(id => set.delete(id));
+      idsToSelect.forEach(id => set.add(id));
+      const nextArr = Array.from(set);
+
+      setModuleSettings(prevSettings => {
+        const next = { ...prevSettings };
+        idsToDeselect.forEach(id => delete next[id]);
+        // Reordenar sequence_order para todos os módulos ainda selecionados,
+        // preservando ordem atual e adicionando novos no fim.
+        const ordered = [
+          ...prev.filter(id => set.has(id)),
+          ...idsToSelect.filter(id => !prev.includes(id)),
+        ];
+        ordered.forEach((id, idx) => {
+          next[id] = { ...(next[id] || {}), sequence_order: idx + 1 };
+        });
+        return next;
+      });
+
+      return nextArr;
+    });
+  };
+
+  const reorderSelectedModules = (fromId: string, toId: string) => {
+    const from = orderedSelectedModules.indexOf(fromId);
+    const to = orderedSelectedModules.indexOf(toId);
+    if (from === -1 || to === -1 || from === to) return;
+    const next = arrayMove(orderedSelectedModules, from, to);
+    setModuleSettings(prev => {
+      const updated = { ...prev };
+      next.forEach((id, idx) => {
+        updated[id] = { ...(updated[id] || {}), sequence_order: idx + 1 };
+      });
+      return updated;
+    });
+  };
+
   const updateModuleSettings = (moduleId: string, settings: ModuleSettings) => {
     setModuleSettings(prev => ({
       ...prev,
