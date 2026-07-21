@@ -291,6 +291,62 @@ function SortableCourseItem({
 
 // Module Selection Section Component with Collapsible Courses
 interface ModuleSelectionSectionProps {
+  // placeholder anchor
+  _?: never;
+}
+
+// (interface real declarada abaixo — este bloco é apenas para ancorar o patch)
+interface _AnchorSelectedModuleRow {
+  _?: never;
+}
+
+function SortableSelectedModuleRow({
+  id,
+  index,
+  moduleName,
+  courseName,
+  hours,
+}: {
+  id: string;
+  index: number;
+  moduleName: string;
+  courseName: string;
+  hours: number;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-2 rounded-md border border-border bg-background hover:border-primary/30 transition-colors"
+    >
+      <button
+        type="button"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+        aria-label="Reordenar"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 rounded px-1.5 py-0.5 min-w-[28px] text-center">
+        {index}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{moduleName}</p>
+        <p className="text-[11px] text-muted-foreground truncate">{courseName}</p>
+      </div>
+      <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{hours}h</span>
+    </div>
+  );
+}
+
+interface ModuleSelectionSectionPropsReal {
   modulesByCourse: Record<string, { courseName: string; modules: Module[] }>;
   selectedModules: string[];
   modulesInOtherPlans: Set<string>;
@@ -306,7 +362,7 @@ function ModuleSelectionSection({
   toggleModule,
   applySequentialToggle,
   totalCourseHours,
-}: ModuleSelectionSectionProps) {
+}: ModuleSelectionSectionPropsReal) {
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
   const toggleCourseExpanded = (courseId: string) => {
