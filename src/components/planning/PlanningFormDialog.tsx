@@ -578,9 +578,12 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         hours,
         course_id,
         is_completed,
+        order_index,
         courses!inner(name, user_id)
       `)
       .eq('courses.user_id', user.id)
+      .order('course_id')
+      .order('order_index', { nullsFirst: false })
       .order('name');
 
     if (!error && data) {
@@ -591,6 +594,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         course_id: m.course_id,
         course_name: (m.courses as { name?: string } | null)?.name || '',
         is_completed: m.is_completed || false,
+        order_index: (m as { order_index?: number | null }).order_index ?? 9999,
       }));
       setModules(formattedModules);
     }
@@ -749,6 +753,10 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         };
       }
       grouped[module.course_id].modules.push(module);
+    });
+    // Ordenar módulos dentro de cada curso por order_index
+    Object.values(grouped).forEach(g => {
+      g.modules.sort((a, b) => a.order_index - b.order_index);
     });
     return grouped;
   }, [availableModules]);
