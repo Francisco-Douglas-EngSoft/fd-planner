@@ -78,6 +78,7 @@ interface Module {
   course_id: string;
   course_name: string;
   is_completed: boolean;
+  order_index: number;
 }
 
 interface CourseSettings {
