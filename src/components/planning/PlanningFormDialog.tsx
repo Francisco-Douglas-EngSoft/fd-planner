@@ -78,6 +78,7 @@ interface Module {
   course_id: string;
   course_name: string;
   is_completed: boolean;
+  order_index: number;
 }
 
 interface CourseSettings {
@@ -290,10 +291,67 @@ function SortableCourseItem({
 
 // Module Selection Section Component with Collapsible Courses
 interface ModuleSelectionSectionProps {
+  // placeholder anchor
+  _?: never;
+}
+
+// (interface real declarada abaixo — este bloco é apenas para ancorar o patch)
+interface _AnchorSelectedModuleRow {
+  _?: never;
+}
+
+function SortableSelectedModuleRow({
+  id,
+  index,
+  moduleName,
+  courseName,
+  hours,
+}: {
+  id: string;
+  index: number;
+  moduleName: string;
+  courseName: string;
+  hours: number;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-2 rounded-md border border-border bg-background hover:border-primary/30 transition-colors"
+    >
+      <button
+        type="button"
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        {...attributes}
+        {...listeners}
+        aria-label="Reordenar"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 rounded px-1.5 py-0.5 min-w-[28px] text-center">
+        {index}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{moduleName}</p>
+        <p className="text-[11px] text-muted-foreground truncate">{courseName}</p>
+      </div>
+      <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">{hours}h</span>
+    </div>
+  );
+}
+
+interface ModuleSelectionSectionPropsReal {
   modulesByCourse: Record<string, { courseName: string; modules: Module[] }>;
   selectedModules: string[];
   modulesInOtherPlans: Set<string>;
   toggleModule: (moduleId: string) => void;
+  applySequentialToggle: (courseModules: Module[], targetModuleId: string) => void;
   totalCourseHours: number;
 }
 
@@ -302,8 +360,9 @@ function ModuleSelectionSection({
   selectedModules,
   modulesInOtherPlans,
   toggleModule,
+  applySequentialToggle,
   totalCourseHours,
-}: ModuleSelectionSectionProps) {
+}: ModuleSelectionSectionPropsReal) {
   const [expandedCourses, setExpandedCourses] = useState<Set<string>>(new Set());
 
   const toggleCourseExpanded = (courseId: string) => {
@@ -407,6 +466,7 @@ function ModuleSelectionSection({
                     {courseModules.map(module => {
                       const isInOtherPlan = modulesInOtherPlans.has(module.id);
                       const isSelected = selectedModules.includes(module.id);
+                      const sequenceInCourse = courseModules.findIndex(m => m.id === module.id) + 1;
                       
                       return (
                         <div
@@ -414,7 +474,7 @@ function ModuleSelectionSection({
                           className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
                             isSelected
                               ? 'border-primary/30 bg-primary/5'
-                              : isInOtherPlan
+                              : isInOtherPlan || module.is_completed
                               ? 'border-border/50 bg-muted/30'
                               : 'border-border hover:border-primary/20'
                           }`}
@@ -423,14 +483,22 @@ function ModuleSelectionSection({
                             <Checkbox
                               id={`module-${module.id}`}
                               checked={isSelected}
-                              onCheckedChange={() => toggleModule(module.id)}
-                              disabled={isInOtherPlan}
+                              onCheckedChange={() => applySequentialToggle(courseModules, module.id)}
+                              disabled={isInOtherPlan || module.is_completed}
                             />
+                            <span className="text-[10px] font-mono font-semibold text-muted-foreground w-6 text-center bg-muted rounded px-1 py-0.5">
+                              #{sequenceInCourse}
+                            </span>
                             <label
                               htmlFor={`module-${module.id}`}
-                              className={`text-sm cursor-pointer ${isInOtherPlan ? 'text-muted-foreground' : ''}`}
+                              className={`text-sm cursor-pointer ${isInOtherPlan || module.is_completed ? 'text-muted-foreground line-through' : ''}`}
                             >
                               {module.name}
+                              {module.is_completed && (
+                                <span className="ml-2 text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                                  Concluído
+                                </span>
+                              )}
                               {isInOtherPlan && (
                                 <span className="ml-2 text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
                                   Em outro plano
@@ -577,9 +645,12 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         hours,
         course_id,
         is_completed,
+        order_index,
         courses!inner(name, user_id)
       `)
       .eq('courses.user_id', user.id)
+      .order('course_id')
+      .order('order_index', { nullsFirst: false })
       .order('name');
 
     if (!error && data) {
@@ -590,6 +661,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         course_id: m.course_id,
         course_name: (m.courses as { name?: string } | null)?.name || '',
         is_completed: m.is_completed || false,
+        order_index: (m as { order_index?: number | null }).order_index ?? 9999,
       }));
       setModules(formattedModules);
     }
@@ -749,6 +821,10 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       }
       grouped[module.course_id].modules.push(module);
     });
+    // Ordenar módulos dentro de cada curso por order_index
+    Object.values(grouped).forEach(g => {
+      g.modules.sort((a, b) => a.order_index - b.order_index);
+    });
     return grouped;
   }, [availableModules]);
 
@@ -862,6 +938,68 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         [moduleId]: { sequence_order: newOrder }
       }));
       return [...prev, moduleId];
+    });
+  };
+
+  /**
+   * Seleção sequencial dentro de um curso:
+   * - Se o módulo alvo estiver desmarcado, marca ele e TODOS os anteriores (respeita pré-requisitos).
+   * - Se o módulo alvo estiver marcado, desmarca ele e TODOS os seguintes.
+   */
+  const applySequentialToggle = (courseModules: Module[], targetModuleId: string) => {
+    const targetIdx = courseModules.findIndex(m => m.id === targetModuleId);
+    if (targetIdx === -1) return;
+
+    const isCurrentlySelected = selectedModules.includes(targetModuleId);
+
+    // IDs afetados pela ação
+    const idsToSelect = isCurrentlySelected
+      ? []
+      : courseModules
+          .slice(0, targetIdx + 1)
+          .filter(m => !m.is_completed && !modulesInOtherPlans.has(m.id))
+          .map(m => m.id);
+
+    const idsToDeselect = isCurrentlySelected
+      ? courseModules.slice(targetIdx).map(m => m.id)
+      : [];
+
+    setSelectedModules(prev => {
+      const set = new Set(prev);
+      idsToDeselect.forEach(id => set.delete(id));
+      idsToSelect.forEach(id => set.add(id));
+      const nextArr = Array.from(set);
+
+      setModuleSettings(prevSettings => {
+        const next = { ...prevSettings };
+        idsToDeselect.forEach(id => delete next[id]);
+        // Reordenar sequence_order para todos os módulos ainda selecionados,
+        // preservando ordem atual e adicionando novos no fim.
+        const ordered = [
+          ...prev.filter(id => set.has(id)),
+          ...idsToSelect.filter(id => !prev.includes(id)),
+        ];
+        ordered.forEach((id, idx) => {
+          next[id] = { ...(next[id] || {}), sequence_order: idx + 1 };
+        });
+        return next;
+      });
+
+      return nextArr;
+    });
+  };
+
+  const reorderSelectedModules = (fromId: string, toId: string) => {
+    const from = orderedSelectedModules.indexOf(fromId);
+    const to = orderedSelectedModules.indexOf(toId);
+    if (from === -1 || to === -1 || from === to) return;
+    const next = arrayMove(orderedSelectedModules, from, to);
+    setModuleSettings(prev => {
+      const updated = { ...prev };
+      next.forEach((id, idx) => {
+        updated[id] = { ...(updated[id] || {}), sequence_order: idx + 1 };
+      });
+      return updated;
     });
   };
 
@@ -2141,6 +2279,35 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
             {/* Course/Module Selection based on planning type */}
             {planningType === 'course' ? (
               <div className="space-y-4">
+                {!editPlan && (
+                  <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs">
+                    <Layers className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      Precisa estudar apenas alguns módulos de um curso?{' '}
+                      <button
+                        type="button"
+                        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+                        onClick={() => {
+                          setPlanningType('module');
+                          if (selectedCourses.length > 0) {
+                            const preselect = modules
+                              .filter(m => selectedCourses.includes(m.course_id) && !m.is_completed && !modulesInOtherPlans.has(m.id))
+                              .sort((a, b) => a.order_index - b.order_index);
+                            setSelectedModules(preselect.map(m => m.id));
+                            const settings: Record<string, ModuleSettings> = {};
+                            preselect.forEach((m, idx) => {
+                              settings[m.id] = { sequence_order: idx + 1 };
+                            });
+                            setModuleSettings(settings);
+                          }
+                        }}
+                      >
+                        Mudar para &quot;Por Módulo&quot;
+                      </button>
+                      {selectedCourses.length > 0 && ' (os módulos dos cursos já marcados serão pré-selecionados)'}
+                    </div>
+                  </div>
+                )}
                 {/* Regular Courses Section */}
                 <div className="space-y-3">
                   <Label className="flex items-center gap-2 flex-wrap">
@@ -2249,8 +2416,53 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                 selectedModules={selectedModules}
                 modulesInOtherPlans={modulesInOtherPlans}
                 toggleModule={toggleModule}
+                applySequentialToggle={applySequentialToggle}
                 totalCourseHours={totalCourseHours}
               />
+            )}
+
+            {/* Ordem de execução dos módulos selecionados (drag-and-drop entre cursos) */}
+            {planningType === 'module' && orderedSelectedModules.length > 0 && (
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-primary" />
+                  Ordem de Execução
+                  <span className="text-xs text-muted-foreground">
+                    (arraste para reordenar entre cursos)
+                  </span>
+                </Label>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => {
+                    if (e.over && e.active.id !== e.over.id) {
+                      reorderSelectedModules(String(e.active.id), String(e.over.id));
+                    }
+                  }}
+                >
+                  <SortableContext items={orderedSelectedModules} strategy={verticalListSortingStrategy}>
+                    <div className="border rounded-lg p-3 space-y-1.5 max-h-[300px] overflow-y-auto bg-muted/20">
+                      {orderedSelectedModules.map((moduleId, index) => {
+                        const mod = modules.find(m => m.id === moduleId);
+                        if (!mod) return null;
+                        return (
+                          <SortableSelectedModuleRow
+                            key={moduleId}
+                            id={moduleId}
+                            index={index + 1}
+                            moduleName={mod.name}
+                            courseName={mod.course_name}
+                            hours={mod.hours}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                <p className="text-xs text-muted-foreground">
+                  Os módulos serão estudados nesta ordem no Foco e no calendário.
+                </p>
+              </div>
             )}
 
             {/* Course stats - only show for course type */}
