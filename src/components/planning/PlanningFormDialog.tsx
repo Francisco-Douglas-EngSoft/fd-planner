@@ -2279,6 +2279,35 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
             {/* Course/Module Selection based on planning type */}
             {planningType === 'course' ? (
               <div className="space-y-4">
+                {!editPlan && (
+                  <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-2.5 text-xs">
+                    <Layers className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      Precisa estudar apenas alguns módulos de um curso?{' '}
+                      <button
+                        type="button"
+                        className="text-primary font-medium underline underline-offset-2 hover:opacity-80"
+                        onClick={() => {
+                          setPlanningType('module');
+                          if (selectedCourses.length > 0) {
+                            const preselect = modules
+                              .filter(m => selectedCourses.includes(m.course_id) && !m.is_completed && !modulesInOtherPlans.has(m.id))
+                              .sort((a, b) => a.order_index - b.order_index);
+                            setSelectedModules(preselect.map(m => m.id));
+                            const settings: Record<string, ModuleSettings> = {};
+                            preselect.forEach((m, idx) => {
+                              settings[m.id] = { sequence_order: idx + 1 };
+                            });
+                            setModuleSettings(settings);
+                          }
+                        }}
+                      >
+                        Mudar para &quot;Por Módulo&quot;
+                      </button>
+                      {selectedCourses.length > 0 && ' (os módulos dos cursos já marcados serão pré-selecionados)'}
+                    </div>
+                  </div>
+                )}
                 {/* Regular Courses Section */}
                 <div className="space-y-3">
                   <Label className="flex items-center gap-2 flex-wrap">
