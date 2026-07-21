@@ -2331,8 +2331,53 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                 selectedModules={selectedModules}
                 modulesInOtherPlans={modulesInOtherPlans}
                 toggleModule={toggleModule}
+                applySequentialToggle={applySequentialToggle}
                 totalCourseHours={totalCourseHours}
               />
+            )}
+
+            {/* Ordem de execução dos módulos selecionados (drag-and-drop entre cursos) */}
+            {planningType === 'module' && orderedSelectedModules.length > 0 && (
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-primary" />
+                  Ordem de Execução
+                  <span className="text-xs text-muted-foreground">
+                    (arraste para reordenar entre cursos)
+                  </span>
+                </Label>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(e) => {
+                    if (e.over && e.active.id !== e.over.id) {
+                      reorderSelectedModules(String(e.active.id), String(e.over.id));
+                    }
+                  }}
+                >
+                  <SortableContext items={orderedSelectedModules} strategy={verticalListSortingStrategy}>
+                    <div className="border rounded-lg p-3 space-y-1.5 max-h-[300px] overflow-y-auto bg-muted/20">
+                      {orderedSelectedModules.map((moduleId, index) => {
+                        const mod = modules.find(m => m.id === moduleId);
+                        if (!mod) return null;
+                        return (
+                          <SortableSelectedModuleRow
+                            key={moduleId}
+                            id={moduleId}
+                            index={index + 1}
+                            moduleName={mod.name}
+                            courseName={mod.course_name}
+                            hours={mod.hours}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                <p className="text-xs text-muted-foreground">
+                  Os módulos serão estudados nesta ordem no Foco e no calendário.
+                </p>
+              </div>
             )}
 
             {/* Course stats - only show for course type */}
