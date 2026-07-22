@@ -5,6 +5,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
   ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
   PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
+  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,6 +69,13 @@ export default function Reader() {
   const [showThumbs, setShowThumbs] = useState(true);
   const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
 
+  // Fullscreen toolbar / atalhos / navegação de destaques
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [highlightNavIndex, setHighlightNavIndex] = useState(-1);
+  const restoredPrefsRef = useRef(false);
+
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
     | { x: number; y: number; rects: RectNorm[]; text: string }
@@ -79,6 +87,14 @@ export default function Reader() {
   const pageAnnotations = useMemo(
     () => annotations.filter((a) => a.page === page),
     [annotations, page],
+  );
+
+  const sortedAnnotations = useMemo(
+    () =>
+      [...annotations].sort(
+        (a, b) => a.page - b.page || (a.rects?.[0]?.y ?? 0) - (b.rects?.[0]?.y ?? 0),
+      ),
+    [annotations],
   );
 
   // Highlights sintéticos para resultados de busca na página atual
@@ -208,8 +224,55 @@ export default function Reader() {
     };
   }, [fitWidth]);
 
-  // ---------------- Teclado ----------------
+  // ---------------- Fullscreen ----------------
   const isPdfPath = book?.file_path.toLowerCase().endsWith(".pdf");
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = viewerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) await el.requestFullscreen?.().catch(() => {});
+    else await document.exitFullscreen?.().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  // ---------------- Navegação entre destaques/notas ----------------
+  const scrollToRect = useCallback((r: RectNorm) => {
+    const el = pageContainerRef.current;
+    const box = pageBoxRef.current;
+    if (!el || !box) return;
+    const targetTop = box.offsetTop + r.y * box.clientHeight - el.clientHeight / 3;
+    el.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+  }, []);
+
+  const goToAnnotation = useCallback(
+    (dir: 1 | -1) => {
+      if (!sortedAnnotations.length) {
+        toast.info("Nenhum destaque ou nota ainda");
+        return;
+      }
+      let next = highlightNavIndex + dir;
+      if (next < 0) next = sortedAnnotations.length - 1;
+      if (next >= sortedAnnotations.length) next = 0;
+      const target = sortedAnnotations[next];
+      setHighlightNavIndex(next);
+      const samePage = target.page === page;
+      if (!samePage) setPage(target.page);
+      const rect = target.rects?.[0];
+      if (rect) setTimeout(() => scrollToRect(rect), samePage ? 60 : 500);
+      toast.message(
+        `Destaque ${next + 1}/${sortedAnnotations.length} · Pág. ${target.page}`,
+        { description: target.text?.slice(0, 120) },
+      );
+    },
+    [sortedAnnotations, highlightNavIndex, page, scrollToRect],
+  );
+
+  // ---------------- Teclado ----------------
   useEffect(() => {
     if (!isPdfPath) return;
     const onKey = (e: KeyboardEvent) => {
@@ -221,24 +284,83 @@ export default function Reader() {
       else if (e.key === "End" && totalPages) setPage(totalPages);
       else if (e.key === "+" || e.key === "=") { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }
       else if (e.key === "-") { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
+      else if (e.key === "0") { setFitWidth(true); setZoom(1); }
       else if (e.key.toLowerCase() === "f") toggleFullscreen();
+      else if (e.key === "N") goToAnnotation(-1);
+      else if (e.key === "n") goToAnnotation(1);
+      else if (e.key === "?") setShowShortcuts((v) => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isPdfPath, totalPages]);
+  }, [isPdfPath, totalPages, toggleFullscreen, goToAnnotation]);
 
-  const toggleFullscreen = useCallback(async () => {
-    const el = viewerRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) await el.requestFullscreen?.();
-    else await document.exitFullscreen?.();
-  }, []);
+  // ---------------- Persistência de preferências (zoom + fullscreen) ----------------
+  useEffect(() => {
+    if (!book || restoredPrefsRef.current) return;
+    try {
+      const raw = localStorage.getItem(`reader:${book.id}:prefs`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved.zoom === "number") setZoom(saved.zoom);
+        if (typeof saved.fitWidth === "boolean") setFitWidth(saved.fitWidth);
+        if (typeof saved.rotation === "number") setRotation(saved.rotation);
+        if (typeof saved.invertColors === "boolean") setInvertColors(saved.invertColors);
+        if (saved.fullscreen) {
+          setTimeout(() => {
+            viewerRef.current?.requestFullscreen?.().catch(() => {
+              toast.info("Clique na página para retomar a tela cheia", { duration: 4000 });
+              const resume = () => {
+                viewerRef.current?.requestFullscreen?.().catch(() => {});
+              };
+              window.addEventListener("click", resume, { once: true });
+            });
+          }, 400);
+        }
+      }
+    } catch { /* noop */ }
+    restoredPrefsRef.current = true;
+  }, [book]);
 
   useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
+    if (!book || !restoredPrefsRef.current) return;
+    try {
+      localStorage.setItem(
+        `reader:${book.id}:prefs`,
+        JSON.stringify({ zoom, fitWidth, rotation, invertColors, fullscreen: isFullscreen }),
+      );
+    } catch { /* noop */ }
+  }, [book, zoom, fitWidth, rotation, invertColors, isFullscreen]);
+
+  // Colapsa toolbar em mobile ao entrar em fullscreen
+  useEffect(() => {
+    if (isFullscreen && window.matchMedia("(max-width: 640px)").matches) {
+      setToolbarCollapsed(true);
+    }
+  }, [isFullscreen]);
+
+  // Drag da toolbar em tela cheia
+  const startToolbarDrag = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isFullscreen) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const initial = toolbarPos;
+      e.preventDefault();
+      const move = (ev: PointerEvent) => {
+        setToolbarPos({
+          x: initial.x + (ev.clientX - startX),
+          y: initial.y + (ev.clientY - startY),
+        });
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [isFullscreen, toolbarPos],
+  );
 
   // ---------------- Persistência de progresso ----------------
   useEffect(() => {
@@ -526,8 +648,48 @@ export default function Reader() {
 
           {/* Viewer */}
           <div ref={viewerRef} className={`space-y-3 min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-col p-3" : ""}`}>
-            {/* Toolbar (flutuante em tela cheia) */}
-            <Card className={`p-2 flex items-center justify-between flex-wrap gap-2 ${isFullscreen ? "fixed top-3 left-1/2 -translate-x-1/2 z-50 shadow-lg bg-background/95 backdrop-blur" : ""}`}>
+            {/* Toolbar (flutuante e arrastável em tela cheia) */}
+            <Card
+              className={`p-2 flex items-center gap-2 ${
+                isFullscreen
+                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80"
+                  : "justify-between flex-wrap"
+              }`}
+              style={
+                isFullscreen
+                  ? {
+                      top: 12,
+                      left: "50%",
+                      transform: `translate(calc(-50% + ${toolbarPos.x}px), ${toolbarPos.y}px)`,
+                      touchAction: "none",
+                    }
+                  : undefined
+              }
+            >
+              {isFullscreen && (
+                <button
+                  type="button"
+                  onPointerDown={startToolbarDrag}
+                  className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+                  title="Arraste para mover"
+                  aria-label="Mover toolbar"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+              )}
+              {isFullscreen && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setToolbarCollapsed((v) => !v)}
+                  title={toolbarCollapsed ? "Expandir" : "Recolher"}
+                >
+                  {toolbarCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                </Button>
+              )}
+              {!(isFullscreen && toolbarCollapsed) && (
+              <>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
                   <ZoomOut className="h-4 w-4" />
@@ -535,7 +697,7 @@ export default function Reader() {
                 <button
                   onClick={() => { setFitWidth(true); setZoom(1); }}
                   className="text-xs tabular-nums px-2 h-8 hover:bg-muted transition-colors"
-                  title="Ajustar à largura"
+                  title="Ajustar à largura (0)"
                 >
                   {fitWidth ? "Ajuste" : `${Math.round(zoom * 100)}%`}
                 </button>
@@ -554,6 +716,27 @@ export default function Reader() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+              <div className="flex items-center gap-1 border-l border-border/60 pl-1 ml-1">
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => goToAnnotation(-1)}
+                  disabled={!sortedAnnotations.length}
+                  title="Destaque anterior (Shift+N)"
+                >
+                  <Highlighter className="h-4 w-4 -scale-x-100" />
+                </Button>
+                <span className="text-[10px] tabular-nums text-muted-foreground min-w-[32px] text-center">
+                  {sortedAnnotations.length ? `${highlightNavIndex + 1}/${sortedAnnotations.length}` : "—"}
+                </span>
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => goToAnnotation(1)}
+                  disabled={!sortedAnnotations.length}
+                  title="Próximo destaque (N)"
+                >
+                  <Highlighter className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRotation((r) => (r + 90) % 360)} title="Girar">
                   <RotateCw className="h-4 w-4" />
@@ -568,11 +751,44 @@ export default function Reader() {
                     </a>
                   </Button>
                 )}
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => setShowShortcuts((v) => !v)}
+                  title="Atalhos de teclado (?)"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
               </div>
+              </>
+              )}
             </Card>
+
+            {/* Painel de atalhos flutuante */}
+            {showShortcuts && (
+              <div
+                className={`${isFullscreen ? "fixed" : "absolute"} z-[60] bottom-4 right-4 w-[280px] bg-background/95 backdrop-blur border border-border shadow-2xl p-3 text-xs`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">Atalhos de teclado</span>
+                  <button onClick={() => setShowShortcuts(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <ul className="space-y-1 text-muted-foreground">
+                  <li className="flex justify-between"><span>Página anterior / próxima</span><kbd className="text-foreground">← →</kbd></li>
+                  <li className="flex justify-between"><span>Início / fim</span><kbd className="text-foreground">Home / End</kbd></li>
+                  <li className="flex justify-between"><span>Zoom</span><kbd className="text-foreground">+ / −</kbd></li>
+                  <li className="flex justify-between"><span>Ajustar à largura</span><kbd className="text-foreground">0</kbd></li>
+                  <li className="flex justify-between"><span>Próximo destaque</span><kbd className="text-foreground">N</kbd></li>
+                  <li className="flex justify-between"><span>Destaque anterior</span><kbd className="text-foreground">Shift+N</kbd></li>
+                  <li className="flex justify-between"><span>Tela cheia</span><kbd className="text-foreground">F</kbd></li>
+                  <li className="flex justify-between"><span>Este painel</span><kbd className="text-foreground">?</kbd></li>
+                </ul>
+              </div>
+            )}
 
             <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
               <Card
