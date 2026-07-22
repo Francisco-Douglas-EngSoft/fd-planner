@@ -69,6 +69,13 @@ export default function Reader() {
   const [showThumbs, setShowThumbs] = useState(true);
   const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
 
+  // Fullscreen toolbar / atalhos / navegação de destaques
+  const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [toolbarCollapsed, setToolbarCollapsed] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [highlightNavIndex, setHighlightNavIndex] = useState(-1);
+  const restoredPrefsRef = useRef(false);
+
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
     | { x: number; y: number; rects: RectNorm[]; text: string }
