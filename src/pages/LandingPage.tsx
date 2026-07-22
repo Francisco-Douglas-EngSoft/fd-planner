@@ -128,7 +128,7 @@ const LandingPage = () => {
               <h2 className="font-display text-3xl font-bold mb-4 leading-tight">
                 Pronto para a evolução?
               </h2>
-              <p className="text-indigo-100/80 mb-8">
+              <p className="text-black/70 mb-8">
                 Crie sua conta ou entre no modo visitante e explore todos os módulos.
               </p>
             </div>
