@@ -525,9 +525,9 @@ export default function Reader() {
           {!showThumbs && <div />}
 
           {/* Viewer */}
-          <div className="space-y-3 min-w-0">
-            {/* Toolbar */}
-            <Card className="p-2 flex items-center justify-between flex-wrap gap-2">
+          <div ref={viewerRef} className={`space-y-3 min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-col p-3" : ""}`}>
+            {/* Toolbar (flutuante em tela cheia) */}
+            <Card className={`p-2 flex items-center justify-between flex-wrap gap-2 ${isFullscreen ? "fixed top-3 left-1/2 -translate-x-1/2 z-50 shadow-lg bg-background/95 backdrop-blur" : ""}`}>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
                   <ZoomOut className="h-4 w-4" />
@@ -541,6 +541,17 @@ export default function Reader() {
                 </button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
                   <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering} title="Anterior">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs tabular-nums px-1 text-muted-foreground min-w-[60px] text-center">
+                  {page} / {totalPages || "…"}
+                </span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)} title="Próxima">
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-1">
@@ -563,10 +574,10 @@ export default function Reader() {
               </div>
             </Card>
 
-            <div ref={viewerRef} className="bg-background">
+            <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
               <Card
                 ref={pageContainerRef}
-                className={`p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "max-h-screen h-screen" : "max-h-[80vh]"}`}
+                className={`p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[80vh]"}`}
               >
                 {rendering && (
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-2 py-1 text-xs text-muted-foreground">
@@ -621,8 +632,8 @@ export default function Reader() {
               </Card>
             </div>
 
-            {/* Navegação */}
-            <div className="flex items-center justify-center gap-3 flex-wrap">
+            {/* Navegação (oculta em tela cheia — usa a da toolbar) */}
+            <div className={`items-center justify-center gap-3 flex-wrap ${isFullscreen ? "hidden" : "flex"}`}>
               <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering}>
                 <ChevronLeft className="h-4 w-4" /> Anterior
               </Button>
@@ -642,7 +653,7 @@ export default function Reader() {
               </Button>
             </div>
 
-            <PageSummarizer getPageText={getCurrentPageText} page={page} />
+            {!isFullscreen && <PageSummarizer getPageText={getCurrentPageText} page={page} />}
           </div>
 
           {/* Painel direito com abas */}
