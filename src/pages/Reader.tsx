@@ -89,6 +89,14 @@ export default function Reader() {
     [annotations, page],
   );
 
+  const sortedAnnotations = useMemo(
+    () =>
+      [...annotations].sort(
+        (a, b) => a.page - b.page || (a.rects?.[0]?.y ?? 0) - (b.rects?.[0]?.y ?? 0),
+      ),
+    [annotations],
+  );
+
   // Highlights sintéticos para resultados de busca na página atual
   const searchAnnotations: Annotation[] = useMemo(() => {
     if (!searchRects.length) return [];
