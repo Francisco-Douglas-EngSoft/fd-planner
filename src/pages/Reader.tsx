@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
   ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
+  PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,48 +13,100 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EpubReader } from "@/components/reader/EpubReader";
 import { NotesPanel } from "@/components/reader/NotesPanel";
 import { PageSummarizer } from "@/components/reader/PageSummarizer";
+import { PdfTextLayer } from "@/components/reader/PdfTextLayer";
+import { HighlightsLayer } from "@/components/reader/HighlightsLayer";
+import { PdfThumbnails } from "@/components/reader/PdfThumbnails";
+import { PdfSearch } from "@/components/reader/PdfSearch";
+import { SelectionPopover } from "@/components/reader/SelectionPopover";
+import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
 
-// pdfjs worker (Vite-friendly)
+// pdfjs worker
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import * as pdfjsLib from "pdfjs-dist";
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (pdfjsLib as any).GlobalWorkerOptions.workerPort = new PdfWorker();
+
+// Extensão do BookRow para colunas adicionadas via migration manual
+type BookRowExt = BookRow & { last_read_scroll?: number | null };
 
 export default function Reader() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
   const pageContainerRef = useRef<HTMLDivElement>(null);
+  const pageBoxRef = useRef<HTMLDivElement>(null); // wrapper com dimensões da página atual
 
-  const [book, setBook] = useState<BookRow | null>(null);
+  const [book, setBook] = useState<BookRowExt | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pdf, setPdf] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [currentPageObj, setCurrentPageObj] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [currentViewport, setCurrentViewport] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [rendering, setRendering] = useState(false);
   const sessionStart = useMemo(() => new Date(), []);
-  const [epubCfi, setEpubCfi] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1); // 1 = fit width
+
+  const [zoom, setZoom] = useState(1);
   const [fitWidth, setFitWidth] = useState(true);
-  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
+  const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [invertColors, setInvertColors] = useState(false);
 
+  const [showThumbs, setShowThumbs] = useState(true);
+  const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
+
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [selectionPopover, setSelectionPopover] = useState<
+    | { x: number; y: number; rects: RectNorm[]; text: string }
+    | null
+  >(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchRects, setSearchRects] = useState<RectNorm[]>([]);
+
+  const pageAnnotations = useMemo(
+    () => annotations.filter((a) => a.page === page),
+    [annotations, page],
+  );
+
+  // Highlights sintéticos para resultados de busca na página atual
+  const searchAnnotations: Annotation[] = useMemo(() => {
+    if (!searchRects.length) return [];
+    return [
+      {
+        id: "__search__",
+        book_id: "",
+        user_id: "",
+        page,
+        text: searchQuery,
+        highlight: null,
+        color: "orange",
+        kind: "highlight",
+        rects: searchRects,
+        created_at: "",
+      },
+    ];
+  }, [searchRects, page, searchQuery]);
+
+  // ---------------- Carrega o livro ----------------
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
         setLoading(true);
-        const b = await libraryService.get(id);
+        const b = (await libraryService.get(id)) as BookRowExt | null;
         if (!b) {
           toast.error("Livro não encontrado");
           navigate("/biblioteca");
@@ -72,6 +125,7 @@ export default function Reader() {
     })();
   }, [id, navigate]);
 
+  // ---------------- Abre o PDF ----------------
   useEffect(() => {
     if (!signedUrl || !book) return;
     if (!book.file_path.toLowerCase().endsWith(".pdf")) return;
@@ -91,6 +145,16 @@ export default function Reader() {
     })();
   }, [signedUrl, book]);
 
+  // ---------------- Carrega anotações ----------------
+  useEffect(() => {
+    if (!book || !user) return;
+    annotationsService
+      .listByBook(book.id, user.id)
+      .then(setAnnotations)
+      .catch((err) => console.warn("Falha ao carregar anotações", err));
+  }, [book, user]);
+
+  // ---------------- Renderiza página ----------------
   useEffect(() => {
     if (!pdf || !canvasRef.current) return;
     let cancelled = false;
@@ -98,7 +162,6 @@ export default function Reader() {
       try {
         setRendering(true);
         const p = await pdf.getPage(page);
-        // Base viewport at scale 1 to compute fit-width scale
         const base = p.getViewport({ scale: 1, rotation });
         const containerWidth = pageContainerRef.current?.clientWidth ?? 800;
         const availableWidth = Math.max(320, containerWidth - 32);
@@ -114,6 +177,11 @@ export default function Reader() {
         canvas.style.height = `${viewport.height / dpr}px`;
         if (cancelled) return;
         await p.render({ canvas, canvasContext: ctx, viewport }).promise;
+        if (!cancelled) {
+          setCurrentPageObj(p);
+          // viewport CSS (sem multiplicar por dpr) para textLayer/hitboxes
+          setCurrentViewport(p.getViewport({ scale: effectiveScale, rotation }));
+        }
       } finally {
         setRendering(false);
       }
@@ -123,7 +191,7 @@ export default function Reader() {
     };
   }, [pdf, page, zoom, fitWidth, rotation]);
 
-  // Re-render on resize when fitting width
+  // ---------------- Resize triggers rerender ----------------
   useEffect(() => {
     if (!fitWidth) return;
     const el = pageContainerRef.current;
@@ -140,18 +208,16 @@ export default function Reader() {
     };
   }, [fitWidth]);
 
-  // Keyboard navigation
+  // ---------------- Teclado ----------------
   const isPdfPath = book?.file_path.toLowerCase().endsWith(".pdf");
   useEffect(() => {
     if (!isPdfPath) return;
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowRight" || e.key === "PageDown") {
-        setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1));
-      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
-        setPage((p) => Math.max(1, p - 1));
-      } else if (e.key === "Home") setPage(1);
+      if (e.key === "ArrowRight" || e.key === "PageDown") setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1));
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") setPage((p) => Math.max(1, p - 1));
+      else if (e.key === "Home") setPage(1);
       else if (e.key === "End" && totalPages) setPage(totalPages);
       else if (e.key === "+" || e.key === "=") { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }
       else if (e.key === "-") { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
@@ -164,11 +230,8 @@ export default function Reader() {
   const toggleFullscreen = useCallback(async () => {
     const el = viewerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) {
-      await el.requestFullscreen?.();
-    } else {
-      await document.exitFullscreen?.();
-    }
+    if (!document.fullscreenElement) await el.requestFullscreen?.();
+    else await document.exitFullscreen?.();
   }, []);
 
   useEffect(() => {
@@ -177,7 +240,7 @@ export default function Reader() {
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
 
-  // Persist progress with debounce
+  // ---------------- Persistência de progresso ----------------
   useEffect(() => {
     if (!book) return;
     const t = setTimeout(() => {
@@ -187,54 +250,187 @@ export default function Reader() {
     return () => clearTimeout(t);
   }, [page, book, totalPages]);
 
-  // Record reading session on unmount + integra com Foco/XP
-  // (grava também uma focus_session do tipo "work" para alimentar horas/XP/conquistas)
+  // Restaura scroll dentro da página quando ela termina de renderizar
+  useEffect(() => {
+    if (!book || rendering) return;
+    const scroll = book.last_read_scroll ?? 0;
+    if (scroll <= 0) return;
+    const el = pageContainerRef.current;
+    if (!el) return;
+    const target = scroll * (el.scrollHeight - el.clientHeight);
+    if (target > 0) el.scrollTop = target;
+    // aplica apenas uma vez ao abrir
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rendering === false && page === book?.last_read_page]);
+
+  // Debounce salvamento de scroll
+  useEffect(() => {
+    const el = pageContainerRef.current;
+    if (!el || !book) return;
+    let t: number | undefined;
+    const onScroll = () => {
+      if (t) window.clearTimeout(t);
+      t = window.setTimeout(() => {
+        const ratio = el.scrollHeight > el.clientHeight
+          ? el.scrollTop / (el.scrollHeight - el.clientHeight)
+          : 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        libraryService.update(book.id, { last_read_scroll: ratio } as any).catch(() => {});
+      }, 600);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (t) window.clearTimeout(t);
+    };
+  }, [book, page]);
+
+  // ---------------- Sessão de leitura → XP ----------------
   useEffect(() => {
     return () => {
       if (!book || !user) return;
       const end = new Date();
       const minutes = Math.max(1, Math.round((end.getTime() - sessionStart.getTime()) / 60000));
-      // Ignora leituras muito curtas (< 1 min efetivo)
       if (minutes < 1) return;
       const today = end.toISOString().slice(0, 10);
-      supabase
-        .from("reading_sessions")
-        .insert({
-          user_id: user.id,
-          book_id: book.id,
-          date: today,
-          duration_minutes: minutes,
-        })
-        .then(({ error }) => error && console.error(error));
-      // Reading conta como foco: alimenta horas, streaks, XP e conquistas.
-      supabase
-        .from("focus_sessions")
-        .insert({
-          user_id: user.id,
-          duration_minutes: minutes,
-          session_type: "work",
-          notes: `Leitura: ${book.title}`,
-        })
-        .then(({ error }) => error && console.error(error));
+      supabase.from("reading_sessions").insert({
+        user_id: user.id, book_id: book.id, date: today, duration_minutes: minutes,
+      }).then(({ error }) => error && console.error(error));
+      supabase.from("focus_sessions").insert({
+        user_id: user.id, duration_minutes: minutes, session_type: "work",
+        notes: `Leitura: ${book.title}`,
+      }).then(({ error }) => error && console.error(error));
     };
   }, [book, user, sessionStart]);
 
+  // ---------------- Seleção de texto → popover ----------------
+  const handleMouseUp = useCallback(() => {
+    if (!pageBoxRef.current || !currentViewport) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      setSelectionPopover(null);
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    // ignora se seleção não estiver dentro do textLayer
+    if (!pageBoxRef.current.contains(range.commonAncestorContainer)) return;
+    const clientRects = Array.from(range.getClientRects());
+    if (!clientRects.length) return;
+    const boxRect = pageBoxRef.current.getBoundingClientRect();
+    // Normaliza p/ fração do tamanho renderizado da página
+    const rects: RectNorm[] = clientRects
+      .filter((r) => r.width > 1 && r.height > 4)
+      .map((r) => ({
+        x: (r.left - boxRect.left) / boxRect.width,
+        y: (r.top - boxRect.top) / boxRect.height,
+        w: r.width / boxRect.width,
+        h: r.height / boxRect.height,
+      }));
+    if (!rects.length) return;
+    const last = clientRects[clientRects.length - 1];
+    setSelectionPopover({
+      x: last.left - boxRect.left,
+      y: last.top - boxRect.top,
+      rects,
+      text: sel.toString(),
+    });
+  }, [currentViewport]);
+
+  const saveAnnotation = useCallback(
+    async (color: string, kind: "highlight" | "underline", withNote: boolean) => {
+      if (!selectionPopover || !book || !user) return;
+      let noteText: string | null = null;
+      if (withNote) {
+        noteText = window.prompt("Sua nota sobre este trecho:") ?? null;
+        if (noteText === null) { setSelectionPopover(null); return; }
+      }
+      try {
+        const created = await annotationsService.create({
+          book_id: book.id,
+          user_id: user.id,
+          page,
+          text: selectionPopover.text.slice(0, 2000),
+          highlight: noteText,
+          color,
+          kind,
+          rects: selectionPopover.rects,
+        });
+        setAnnotations((prev) => [...prev, created]);
+        toast.success(kind === "underline" ? "Sublinhado salvo" : "Destaque salvo");
+      } catch (err) {
+        console.error(err);
+        toast.error("Não foi possível salvar (rode a migration SQL primeiro)");
+      } finally {
+        window.getSelection()?.removeAllRanges();
+        setSelectionPopover(null);
+      }
+    },
+    [selectionPopover, book, user, page],
+  );
+
+  const removeAnnotation = useCallback(async (a: Annotation) => {
+    try {
+      await annotationsService.remove(a.id);
+      setAnnotations((prev) => prev.filter((x) => x.id !== a.id));
+      toast.success("Removido");
+    } catch {
+      toast.error("Erro ao remover");
+    }
+  }, []);
+
+  // ---------------- Busca: destaca ocorrências na página atual ----------------
+  useEffect(() => {
+    setSearchRects([]);
+    if (!searchQuery || searchQuery.length < 2 || !currentPageObj || !currentViewport) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const content = await currentPageObj.getTextContent();
+        const rects: RectNorm[] = [];
+        const q = searchQuery.toLowerCase();
+        const vp = currentViewport;
+        for (const item of content.items as Array<{
+          str: string; transform: number[]; width: number; height: number;
+        }>) {
+          const text = (item.str ?? "").toLowerCase();
+          if (!text.includes(q)) continue;
+          // transform: [a,b,c,d,e,f] no espaço PDF; converter p/ viewport CSS
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const tm: any = (pdfjsLib as any).Util.transform(vp.transform, item.transform);
+          const fontHeight = Math.hypot(tm[2], tm[3]);
+          const yTop = tm[5] - fontHeight;
+          const widthCss = item.width * vp.scale;
+          const charW = widthCss / Math.max(1, item.str.length);
+          let idx = text.indexOf(q);
+          while (idx !== -1) {
+            rects.push({
+              x: (tm[4] + idx * charW) / vp.width,
+              y: yTop / vp.height,
+              w: (q.length * charW) / vp.width,
+              h: fontHeight / vp.height,
+            });
+            idx = text.indexOf(q, idx + q.length);
+          }
+        }
+        if (!cancelled) setSearchRects(rects);
+      } catch {
+        /* noop */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [searchQuery, currentPageObj, currentViewport]);
+
+  // ---------------- Bookmark ----------------
   async function addBookmark() {
     if (!book || !user) return;
     const { error } = await supabase.from("bookmarks").insert({
-      user_id: user.id,
-      book_id: book.id,
-      page,
-      chapter: `Página ${page}`,
+      user_id: user.id, book_id: book.id, page, chapter: `Página ${page}`,
     });
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao criar marcador");
-    } else {
-      toast.success("Marcador salvo");
-    }
+    if (error) toast.error("Erro ao criar marcador");
+    else toast.success("Marcador salvo");
   }
 
+  // ---------------- Render ----------------
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
@@ -254,7 +450,7 @@ export default function Reader() {
   }
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-6 space-y-4">
+    <div className="container mx-auto max-w-[1400px] px-4 py-4 space-y-3">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate("/biblioteca")} className="gap-2">
@@ -266,16 +462,19 @@ export default function Reader() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isPdf && (
+            <Button variant="outline" size="sm" onClick={() => setShowThumbs((v) => !v)} className="gap-2">
+              <PanelLeft className="h-4 w-4" /> {showThumbs ? "Ocultar" : "Miniaturas"}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={addBookmark} className="gap-2">
             <Bookmark className="h-4 w-4" /> Marcar
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
+            variant="outline" size="sm" className="gap-2"
             onClick={async () => {
               if (!book) return;
-              toast.info("Indexando PDF com IA... isso pode levar alguns instantes");
+              toast.info("Indexando PDF com IA...");
               const { data, error } = await supabase.functions.invoke("parse-pdf", {
                 body: { book_id: book.id, summarize: false, max_pages: 50 },
               });
@@ -293,14 +492,11 @@ export default function Reader() {
           <EpubReader
             url={signedUrl}
             initialCfi={null}
-            onLocationChange={(cfi, pct) => {
-              setEpubCfi(cfi);
+            onLocationChange={(_cfi, pct) => {
               if (book) libraryService.update(book.id, { last_read_page: pct }).catch(console.error);
             }}
           />
-          {book && user && (
-            <NotesPanel bookId={book.id} userId={user.id} currentPage={null} />
-          )}
+          {book && user && <NotesPanel bookId={book.id} userId={user.id} currentPage={null} />}
         </div>
       ) : !isPdf ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
@@ -314,9 +510,23 @@ export default function Reader() {
           )}
         </Card>
       ) : (
-        <div className="grid lg:grid-cols-[1fr_320px] gap-4">
-          <div className="space-y-3">
-            {/* PDF Toolbar */}
+        <div
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: `${showThumbs ? "180px" : "0px"} minmax(0, 1fr) 340px`,
+          }}
+        >
+          {/* Miniaturas */}
+          {showThumbs && (
+            <Card className="overflow-y-auto max-h-[85vh] p-0">
+              <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={setPage} />
+            </Card>
+          )}
+          {!showThumbs && <div />}
+
+          {/* Viewer */}
+          <div className="space-y-3 min-w-0">
+            {/* Toolbar */}
             <Card className="p-2 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
@@ -363,53 +573,180 @@ export default function Reader() {
                     <Loader2 className="h-3 w-3 animate-spin" /> Renderizando…
                   </div>
                 )}
-                <canvas
-                  ref={canvasRef}
-                  className="shadow-md"
+                <div
+                  ref={pageBoxRef}
+                  className="relative shadow-md"
                   style={{
+                    width: currentViewport?.width ? `${currentViewport.width}px` : undefined,
+                    height: currentViewport?.height ? `${currentViewport.height}px` : undefined,
                     filter: invertColors ? "invert(1) hue-rotate(180deg)" : undefined,
                     transition: "filter 200ms",
                   }}
-                />
+                  onMouseUp={handleMouseUp}
+                >
+                  <canvas ref={canvasRef} className="block absolute inset-0" />
+                  {currentPageObj && currentViewport && (
+                    <PdfTextLayer page={currentPageObj} viewport={currentViewport} />
+                  )}
+                  {currentViewport && (
+                    <>
+                      <HighlightsLayer
+                        annotations={pageAnnotations}
+                        renderedWidth={currentViewport.width}
+                        renderedHeight={currentViewport.height}
+                        onClick={(a) => {
+                          if (a.highlight) toast.message(a.highlight, { description: a.text ?? undefined });
+                          else if (a.text) toast.message(a.text);
+                        }}
+                      />
+                      <HighlightsLayer
+                        annotations={searchAnnotations}
+                        renderedWidth={currentViewport.width}
+                        renderedHeight={currentViewport.height}
+                      />
+                    </>
+                  )}
+                  {selectionPopover && (
+                    <SelectionPopover
+                      x={selectionPopover.x}
+                      y={selectionPopover.y}
+                      onSave={saveAnnotation}
+                      onCancel={() => {
+                        window.getSelection()?.removeAllRanges();
+                        setSelectionPopover(null);
+                      }}
+                    />
+                  )}
+                </div>
               </Card>
             </div>
+
+            {/* Navegação */}
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering}>
+                <ChevronLeft className="h-4 w-4" /> Anterior
+              </Button>
+              <div className="flex items-center gap-2 text-sm">
+                <Input
+                  type="number" min={1} max={totalPages || undefined} value={page}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isNaN(n) && n >= 1 && (!totalPages || n <= totalPages)) setPage(n);
+                  }}
+                  className="w-20 h-8 text-center"
+                />
+                <span className="text-muted-foreground">/ {totalPages || "..."}</span>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)}>
+                Próxima <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+
             <PageSummarizer getPageText={getCurrentPageText} page={page} />
           </div>
-          {book && user && (
-            <NotesPanel bookId={book.id} userId={user.id} currentPage={page} />
-          )}
+
+          {/* Painel direito com abas */}
+          <Card className="p-0 max-h-[85vh] flex flex-col overflow-hidden">
+            <Tabs value={sidePanel} onValueChange={(v) => setSidePanel(v as typeof sidePanel)} className="flex flex-col flex-1 min-h-0">
+              <TabsList className="grid grid-cols-3 m-2">
+                <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
+                <TabsTrigger value="highlights" className="text-xs gap-1"><ListOrdered className="h-3.5 w-3.5" />Destaques</TabsTrigger>
+                <TabsTrigger value="search" className="text-xs gap-1"><SearchIcon className="h-3.5 w-3.5" />Buscar</TabsTrigger>
+              </TabsList>
+              <TabsContent value="notes" className="flex-1 overflow-hidden m-0 p-0">
+                {book && user && <NotesPanel bookId={book.id} userId={user.id} currentPage={page} />}
+              </TabsContent>
+              <TabsContent value="highlights" className="flex-1 overflow-y-auto m-0 p-3 space-y-2">
+                {annotations.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    Selecione um trecho no PDF e escolha uma cor para começar.
+                  </p>
+                ) : (
+                  annotations.map((a) => (
+                    <div key={a.id} className="border p-2 text-xs space-y-1 group">
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPage(a.page)}
+                          className="text-[10px] uppercase text-muted-foreground hover:text-primary"
+                        >
+                          Pág. {a.page} · {a.kind === "underline" ? "Sublinhado" : "Destaque"}
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="w-3 h-3 border border-border/60"
+                            style={{ background: HIGHLIGHT_COLORS[a.color]?.bg ?? HIGHLIGHT_COLORS.yellow.bg }}
+                          />
+                          <button
+                            onClick={() => removeAnnotation(a)}
+                            className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {a.text && (
+                        <p className="italic text-foreground/90 line-clamp-3 leading-snug">
+                          "{a.text}"
+                        </p>
+                      )}
+                      {a.highlight && (
+                        <p className="text-muted-foreground leading-snug border-l-2 border-primary/40 pl-2">
+                          {a.highlight}
+                        </p>
+                      )}
+                      <NoteInlineEditor
+                        initial={a.highlight ?? ""}
+                        onSave={async (v) => {
+                          await annotationsService.updateNote(a.id, v);
+                          setAnnotations((prev) => prev.map((x) => x.id === a.id ? { ...x, highlight: v } : x));
+                        }}
+                      />
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+              <TabsContent value="search" className="flex-1 overflow-hidden m-0 p-0">
+                <PdfSearch
+                  pdf={pdf}
+                  totalPages={totalPages}
+                  onQueryChange={setSearchQuery}
+                  onJump={(p, q) => { setSearchQuery(q); setPage(p); }}
+                />
+              </TabsContent>
+            </Tabs>
+          </Card>
         </div>
       )}
+    </div>
+  );
+}
 
-      {isPdf && (
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering}>
-              <ChevronLeft className="h-4 w-4" /> Anterior
-            </Button>
-            <div className="flex items-center gap-2 text-sm">
-              <Input
-                type="number"
-                min={1}
-                max={totalPages || undefined}
-                value={page}
-                onChange={(e) => {
-                  const n = Number(e.target.value);
-                  if (!Number.isNaN(n) && n >= 1 && (!totalPages || n <= totalPages)) setPage(n);
-                }}
-                className="w-20 h-8 text-center"
-              />
-              <span className="text-muted-foreground">/ {totalPages || "..."}</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))}
-              disabled={rendering || (totalPages > 0 && page >= totalPages)}
-            >
-              Próxima <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-      )}
+function NoteInlineEditor({ initial, onSave }: { initial: string; onSave: (v: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(initial);
+  const [saving, setSaving] = useState(false);
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setValue(initial); }}
+        className="text-[10px] text-primary hover:underline"
+      >
+        {initial ? "Editar nota" : "+ Adicionar nota"}
+      </button>
+    );
+  }
+  return (
+    <div className="space-y-1">
+      <Textarea value={value} onChange={(e) => setValue(e.target.value)} rows={2} className="text-xs" />
+      <div className="flex gap-1">
+        <Button
+          size="sm" className="h-6 text-[10px]" disabled={saving}
+          onClick={async () => { setSaving(true); await onSave(value); setSaving(false); setOpen(false); }}
+        >Salvar</Button>
+        <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => setOpen(false)}>Cancelar</Button>
+      </div>
     </div>
   );
 }

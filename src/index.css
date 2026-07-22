@@ -1314,3 +1314,30 @@ table,
 .rounded-full {
   border-radius: 0 !important;
 }
+
+/* ============ PDF.js Text Layer (necessário para seleção de texto no Reader) ============ */
+.pdf-text-layer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: hsl(var(--primary));
+  z-index: 2;
+}
+.pdf-text-layer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.pdf-text-layer ::selection {
+  background: hsl(var(--primary) / 0.35);
+}
