@@ -61,7 +61,15 @@ export default defineConfig(({ mode }) => ({
       // Never emit or register a service worker in dev / Lovable preview.
       devOptions: { enabled: false },
       filename: "sw.js",
-      includeAssets: ["favicon.png", "icon-192.png", "icon-512.png", "og-image.png"],
+      includeAssets: [
+        "favicon.ico",
+        "favicon.png",
+        "apple-touch-icon.png",
+        "icon-192.png",
+        "icon-512.png",
+        "icon-512-maskable.png",
+        "og-image.png",
+      ],
       manifest: {
         name: "FD-Planner",
         short_name: "FD-Planner",
@@ -91,7 +99,7 @@ export default defineConfig(({ mode }) => ({
             purpose: "any"
           },
           {
-            src: "/icon-512.png",
+            src: "/icon-512-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable"
