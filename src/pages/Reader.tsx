@@ -5,6 +5,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
   ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
   PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
+  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
