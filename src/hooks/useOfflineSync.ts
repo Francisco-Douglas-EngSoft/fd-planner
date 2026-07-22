@@ -203,7 +203,7 @@ export function useOfflineSync() {
         try {
           // Here you would implement the actual sync logic with Supabase
           // For now, we'll just simulate success
-          console.log('Syncing action:', action);
+          if (import.meta.env.DEV) console.log('Syncing action:', action);
           
           await deleteFromStore('pendingActions', action.id);
           synced++;

@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 // Envia notificações diárias por FCM:
 //  - "Você tem X flashcards para revisar hoje"
@@ -23,6 +24,16 @@ Deno.serve(async (req) => {
 
   const auth = req.headers.get("Authorization") ?? "";
   const isCron = dispatchSecret && auth === `Bearer ${dispatchSecret}`;
+
+  // Rate-limit apenas chamadas manuais (não cron), 3/min por identidade.
+  if (!isCron) {
+    const rl = checkRateLimit({
+      key: `daily-reminders:${auth || clientIpFrom(req)}`,
+      limit: 3,
+      windowMs: 60_000,
+    });
+    if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
+  }
 
   let targetUserIds: string[] = [];
 

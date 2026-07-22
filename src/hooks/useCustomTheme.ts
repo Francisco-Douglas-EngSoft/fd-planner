@@ -322,10 +322,8 @@ export function hasActiveCustomTheme(): boolean {
 export function getSavedThemes(): SavedTheme[] {
   try {
     const stored = localStorage.getItem(SAVED_THEMES_KEY);
-    console.log('[Theme Debug] getSavedThemes - raw localStorage:', stored ? `${stored.substring(0, 100)}...` : 'null');
     if (stored) {
       const parsed = JSON.parse(stored);
-      console.log('[Theme Debug] getSavedThemes - parsed count:', parsed.length);
       return parsed;
     }
   } catch (e) {
@@ -340,11 +338,7 @@ export function getSavedThemes(): SavedTheme[] {
  * Save themes to localStorage and notify listeners
  */
 export function saveSavedThemes(themes: SavedTheme[]): void {
-  console.log('[Theme Debug] saveSavedThemes - saving count:', themes.length, 'to key:', SAVED_THEMES_KEY);
   localStorage.setItem(SAVED_THEMES_KEY, JSON.stringify(themes));
-  // Verify it was saved
-  const verify = localStorage.getItem(SAVED_THEMES_KEY);
-  console.log('[Theme Debug] saveSavedThemes - verify saved:', verify ? 'OK' : 'FAILED');
   window.dispatchEvent(new CustomEvent('saved-themes-change'));
 }
 
@@ -376,20 +370,16 @@ export function useHasActiveCustomTheme(): boolean {
  */
 export function useSavedThemes(): SavedTheme[] {
   const [themes, setThemes] = useState<SavedTheme[]>(() => {
-    const initial = getSavedThemes();
-    console.log('[Theme Debug] useSavedThemes - initial state count:', initial.length);
-    return initial;
+    return getSavedThemes();
   });
 
   useEffect(() => {
     // Re-read on mount to ensure fresh data
     const fresh = getSavedThemes();
-    console.log('[Theme Debug] useSavedThemes - mount re-read count:', fresh.length);
     setThemes(fresh);
 
     const handleChange = () => {
       const updated = getSavedThemes();
-      console.log('[Theme Debug] useSavedThemes - event triggered, count:', updated.length);
       setThemes(updated);
     };
 

@@ -1,5 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 interface ServiceAccount {
   client_email: string;
@@ -90,6 +91,9 @@ Deno.serve(async (req) => {
       error: userErr,
     } = await authClient.auth.getUser();
     if (userErr || !user) return json({ error: "Unauthorized" }, 401);
+
+    const rl = checkRateLimit({ key: `send-notification:${user.id ?? clientIpFrom(req)}`, limit: 30, windowMs: 60_000 });
+    if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
