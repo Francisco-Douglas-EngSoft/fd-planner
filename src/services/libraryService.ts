@@ -66,4 +66,24 @@ export const libraryService = {
     if (error) throw error;
     return data.signedUrl;
   },
+
+  /**
+   * Envia a capa (JPEG) para o bucket privado `books`, sob `{userId}/covers/{uuid}.jpg`,
+   * e retorna o path armazenado (para `books.cover_path`).
+   */
+  async uploadCover(userId: string, blob: Blob): Promise<string> {
+    const path = `${userId}/covers/${crypto.randomUUID()}.jpg`;
+    const { error } = await supabase.storage.from("books").upload(path, blob, {
+      cacheControl: "31536000",
+      upsert: false,
+      contentType: "image/jpeg",
+    });
+    if (error) throw new Error(error.message || "Falha ao enviar capa");
+    return path;
+  },
+
+  async removeStorageObject(path: string): Promise<void> {
+    if (!path) return;
+    await supabase.storage.from("books").remove([path]);
+  },
 };
