@@ -224,8 +224,55 @@ export default function Reader() {
     };
   }, [fitWidth]);
 
-  // ---------------- Teclado ----------------
+  // ---------------- Fullscreen ----------------
   const isPdfPath = book?.file_path.toLowerCase().endsWith(".pdf");
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = viewerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) await el.requestFullscreen?.().catch(() => {});
+    else await document.exitFullscreen?.().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
+
+  // ---------------- Navegação entre destaques/notas ----------------
+  const scrollToRect = useCallback((r: RectNorm) => {
+    const el = pageContainerRef.current;
+    const box = pageBoxRef.current;
+    if (!el || !box) return;
+    const targetTop = box.offsetTop + r.y * box.clientHeight - el.clientHeight / 3;
+    el.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+  }, []);
+
+  const goToAnnotation = useCallback(
+    (dir: 1 | -1) => {
+      if (!sortedAnnotations.length) {
+        toast.info("Nenhum destaque ou nota ainda");
+        return;
+      }
+      let next = highlightNavIndex + dir;
+      if (next < 0) next = sortedAnnotations.length - 1;
+      if (next >= sortedAnnotations.length) next = 0;
+      const target = sortedAnnotations[next];
+      setHighlightNavIndex(next);
+      const samePage = target.page === page;
+      if (!samePage) setPage(target.page);
+      const rect = target.rects?.[0];
+      if (rect) setTimeout(() => scrollToRect(rect), samePage ? 60 : 500);
+      toast.message(
+        `Destaque ${next + 1}/${sortedAnnotations.length} · Pág. ${target.page}`,
+        { description: target.text?.slice(0, 120) },
+      );
+    },
+    [sortedAnnotations, highlightNavIndex, page, scrollToRect],
+  );
+
+  // ---------------- Teclado ----------------
   useEffect(() => {
     if (!isPdfPath) return;
     const onKey = (e: KeyboardEvent) => {
@@ -237,24 +284,83 @@ export default function Reader() {
       else if (e.key === "End" && totalPages) setPage(totalPages);
       else if (e.key === "+" || e.key === "=") { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }
       else if (e.key === "-") { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
+      else if (e.key === "0") { setFitWidth(true); setZoom(1); }
       else if (e.key.toLowerCase() === "f") toggleFullscreen();
+      else if (e.key === "N") goToAnnotation(-1);
+      else if (e.key === "n") goToAnnotation(1);
+      else if (e.key === "?") setShowShortcuts((v) => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isPdfPath, totalPages]);
+  }, [isPdfPath, totalPages, toggleFullscreen, goToAnnotation]);
 
-  const toggleFullscreen = useCallback(async () => {
-    const el = viewerRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) await el.requestFullscreen?.();
-    else await document.exitFullscreen?.();
-  }, []);
+  // ---------------- Persistência de preferências (zoom + fullscreen) ----------------
+  useEffect(() => {
+    if (!book || restoredPrefsRef.current) return;
+    try {
+      const raw = localStorage.getItem(`reader:${book.id}:prefs`);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (typeof saved.zoom === "number") setZoom(saved.zoom);
+        if (typeof saved.fitWidth === "boolean") setFitWidth(saved.fitWidth);
+        if (typeof saved.rotation === "number") setRotation(saved.rotation);
+        if (typeof saved.invertColors === "boolean") setInvertColors(saved.invertColors);
+        if (saved.fullscreen) {
+          setTimeout(() => {
+            viewerRef.current?.requestFullscreen?.().catch(() => {
+              toast.info("Clique na página para retomar a tela cheia", { duration: 4000 });
+              const resume = () => {
+                viewerRef.current?.requestFullscreen?.().catch(() => {});
+              };
+              window.addEventListener("click", resume, { once: true });
+            });
+          }, 400);
+        }
+      }
+    } catch { /* noop */ }
+    restoredPrefsRef.current = true;
+  }, [book]);
 
   useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
-  }, []);
+    if (!book || !restoredPrefsRef.current) return;
+    try {
+      localStorage.setItem(
+        `reader:${book.id}:prefs`,
+        JSON.stringify({ zoom, fitWidth, rotation, invertColors, fullscreen: isFullscreen }),
+      );
+    } catch { /* noop */ }
+  }, [book, zoom, fitWidth, rotation, invertColors, isFullscreen]);
+
+  // Colapsa toolbar em mobile ao entrar em fullscreen
+  useEffect(() => {
+    if (isFullscreen && window.matchMedia("(max-width: 640px)").matches) {
+      setToolbarCollapsed(true);
+    }
+  }, [isFullscreen]);
+
+  // Drag da toolbar em tela cheia
+  const startToolbarDrag = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isFullscreen) return;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const initial = toolbarPos;
+      e.preventDefault();
+      const move = (ev: PointerEvent) => {
+        setToolbarPos({
+          x: initial.x + (ev.clientX - startX),
+          y: initial.y + (ev.clientY - startY),
+        });
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    },
+    [isFullscreen, toolbarPos],
+  );
 
   // ---------------- Persistência de progresso ----------------
   useEffect(() => {
