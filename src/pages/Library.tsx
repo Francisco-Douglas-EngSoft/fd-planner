@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, Upload, Trash2, Search, FileText, Loader2 } from "lucide-react";
+import { BookOpen, Upload, Trash2, Search, Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBooks } from "@/hooks/useBooks";
 import { libraryService } from "@/services/libraryService";
+import { extractPdfMetadata } from "@/lib/pdfMetadata";
+import { BookCover } from "@/components/library/BookCover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +34,7 @@ function inferFileType(name: string): string {
 export default function Library() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: books = [], isLoading, create, remove } = useBooks();
+  const { data: books = [], isLoading, create, update, remove } = useBooks();
 
   const [query, setQuery] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -41,6 +43,33 @@ export default function Library() {
   const [author, setAuthor] = useState("");
   const [category, setCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [detected, setDetected] = useState<{ pages: number; coverBlob: Blob | null } | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleFileSelected(picked: File | null) {
+    setFile(picked);
+    setDetected(null);
+    if (!picked) return;
+    const ext = picked.name.split(".").pop()?.toLowerCase() ?? "";
+    // Preenche título com o nome do arquivo se o campo estiver vazio.
+    if (!title.trim()) {
+      const base = picked.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+      if (base) setTitle(base);
+    }
+    if (ext !== "pdf") return;
+    try {
+      setAnalyzing(true);
+      const meta = await extractPdfMetadata(picked);
+      setDetected({ pages: meta.totalPages, coverBlob: meta.coverBlob });
+      if (meta.title && !title.trim()) setTitle(meta.title);
+      if (meta.author && !author.trim()) setAuthor(meta.author);
+    } catch (err) {
+      console.warn("[Library] extractPdfMetadata falhou", err);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,12 +104,22 @@ export default function Library() {
     try {
       setUploading(true);
       const path = await libraryService.uploadFile(user.id, file);
+      let coverPath: string | null = null;
+      if (detected?.coverBlob) {
+        try {
+          coverPath = await libraryService.uploadCover(user.id, detected.coverBlob);
+        } catch (err) {
+          console.warn("[Library] falha ao enviar capa", err);
+        }
+      }
       await create.mutateAsync({
         title: title.trim(),
         author: author.trim() || null,
         category: category.trim() || null,
         file_path: path,
         file_size: file.size,
+        cover_path: coverPath,
+        total_pages: detected?.pages ?? 0,
         status: "pending",
       });
       toast.success("Livro adicionado à biblioteca");
@@ -89,6 +128,7 @@ export default function Library() {
       setAuthor("");
       setCategory("");
       setFile(null);
+      setDetected(null);
     } catch (err) {
       console.error("[Library] upload error", err);
       const msg = err instanceof Error ? err.message : "Falha ao enviar arquivo";
@@ -108,6 +148,46 @@ export default function Library() {
     }
   }
 
+  async function syncMissingCovers() {
+    if (!user) return;
+    const targets = books.filter(
+      (b) => (!b.cover_path || !b.total_pages) && b.file_path.toLowerCase().endsWith(".pdf"),
+    );
+    if (targets.length === 0) {
+      toast.info("Todos os PDFs já possuem capa e paginação.");
+      return;
+    }
+    setSyncing(true);
+    let ok = 0;
+    let fail = 0;
+    for (const b of targets) {
+      try {
+        const signed = await libraryService.getSignedUrl(b.file_path, 300);
+        const res = await fetch(signed);
+        const buf = await res.arrayBuffer();
+        const meta = await extractPdfMetadata(buf);
+        let coverPath = b.cover_path ?? null;
+        if (!coverPath && meta.coverBlob) {
+          coverPath = await libraryService.uploadCover(user.id, meta.coverBlob);
+        }
+        await update.mutateAsync({
+          id: b.id,
+          patch: {
+            cover_path: coverPath,
+            total_pages: b.total_pages || meta.totalPages,
+            author: b.author || meta.author,
+          },
+        });
+        ok++;
+      } catch (err) {
+        console.warn("[Library] sync cover falhou", b.id, err);
+        fail++;
+      }
+    }
+    setSyncing(false);
+    toast.success(`Capas sincronizadas: ${ok} · falhas: ${fail}`);
+  }
+
   return (
     <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
       <motion.div
@@ -122,7 +202,17 @@ export default function Library() {
           </p>
         </div>
 
-        <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={syncMissingCovers}
+            disabled={syncing || books.length === 0}
+          >
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sincronizar capas
+          </Button>
+          <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Upload className="h-4 w-4" />
@@ -153,21 +243,35 @@ export default function Library() {
                 <Input
                   type="file"
                   accept=".pdf,.epub,application/pdf,application/epub+zip"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
                 />
+                {analyzing && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Lendo metadados do PDF (título, autor, páginas e capa)...
+                  </p>
+                )}
+                {detected && !analyzing && (
+                  <p className="text-xs text-primary flex items-center gap-2">
+                    <Sparkles className="h-3 w-3" />
+                    Detectado: {detected.pages} páginas
+                    {detected.coverBlob ? " · capa pronta" : ""}
+                  </p>
+                )}
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpload} disabled={uploading} className="gap-2">
+              <Button onClick={handleUpload} disabled={uploading || analyzing} className="gap-2">
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 Enviar
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </motion.div>
 
       <div className="relative max-w-md">
@@ -236,17 +340,15 @@ function BookGrid({
           ? Math.min(100, Math.round(((b.last_read_page ?? 0) / b.total_pages) * 100))
           : 0;
         return (
-          <Card key={b.id} className="tint-card group hover:shadow-md transition-shadow">
+          <Card key={b.id} className="tint-card group hover:shadow-md transition-shadow overflow-hidden">
+            <div className="relative">
+              <BookCover path={b.cover_path} title={b.title} />
+              <Badge variant="secondary" className="absolute top-2 right-2 uppercase text-[10px]">
+                {inferFileType(b.file_path)}
+              </Badge>
+            </div>
             <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="p-2 rounded-md bg-primary/10 tint-icon">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <Badge variant="secondary" className="uppercase text-[10px]">
-                  {inferFileType(b.file_path)}
-                </Badge>
-              </div>
-              <CardTitle className="text-base mt-2 line-clamp-2">{b.title}</CardTitle>
+              <CardTitle className="text-base line-clamp-2">{b.title}</CardTitle>
               {b.author && <p className="text-xs text-muted-foreground line-clamp-1">{b.author}</p>}
             </CardHeader>
             <CardContent className="space-y-3">
