@@ -75,6 +75,8 @@ export default function Reader() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [highlightNavIndex, setHighlightNavIndex] = useState(-1);
   const restoredPrefsRef = useRef(false);
+  const initialSaveSkippedRef = useRef(false);
+  const scrollRestoredRef = useRef(false);
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
@@ -150,9 +152,19 @@ export default function Reader() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const doc = await (pdfjsLib as any).getDocument({ url: signedUrl }).promise;
         setPdf(doc);
-        setTotalPages(doc.numPages);
-        if (!book.total_pages || book.total_pages !== doc.numPages) {
-          await libraryService.update(book.id, { total_pages: doc.numPages });
+        const n: number = doc.numPages ?? 0;
+        setTotalPages(n);
+        // Clampa página inicial ao total real (protege contra dados corrompidos ou trocas de arquivo)
+        setPage((p) => {
+          if (!n) return p;
+          if (p < 1) return 1;
+          if (p > n) return n;
+          return p;
+        });
+        if (n && (!book.total_pages || book.total_pages !== n)) {
+          await libraryService.update(book.id, { total_pages: n });
+          // Mantém o estado local sincronizado
+          setBook((prev) => (prev ? { ...prev, total_pages: n } : prev));
         }
       } catch (err) {
         console.error(err);
@@ -365,6 +377,14 @@ export default function Reader() {
   // ---------------- Persistência de progresso ----------------
   useEffect(() => {
     if (!book) return;
+    // Pula a primeira execução após montar — evita sobrescrever last_read_page antes
+    // do PDF terminar de abrir e da página ser clampada.
+    if (!initialSaveSkippedRef.current) {
+      initialSaveSkippedRef.current = true;
+      return;
+    }
+    // Só persiste páginas válidas (evita salvar 1 durante o carregamento)
+    if (!totalPages || page < 1 || page > totalPages) return;
     const t = setTimeout(() => {
       const status = totalPages && page >= totalPages ? "completed" : "reading";
       libraryService.update(book.id, { last_read_page: page, status }).catch(console.error);
@@ -372,18 +392,18 @@ export default function Reader() {
     return () => clearTimeout(t);
   }, [page, book, totalPages]);
 
-  // Restaura scroll dentro da página quando ela termina de renderizar
+  // Restaura scroll dentro da página apenas uma vez, quando a página inicial termina de renderizar
   useEffect(() => {
-    if (!book || rendering) return;
+    if (!book || rendering || scrollRestoredRef.current) return;
+    if (page !== (book.last_read_page ?? 1)) return;
     const scroll = book.last_read_scroll ?? 0;
     if (scroll <= 0) return;
     const el = pageContainerRef.current;
     if (!el) return;
     const target = scroll * (el.scrollHeight - el.clientHeight);
     if (target > 0) el.scrollTop = target;
-    // aplica apenas uma vez ao abrir
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rendering === false && page === book?.last_read_page]);
+    scrollRestoredRef.current = true;
+  }, [book, rendering, page]);
 
   // Debounce salvamento de scroll
   useEffect(() => {
