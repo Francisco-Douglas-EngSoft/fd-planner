@@ -120,7 +120,7 @@ export default function Library() {
         file_size: file.size,
         cover_path: coverPath,
         total_pages: detected?.pages ?? 0,
-        status: "pending",
+        status: "to-read",
       });
       toast.success("Livro adicionado à biblioteca");
       setUploadOpen(false);
