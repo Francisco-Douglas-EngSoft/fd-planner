@@ -648,8 +648,48 @@ export default function Reader() {
 
           {/* Viewer */}
           <div ref={viewerRef} className={`space-y-3 min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-col p-3" : ""}`}>
-            {/* Toolbar (flutuante em tela cheia) */}
-            <Card className={`p-2 flex items-center justify-between flex-wrap gap-2 ${isFullscreen ? "fixed top-3 left-1/2 -translate-x-1/2 z-50 shadow-lg bg-background/95 backdrop-blur" : ""}`}>
+            {/* Toolbar (flutuante e arrastável em tela cheia) */}
+            <Card
+              className={`p-2 flex items-center gap-2 ${
+                isFullscreen
+                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80"
+                  : "justify-between flex-wrap"
+              }`}
+              style={
+                isFullscreen
+                  ? {
+                      top: 12,
+                      left: "50%",
+                      transform: `translate(calc(-50% + ${toolbarPos.x}px), ${toolbarPos.y}px)`,
+                      touchAction: "none",
+                    }
+                  : undefined
+              }
+            >
+              {isFullscreen && (
+                <button
+                  type="button"
+                  onPointerDown={startToolbarDrag}
+                  className="h-8 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing"
+                  title="Arraste para mover"
+                  aria-label="Mover toolbar"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
+              )}
+              {isFullscreen && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setToolbarCollapsed((v) => !v)}
+                  title={toolbarCollapsed ? "Expandir" : "Recolher"}
+                >
+                  {toolbarCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+                </Button>
+              )}
+              {!(isFullscreen && toolbarCollapsed) && (
+              <>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
                   <ZoomOut className="h-4 w-4" />
@@ -657,7 +697,7 @@ export default function Reader() {
                 <button
                   onClick={() => { setFitWidth(true); setZoom(1); }}
                   className="text-xs tabular-nums px-2 h-8 hover:bg-muted transition-colors"
-                  title="Ajustar à largura"
+                  title="Ajustar à largura (0)"
                 >
                   {fitWidth ? "Ajuste" : `${Math.round(zoom * 100)}%`}
                 </button>
@@ -676,6 +716,27 @@ export default function Reader() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+              <div className="flex items-center gap-1 border-l border-border/60 pl-1 ml-1">
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => goToAnnotation(-1)}
+                  disabled={!sortedAnnotations.length}
+                  title="Destaque anterior (Shift+N)"
+                >
+                  <Highlighter className="h-4 w-4 -scale-x-100" />
+                </Button>
+                <span className="text-[10px] tabular-nums text-muted-foreground min-w-[32px] text-center">
+                  {sortedAnnotations.length ? `${highlightNavIndex + 1}/${sortedAnnotations.length}` : "—"}
+                </span>
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => goToAnnotation(1)}
+                  disabled={!sortedAnnotations.length}
+                  title="Próximo destaque (N)"
+                >
+                  <Highlighter className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRotation((r) => (r + 90) % 360)} title="Girar">
                   <RotateCw className="h-4 w-4" />
@@ -690,11 +751,44 @@ export default function Reader() {
                     </a>
                   </Button>
                 )}
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => setShowShortcuts((v) => !v)}
+                  title="Atalhos de teclado (?)"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
               </div>
+              </>
+              )}
             </Card>
+
+            {/* Painel de atalhos flutuante */}
+            {showShortcuts && (
+              <div
+                className={`${isFullscreen ? "fixed" : "absolute"} z-[60] bottom-4 right-4 w-[280px] bg-background/95 backdrop-blur border border-border shadow-2xl p-3 text-xs`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-sm">Atalhos de teclado</span>
+                  <button onClick={() => setShowShortcuts(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <ul className="space-y-1 text-muted-foreground">
+                  <li className="flex justify-between"><span>Página anterior / próxima</span><kbd className="text-foreground">← →</kbd></li>
+                  <li className="flex justify-between"><span>Início / fim</span><kbd className="text-foreground">Home / End</kbd></li>
+                  <li className="flex justify-between"><span>Zoom</span><kbd className="text-foreground">+ / −</kbd></li>
+                  <li className="flex justify-between"><span>Ajustar à largura</span><kbd className="text-foreground">0</kbd></li>
+                  <li className="flex justify-between"><span>Próximo destaque</span><kbd className="text-foreground">N</kbd></li>
+                  <li className="flex justify-between"><span>Destaque anterior</span><kbd className="text-foreground">Shift+N</kbd></li>
+                  <li className="flex justify-between"><span>Tela cheia</span><kbd className="text-foreground">F</kbd></li>
+                  <li className="flex justify-between"><span>Este painel</span><kbd className="text-foreground">?</kbd></li>
+                </ul>
+              </div>
+            )}
 
             <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
               <Card
