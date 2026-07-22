@@ -25,6 +25,8 @@ import { PdfThumbnails } from "@/components/reader/PdfThumbnails";
 import { PdfSearch } from "@/components/reader/PdfSearch";
 import { SelectionPopover } from "@/components/reader/SelectionPopover";
 import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
+import { PageInput } from "@/components/reader/PageInput";
+import { clampPage, isPageCountLoading } from "@/lib/pageNavigation";
 
 // pdfjs worker
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -147,20 +149,29 @@ export default function Reader() {
   useEffect(() => {
     if (!signedUrl || !book) return;
     if (!book.file_path.toLowerCase().endsWith(".pdf")) return;
+    // Ao trocar de livro/URL, zera o estado do PDF anterior antes de abrir o novo
+    // para evitar contagens divergentes (X / Total do arquivo anterior).
+    setPdf((prev: any) => {
+      try { prev?.destroy?.(); } catch { /* noop */ }
+      return null;
+    });
+    setTotalPages(0);
+    setCurrentPageObj(null);
+    setCurrentViewport(null);
+    let cancelled = false;
+    let loaded: any = null;
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const doc = await (pdfjsLib as any).getDocument({ url: signedUrl }).promise;
+        if (cancelled) { try { doc?.destroy?.(); } catch { /* noop */ } return; }
+        loaded = doc;
         setPdf(doc);
         const n: number = doc.numPages ?? 0;
         setTotalPages(n);
-        // Clampa página inicial ao total real (protege contra dados corrompidos ou trocas de arquivo)
-        setPage((p) => {
-          if (!n) return p;
-          if (p < 1) return 1;
-          if (p > n) return n;
-          return p;
-        });
+        // Re-sincroniza a página atual ao total detectado no arquivo real
+        // (protege contra dados corrompidos, trocas de arquivo ou reload do PDF).
+        setPage((p) => clampPage(p, n));
         if (n && (!book.total_pages || book.total_pages !== n)) {
           await libraryService.update(book.id, { total_pages: n });
           // Mantém o estado local sincronizado
@@ -168,9 +179,13 @@ export default function Reader() {
         }
       } catch (err) {
         console.error(err);
-        toast.error("Não foi possível abrir o PDF");
+        if (!cancelled) toast.error("Não foi possível abrir o PDF");
       }
     })();
+    return () => {
+      cancelled = true;
+      try { loaded?.destroy?.(); } catch { /* noop */ }
+    };
   }, [signedUrl, book]);
 
   // ---------------- Carrega anotações ----------------
@@ -730,7 +745,13 @@ export default function Reader() {
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-xs tabular-nums px-1 text-muted-foreground min-w-[60px] text-center">
-                  {page} / {totalPages || "…"}
+                  {isPageCountLoading(totalPages) ? (
+                    <span className="inline-flex items-center gap-1 justify-center">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    </span>
+                  ) : (
+                    <>{page} / {totalPages}</>
+                  )}
                 </span>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)} title="Próxima">
                   <ChevronRight className="h-4 w-4" />
@@ -874,15 +895,20 @@ export default function Reader() {
                 <ChevronLeft className="h-4 w-4" /> Anterior
               </Button>
               <div className="flex items-center gap-2 text-sm">
-                <Input
-                  type="number" min={1} max={totalPages || undefined} value={page}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (!Number.isNaN(n) && n >= 1 && (!totalPages || n <= totalPages)) setPage(n);
-                  }}
+                <PageInput
+                  page={page}
+                  totalPages={totalPages}
+                  onCommit={setPage}
+                  disabled={isPageCountLoading(totalPages)}
                   className="w-20 h-8 text-center"
                 />
-                <span className="text-muted-foreground">/ {totalPages || "..."}</span>
+                <span className="text-muted-foreground">
+                  {isPageCountLoading(totalPages) ? (
+                    <Loader2 className="h-3 w-3 animate-spin inline" />
+                  ) : (
+                    <>/ {totalPages}</>
+                  )}
+                </span>
               </div>
               <Button variant="outline" size="sm" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)}>
                 Próxima <ChevronRight className="h-4 w-4" />
