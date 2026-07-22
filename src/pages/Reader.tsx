@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles } from "lucide-react";
+import {
+  ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
+  ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { libraryService, type BookRow } from "@/services/libraryService";
@@ -26,6 +29,8 @@ export default function Reader() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const pageContainerRef = useRef<HTMLDivElement>(null);
 
   const [book, setBook] = useState<BookRow | null>(null);
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
@@ -37,6 +42,11 @@ export default function Reader() {
   const [rendering, setRendering] = useState(false);
   const sessionStart = useMemo(() => new Date(), []);
   const [epubCfi, setEpubCfi] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1); // 1 = fit width
+  const [fitWidth, setFitWidth] = useState(true);
+  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [invertColors, setInvertColors] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -88,11 +98,20 @@ export default function Reader() {
       try {
         setRendering(true);
         const p = await pdf.getPage(page);
-        const viewport = p.getViewport({ scale: 1.3 });
+        // Base viewport at scale 1 to compute fit-width scale
+        const base = p.getViewport({ scale: 1, rotation });
+        const containerWidth = pageContainerRef.current?.clientWidth ?? 800;
+        const availableWidth = Math.max(320, containerWidth - 32);
+        const fitScale = availableWidth / base.width;
+        const effectiveScale = (fitWidth ? fitScale : 1) * zoom;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const viewport = p.getViewport({ scale: effectiveScale * dpr, rotation });
         const canvas = canvasRef.current!;
         const ctx = canvas.getContext("2d")!;
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        canvas.style.width = `${viewport.width / dpr}px`;
+        canvas.style.height = `${viewport.height / dpr}px`;
         if (cancelled) return;
         await p.render({ canvas, canvasContext: ctx, viewport }).promise;
       } finally {
@@ -102,7 +121,61 @@ export default function Reader() {
     return () => {
       cancelled = true;
     };
-  }, [pdf, page]);
+  }, [pdf, page, zoom, fitWidth, rotation]);
+
+  // Re-render on resize when fitting width
+  useEffect(() => {
+    if (!fitWidth) return;
+    const el = pageContainerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let raf = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => setPage((p) => p));
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [fitWidth]);
+
+  // Keyboard navigation
+  const isPdfPath = book?.file_path.toLowerCase().endsWith(".pdf");
+  useEffect(() => {
+    if (!isPdfPath) return;
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") {
+        setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1));
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        setPage((p) => Math.max(1, p - 1));
+      } else if (e.key === "Home") setPage(1);
+      else if (e.key === "End" && totalPages) setPage(totalPages);
+      else if (e.key === "+" || e.key === "=") { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }
+      else if (e.key === "-") { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
+      else if (e.key.toLowerCase() === "f") toggleFullscreen();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isPdfPath, totalPages]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = viewerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      await el.requestFullscreen?.();
+    } else {
+      await document.exitFullscreen?.();
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
 
   // Persist progress with debounce
   useEffect(() => {
@@ -243,9 +316,63 @@ export default function Reader() {
       ) : (
         <div className="grid lg:grid-cols-[1fr_320px] gap-4">
           <div className="space-y-3">
-            <Card className="p-4 overflow-auto max-h-[75vh] flex justify-center bg-muted/30">
-              <canvas ref={canvasRef} className="shadow-sm rounded" />
+            {/* PDF Toolbar */}
+            <Card className="p-2 flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <button
+                  onClick={() => { setFitWidth(true); setZoom(1); }}
+                  className="text-xs tabular-nums px-2 h-8 hover:bg-muted transition-colors"
+                  title="Ajustar à largura"
+                >
+                  {fitWidth ? "Ajuste" : `${Math.round(zoom * 100)}%`}
+                </button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRotation((r) => (r + 90) % 360)} title="Girar">
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setInvertColors((v) => !v)} title="Modo noturno da página">
+                  {invertColors ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+                {signedUrl && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Baixar">
+                    <a href={signedUrl} target="_blank" rel="noreferrer" download>
+                      <Download className="h-4 w-4" />
+                    </a>
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </div>
             </Card>
+
+            <div ref={viewerRef} className="bg-background">
+              <Card
+                ref={pageContainerRef}
+                className={`p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "max-h-screen h-screen" : "max-h-[80vh]"}`}
+              >
+                {rendering && (
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-2 py-1 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Renderizando…
+                  </div>
+                )}
+                <canvas
+                  ref={canvasRef}
+                  className="shadow-md"
+                  style={{
+                    filter: invertColors ? "invert(1) hue-rotate(180deg)" : undefined,
+                    transition: "filter 200ms",
+                  }}
+                />
+              </Card>
+            </div>
             <PageSummarizer getPageText={getCurrentPageText} page={page} />
           </div>
           {book && user && (
