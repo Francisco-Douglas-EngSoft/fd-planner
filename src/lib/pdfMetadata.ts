@@ -1,5 +1,4 @@
 import * as pdfjsLib from "pdfjs-dist";
-// @ts-expect-error - vite worker import
 import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 
 // Registra worker uma única vez (compartilhado com o Reader).
