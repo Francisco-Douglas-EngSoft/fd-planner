@@ -63,7 +63,7 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      const [profileResult, coursesResult, tasksResult, achievementsResult, focusResult] = await Promise.all([
+      const [profileResult, coursesResult, tasksResult, achievementsResult, focusResult, modulesResult, subModulesResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('full_name, streak_days, level')
@@ -86,15 +86,43 @@ export default function Dashboard() {
           .select('duration_minutes')
           .eq('user_id', user.id)
           .eq('session_type', 'work'),
+        supabase
+          .from('course_modules')
+          .select('id, course_id, hours, is_completed, courses!inner(user_id)')
+          .eq('courses.user_id', user.id),
+        supabase
+          .from('course_submodules')
+          .select('module_id, hours, is_completed, course_modules!inner(courses!inner(user_id))')
+          .eq('course_modules.courses.user_id', user.id),
       ]);
 
       const courses = coursesResult.data || [];
       const tasks = tasksResult.data || [];
       const focusSessions = focusResult.data || [];
+      const modules = modulesResult.data || [];
+      const subModules = subModulesResult.data || [];
       
       const activeCourses = courses.filter(c => c.status !== 'completed');
       const completedCourses = courses.filter(c => c.status === 'completed');
-      const courseCompletedHours = courses.reduce((sum, c) => sum + (c.completed_hours || 0), 0);
+
+      // Horas Estudadas = soma real das horas concluídas nos módulos/submódulos.
+      // Regra: se o módulo tem submódulos, contam apenas os submódulos concluídos;
+      // caso contrário, conta o módulo inteiro quando concluído.
+      const subsByModule = new Map<string, { hours: number | null; is_completed: boolean | null }[]>();
+      for (const s of subModules) {
+        const list = subsByModule.get(s.module_id) || [];
+        list.push(s);
+        subsByModule.set(s.module_id, list);
+      }
+
+      const courseCompletedHours = modules.reduce((sum, m) => {
+        const subs = subsByModule.get(m.id) || [];
+        if (subs.length > 0) {
+          return sum + subs.filter(s => s.is_completed).reduce((acc, s) => acc + (s.hours || 0), 0);
+        }
+        return sum + (m.is_completed ? (m.hours || 0) : 0);
+      }, 0);
+
       const totalCourseHours = activeCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
       const totalFocusMinutes = focusSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
 
