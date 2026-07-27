@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePendingTasksCount } from '@/hooks/usePendingTasksCount';
 
 const primaryNavItems = [
   { path: '/dashboard', label: 'Início', icon: LayoutDashboard },
@@ -58,6 +59,7 @@ export function BottomNavigation() {
   const [open, setOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
+  const pendingTasks = usePendingTasksCount();
 
   const isMoreActive = secondaryNavItems.some(item => item.path === location.pathname);
 
@@ -132,6 +134,12 @@ export function BottomNavigation() {
                   className={cn("h-[22px] w-[22px] transition-transform", (isMoreActive || open) && "scale-110")}
                   strokeWidth={isMoreActive || open ? 2.4 : 2}
                 />
+                {pendingTasks > 0 && (
+                  <span
+                    className="absolute top-2.5 right-1/2 translate-x-[14px] h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
+                    aria-label={`${pendingTasks} tarefas pendentes`}
+                  />
+                )}
                 <span className={cn("text-[10px] leading-tight", isMoreActive || open ? "font-semibold" : "font-medium")}>
                   Menu
                 </span>
@@ -169,8 +177,18 @@ export function BottomNavigation() {
                             : "text-foreground/80 hover:bg-accent active:bg-accent"
                         )}
                       >
-                        <item.icon className="h-5 w-5 shrink-0" strokeWidth={isActive ? 2.4 : 2} />
+                        <span className="relative shrink-0">
+                          <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.4 : 2} />
+                          {item.path === '/tarefas' && pendingTasks > 0 && (
+                            <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden />
+                          )}
+                        </span>
                         <span>{item.label}</span>
+                        {item.path === '/tarefas' && pendingTasks > 0 && (
+                          <span className="ml-auto min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[11px] font-semibold">
+                            {pendingTasks > 99 ? '99+' : pendingTasks}
+                          </span>
+                        )}
                       </NavLink>
                     );
                   })}
