@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { usePendingTasksCount } from '@/hooks/usePendingTasksCount';
 import { Logo, LogoIcon } from '@/components/ui/Logo';
 import { GlobalSearch } from './GlobalSearch';
 import {
@@ -80,6 +81,7 @@ export function AppSidebar({
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const pendingTasks = usePendingTasksCount();
   const items = isAdmin
     ? [...navItems, { path: '/admin', label: 'Admin', icon: Shield }]
     : navItems;
@@ -120,8 +122,27 @@ export function AppSidebar({
             )}
             title={compact ? item.label : undefined}
           >
-            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="relative shrink-0">
+              <item.icon className="h-4 w-4" />
+              {item.path === '/tarefas' && pendingTasks > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-sidebar"
+                  aria-hidden
+                />
+              )}
+            </span>
             {!compact && <span>{item.label}</span>}
+            {!compact && item.path === '/tarefas' && pendingTasks > 0 && (
+              <span
+                className={cn(
+                  "ml-auto min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-semibold",
+                  isActive ? "bg-primary-foreground text-primary" : "bg-destructive text-destructive-foreground"
+                )}
+                aria-label={`${pendingTasks} tarefas pendentes`}
+              >
+                {pendingTasks > 99 ? '99+' : pendingTasks}
+              </span>
+            )}
           </NavLink>
         );
       })}
