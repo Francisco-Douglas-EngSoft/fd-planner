@@ -111,6 +111,7 @@ interface Props {
 }
 
 export function LibraryReports({ books }: Props) {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
