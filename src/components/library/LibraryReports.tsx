@@ -564,10 +564,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={last30}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={3} />
-              <YAxis tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 6 : 3} minTickGap={8} />
+              <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="paginas" name="Páginas" fill="hsl(var(--primary))" />
               <Line type="monotone" dataKey="meta" name="Meta" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
             </ComposedChart>
@@ -582,10 +582,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthly}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+              <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="paginas" name="Páginas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="minutos" name="Minutos" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
             </LineChart>
@@ -600,13 +600,21 @@ export function LibraryReports({ books }: Props) {
           {byCategory.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={byCategory} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                <Pie
+                  data={byCategory}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={isMobile ? 40 : 55}
+                  outerRadius={isMobile ? 70 : 95}
+                  paddingAngle={2}
+                >
                   {byCategory.map((c, i) => (
                     <Cell key={i} fill={c.color} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number, _n, p: any) => [`${v} páginas`, p.payload.name]} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -623,8 +631,8 @@ export function LibraryReports({ books }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={candles}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+                <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(_v: any, _n: any, p: any) => {
@@ -649,10 +657,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={monthly}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="livros" name="Concluídos" fill="hsl(var(--success))" />
               <Line type="monotone" dataKey="metaLivros" name="Meta" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
             </ComposedChart>
