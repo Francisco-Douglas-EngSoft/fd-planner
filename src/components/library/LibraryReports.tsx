@@ -409,9 +409,9 @@ export function LibraryReports({ books }: Props) {
   const totalPages = sessions.reduce((a, s) => a + (s.pages_read ?? 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <Kpi icon={BookOpen} label="Páginas (12 meses)" value={totalPages.toLocaleString("pt-BR")} />
         <Kpi icon={Clock} label="Horas de leitura" value={(totalMinutes / 60).toFixed(1)} />
         <Kpi icon={Flame} label="Sequência" value={`${streak} dia${streak === 1 ? "" : "s"}`} />
@@ -434,7 +434,7 @@ export function LibraryReports({ books }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="g-pages">Páginas por dia</Label>
               <Input
@@ -465,13 +465,13 @@ export function LibraryReports({ books }: Props) {
                 onChange={(e) => setMonthlyBooks(Math.max(1, Number(e.target.value) || 0))}
               />
             </div>
-            <div className="flex items-end gap-2">
-              <Button className="flex-1 gap-2" onClick={saveGoals} disabled={saving}>
-                <Save className="h-4 w-4" /> Salvar metas
+            <div className="flex items-end gap-2 col-span-2 lg:col-span-1">
+              <Button className="flex-1 gap-2 min-w-0" onClick={saveGoals} disabled={saving}>
+                <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Salvar metas</span>
               </Button>
               <Button
                 variant="destructive"
-                className="gap-2"
+                className="gap-2 shrink-0"
                 onClick={() => setResetOpen(true)}
                 title="Zerar progresso de leitura"
               >
@@ -481,13 +481,13 @@ export function LibraryReports({ books }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {periods.map((p) => {
               const pct = p.pagesGoal ? Math.min(100, Math.round((p.pages / p.pagesGoal) * 100)) : 0;
               const pctMin = p.minutesGoal ? Math.min(100, Math.round((p.minutes / p.minutesGoal) * 100)) : 0;
               const onPace = p.pages >= p.expectedPages;
               return (
-                <div key={p.key} className="border border-border p-4 space-y-3 bg-card/40">
+                <div key={p.key} className="border border-border p-3 sm:p-4 space-y-3 bg-card/40 min-w-0">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <span className="text-sm font-semibold">{p.label}</span>
@@ -516,7 +516,7 @@ export function LibraryReports({ books }: Props) {
                     </div>
                     <Progress value={pctMin} className="h-2" />
                   </div>
-                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/60">
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] pt-1 border-t border-border/60">
                     <span className="text-muted-foreground">
                       Meta de livros: <span className="text-foreground font-medium">{p.booksGoal}</span>
                     </span>
@@ -528,7 +528,7 @@ export function LibraryReports({ books }: Props) {
               );
             })}
 
-            <div className="border border-border p-4 space-y-3 bg-card/40">
+            <div className="border border-border p-3 sm:p-4 space-y-3 bg-card/40 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Livros no mês</span>
                 <Badge variant={monthBooksDone >= monthlyBooks ? "default" : "secondary"}>
@@ -553,7 +553,7 @@ export function LibraryReports({ books }: Props) {
       </Card>
 
       {/* Gráficos */}
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
         <ChartCard
           title="Páginas por dia (30 dias)"
           description="Barras diárias comparadas com a meta"
