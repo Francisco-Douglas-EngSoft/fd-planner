@@ -363,13 +363,13 @@ function StatTile({
 }) {
   return (
     <Card className="tint-card">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="p-2 bg-primary/10 text-primary">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+        <div className="p-2 bg-primary/10 text-primary shrink-0">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-xl font-bold leading-tight">{value}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-lg sm:text-xl font-bold leading-tight">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -451,31 +451,31 @@ function BookGrid({
         {books.map((b) => (
           <Card key={b.id} className="tint-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-12 shrink-0">
+              <div className="w-10 sm:w-12 shrink-0">
                 <BookCover path={b.cover_path} title={b.title} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{b.title}</p>
+                <p className="font-medium truncate text-sm sm:text-base">{b.title}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   {b.author || "Autor desconhecido"} · {statusLabel(b.status)}
                 </p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 min-w-0">
                   {b.category && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-[10px] max-w-[45%] truncate">
                       {b.category}
                     </Badge>
                   )}
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground truncate">
                     {b.total_pages ? `${b.last_read_page ?? 0}/${b.total_pages} pág. · ${progressOf(b)}%` : "Sem paginação"}
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <Button size="sm" onClick={() => onOpen(b.id)}>Abrir</Button>
-                <Button size="icon" variant="ghost" onClick={() => onEdit(b)} aria-label="Editar">
+              <div className="flex gap-0.5 sm:gap-1 shrink-0">
+                <Button size="sm" className="px-2 sm:px-3" onClick={() => onOpen(b.id)}>Abrir</Button>
+                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onEdit(b)} aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => onRemove(b.id)} aria-label="Remover">
+                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onRemove(b.id)} aria-label="Remover">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -487,7 +487,7 @@ function BookGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
       {books.map((b) => {
         const progress = progressOf(b);
         return (
@@ -503,30 +503,30 @@ function BookGrid({
                 </Badge>
               )}
             </div>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base line-clamp-2">{b.title}</CardTitle>
-              {b.author && <p className="text-xs text-muted-foreground line-clamp-1">{b.author}</p>}
+            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+              <CardTitle className="text-sm sm:text-base line-clamp-2">{b.title}</CardTitle>
+              {b.author && <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{b.author}</p>}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 p-3 pt-0 sm:p-6 sm:pt-0">
               {b.total_pages ? (
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground gap-1">
                     <span>{b.last_read_page ?? 0} / {b.total_pages} pág.</span>
                     <span>{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-1.5" />
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Sem progresso registrado</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Sem progresso registrado</p>
               )}
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1" onClick={() => onOpen(b.id)}>
+              <div className="flex gap-1 sm:gap-2">
+                <Button size="sm" className="flex-1 px-2" onClick={() => onOpen(b.id)}>
                   Abrir
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => onEdit(b)} aria-label="Editar">
+                <Button size="sm" variant="ghost" className="px-2" onClick={() => onEdit(b)} aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => onRemove(b.id)} aria-label="Remover">
+                <Button size="sm" variant="ghost" className="px-2" onClick={() => onRemove(b.id)} aria-label="Remover">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
