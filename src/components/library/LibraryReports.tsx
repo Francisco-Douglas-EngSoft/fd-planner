@@ -659,6 +659,48 @@ export function LibraryReports({ books }: Props) {
       </div>
 
       {loading && <p className="text-xs text-muted-foreground">Carregando relatórios...</p>}
+
+      <Dialog
+        open={resetOpen}
+        onOpenChange={(o) => {
+          setResetOpen(o);
+          if (!o) setPassword("");
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-destructive" /> Zerar progresso de leitura
+            </DialogTitle>
+            <DialogDescription>
+              Isso apaga todas as sessões de leitura, zera as páginas lidas de todos os livros e a
+              sequência. Os livros continuam na biblioteca. Confirme com a senha da sua conta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reset-pass">Senha da conta</Label>
+            <Input
+              id="reset-pass"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleReset();
+              }}
+              placeholder="••••••••"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting || !password}>
+              {resetting ? "Zerando..." : "Confirmar e zerar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
