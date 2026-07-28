@@ -7,7 +7,6 @@ import {
   Trash2,
   Search,
   Loader2,
-  Sparkles,
   RefreshCw,
   Library as LibraryIcon,
   FolderOpen,
@@ -25,18 +24,10 @@ import { libraryService, type BookRow } from "@/services/libraryService";
 import { extractPdfMetadata } from "@/lib/pdfMetadata";
 import { BookCover } from "@/components/library/BookCover";
 import { BookEditDialog, BOOK_STATUSES } from "@/components/library/BookEditDialog";
+import { BookUploadDialog } from "@/components/library/BookUploadDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -71,13 +62,6 @@ export default function Library() {
 
   const [query, setQuery] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [category, setCategory] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [detected, setDetected] = useState<{ pages: number; coverBlob: Blob | null } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("recent");
@@ -99,29 +83,6 @@ export default function Library() {
   }, [books]);
 
   const categoryNames = useMemo(() => categories.list.map((c) => c.name), [categories]);
-
-  async function handleFileSelected(picked: File | null) {
-    setFile(picked);
-    setDetected(null);
-    if (!picked) return;
-    const ext = picked.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!title.trim()) {
-      const base = picked.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
-      if (base) setTitle(base);
-    }
-    if (ext !== "pdf") return;
-    try {
-      setAnalyzing(true);
-      const meta = await extractPdfMetadata(picked);
-      setDetected({ pages: meta.totalPages, coverBlob: meta.coverBlob });
-      if (meta.title && !title.trim()) setTitle(meta.title);
-      if (meta.author && !author.trim()) setAuthor(meta.author);
-    } catch (err) {
-      console.warn("[Library] extractPdfMetadata falhou", err);
-    } finally {
-      setAnalyzing(false);
-    }
-  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -163,58 +124,6 @@ export default function Library() {
       pagesPct: totalPages ? Math.round((readPages / totalPages) * 100) : 0,
     };
   }, [books, categories]);
-
-  async function handleUpload() {
-    if (!user || !file || !title.trim()) {
-      toast.error("Título e arquivo são obrigatórios");
-      return;
-    }
-    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!["pdf", "epub"].includes(ext)) {
-      toast.error("Formato inválido. Envie um PDF ou EPUB.");
-      return;
-    }
-    const MAX_MB = 50;
-    if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Máximo ${MAX_MB}MB.`);
-      return;
-    }
-    try {
-      setUploading(true);
-      const path = await libraryService.uploadFile(user.id, file);
-      let coverPath: string | null = null;
-      if (detected?.coverBlob) {
-        try {
-          coverPath = await libraryService.uploadCover(user.id, detected.coverBlob);
-        } catch (err) {
-          console.warn("[Library] falha ao enviar capa", err);
-        }
-      }
-      await create.mutateAsync({
-        title: title.trim(),
-        author: author.trim() || null,
-        category: category.trim() || null,
-        file_path: path,
-        file_size: file.size,
-        cover_path: coverPath,
-        total_pages: detected?.pages ?? 0,
-        status: "to-read",
-      });
-      toast.success("Livro adicionado à biblioteca");
-      setUploadOpen(false);
-      setTitle("");
-      setAuthor("");
-      setCategory("");
-      setFile(null);
-      setDetected(null);
-    } catch (err) {
-      console.error("[Library] upload error", err);
-      const msg = err instanceof Error ? err.message : "Falha ao enviar arquivo";
-      toast.error(msg);
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleRemove(id: string) {
     if (!confirm("Remover este livro da biblioteca?")) return;
@@ -298,75 +207,10 @@ export default function Library() {
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sincronizar capas
           </Button>
-          <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Enviar livro
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar à biblioteca</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Título *</Label>
-                  <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Direito Constitucional" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Autor</Label>
-                    <Input value={author} onChange={(e) => setAuthor(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Categoria</Label>
-                    <Input
-                      list="upload-categories"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      placeholder="Direito, TI, ..."
-                    />
-                    <datalist id="upload-categories">
-                      {categoryNames.map((c) => (
-                        <option key={c} value={c} />
-                      ))}
-                    </datalist>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Arquivo (PDF ou EPUB) *</Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,.epub,application/pdf,application/epub+zip"
-                    onChange={(e) => handleFileSelected(e.target.files?.[0] ?? null)}
-                  />
-                  {analyzing && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Lendo metadados do PDF (título, autor, páginas e capa)...
-                    </p>
-                  )}
-                  {detected && !analyzing && (
-                    <p className="text-xs text-primary flex items-center gap-2">
-                      <Sparkles className="h-3 w-3" />
-                      Detectado: {detected.pages} páginas
-                      {detected.coverBlob ? " · capa pronta" : ""}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleUpload} disabled={uploading || analyzing} className="gap-2">
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  Enviar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
+            <Upload className="h-4 w-4" />
+            Enviar livros
+          </Button>
         </div>
       </motion.div>
 
@@ -475,6 +319,16 @@ export default function Library() {
           </Tabs>
         </section>
       </div>
+
+      {user && (
+        <BookUploadDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          userId={user.id}
+          categories={categoryNames}
+          onCreate={(payload) => create.mutateAsync(payload)}
+        />
+      )}
 
       <BookEditDialog
         book={editing}
