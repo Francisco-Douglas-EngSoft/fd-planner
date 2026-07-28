@@ -5,7 +5,7 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
   ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
   PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
-  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X,
+  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X, ScanLine, Coffee,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,6 +64,8 @@ export default function Reader() {
 
   const [zoom, setZoom] = useState(1);
   const [fitWidth, setFitWidth] = useState(true);
+  const [fitPage, setFitPage] = useState(false);
+  const [sepia, setSepia] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [invertColors, setInvertColors] = useState(false);
@@ -207,9 +209,13 @@ export default function Reader() {
         const p = await pdf.getPage(page);
         const base = p.getViewport({ scale: 1, rotation });
         const containerWidth = pageContainerRef.current?.clientWidth ?? 800;
+        const containerHeight = pageContainerRef.current?.clientHeight ?? 900;
         const availableWidth = Math.max(320, containerWidth - 32);
+        const availableHeight = Math.max(320, containerHeight - 32);
         const fitScale = availableWidth / base.width;
-        const effectiveScale = (fitWidth ? fitScale : 1) * zoom;
+        const pageScale = Math.min(fitScale, availableHeight / base.height);
+        const baseScale = fitPage ? pageScale : fitWidth ? fitScale : 1;
+        const effectiveScale = baseScale * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const viewport = p.getViewport({ scale: effectiveScale * dpr, rotation });
         const canvas = canvasRef.current!;
@@ -232,11 +238,32 @@ export default function Reader() {
     return () => {
       cancelled = true;
     };
-  }, [pdf, page, zoom, fitWidth, rotation]);
+  }, [pdf, page, zoom, fitWidth, fitPage, rotation]);
+
+  // ---------------- Pré-carrega páginas vizinhas (paginação mais fluida) ----------------
+  useEffect(() => {
+    if (!pdf || !totalPages) return;
+    let cancelled = false;
+    const warm = async (n: number) => {
+      if (n < 1 || n > totalPages) return;
+      try {
+        const p = await pdf.getPage(n);
+        if (!cancelled) await p.getTextContent().catch(() => undefined);
+      } catch { /* noop */ }
+    };
+    const t = setTimeout(() => {
+      warm(page + 1);
+      warm(page - 1);
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [pdf, page, totalPages]);
 
   // ---------------- Resize triggers rerender ----------------
   useEffect(() => {
-    if (!fitWidth) return;
+    if (!fitWidth && !fitPage) return;
     const el = pageContainerRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     let raf = 0;
@@ -249,7 +276,7 @@ export default function Reader() {
       ro.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [fitWidth]);
+  }, [fitWidth, fitPage]);
 
   // ---------------- Fullscreen ----------------
   const isPdfPath = book?.file_path.toLowerCase().endsWith(".pdf");
@@ -309,9 +336,10 @@ export default function Reader() {
       else if (e.key === "ArrowLeft" || e.key === "PageUp") setPage((p) => Math.max(1, p - 1));
       else if (e.key === "Home") setPage(1);
       else if (e.key === "End" && totalPages) setPage(totalPages);
-      else if (e.key === "+" || e.key === "=") { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }
-      else if (e.key === "-") { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
-      else if (e.key === "0") { setFitWidth(true); setZoom(1); }
+      else if (e.key === "+" || e.key === "=") { setFitWidth(false); setFitPage(false); setZoom((z) => Math.min(4, z + 0.1)); }
+      else if (e.key === "-") { setFitWidth(false); setFitPage(false); setZoom((z) => Math.max(0.4, z - 0.1)); }
+      else if (e.key === "0") { setFitPage(false); setFitWidth(true); setZoom(1); }
+      else if (e.key === "9") { setFitWidth(false); setFitPage(true); setZoom(1); }
       else if (e.key.toLowerCase() === "f") toggleFullscreen();
       else if (e.key === "N") goToAnnotation(-1);
       else if (e.key === "n") goToAnnotation(1);
@@ -330,6 +358,8 @@ export default function Reader() {
         const saved = JSON.parse(raw);
         if (typeof saved.zoom === "number") setZoom(saved.zoom);
         if (typeof saved.fitWidth === "boolean") setFitWidth(saved.fitWidth);
+        if (typeof saved.fitPage === "boolean") setFitPage(saved.fitPage);
+        if (typeof saved.sepia === "boolean") setSepia(saved.sepia);
         if (typeof saved.rotation === "number") setRotation(saved.rotation);
         if (typeof saved.invertColors === "boolean") setInvertColors(saved.invertColors);
         if (saved.fullscreen) {
@@ -353,10 +383,10 @@ export default function Reader() {
     try {
       localStorage.setItem(
         `reader:${book.id}:prefs`,
-        JSON.stringify({ zoom, fitWidth, rotation, invertColors, fullscreen: isFullscreen }),
+        JSON.stringify({ zoom, fitWidth, fitPage, sepia, rotation, invertColors, fullscreen: isFullscreen }),
       );
     } catch { /* noop */ }
-  }, [book, zoom, fitWidth, rotation, invertColors, isFullscreen]);
+  }, [book, zoom, fitWidth, fitPage, sepia, rotation, invertColors, isFullscreen]);
 
   // Colapsa toolbar em mobile ao entrar em fullscreen
   useEffect(() => {
@@ -726,17 +756,26 @@ export default function Reader() {
               {!(isFullscreen && toolbarCollapsed) && (
               <>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <button
-                  onClick={() => { setFitWidth(true); setZoom(1); }}
+                  onClick={() => { setFitPage(false); setFitWidth(true); setZoom(1); }}
                   className="text-xs tabular-nums px-2 h-8 hover:bg-muted transition-colors"
                   title="Ajustar à largura (0)"
                 >
-                  {fitWidth ? "Ajuste" : `${Math.round(zoom * 100)}%`}
+                  {fitPage ? "Página" : fitWidth ? "Largura" : `${Math.round(zoom * 100)}%`}
                 </button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
+                <Button
+                  variant={fitPage ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => { setFitWidth(false); setFitPage((v) => !v); setZoom(1); }}
+                  title="Ajustar à página inteira (9)"
+                >
+                  <ScanLine className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
               </div>
@@ -785,6 +824,15 @@ export default function Reader() {
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setInvertColors((v) => !v)} title="Modo noturno da página">
                   {invertColors ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
+                <Button
+                  variant={sepia ? "default" : "ghost"}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSepia((v) => !v)}
+                  title="Modo sépia (leitura confortável)"
+                >
+                  <Coffee className="h-4 w-4" />
+                </Button>
                 {signedUrl && (
                   <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Baixar">
                     <a href={signedUrl} target="_blank" rel="noreferrer" download>
@@ -823,11 +871,27 @@ export default function Reader() {
                   <li className="flex justify-between"><span>Início / fim</span><kbd className="text-foreground">Home / End</kbd></li>
                   <li className="flex justify-between"><span>Zoom</span><kbd className="text-foreground">+ / −</kbd></li>
                   <li className="flex justify-between"><span>Ajustar à largura</span><kbd className="text-foreground">0</kbd></li>
+                  <li className="flex justify-between"><span>Ajustar à página</span><kbd className="text-foreground">9</kbd></li>
                   <li className="flex justify-between"><span>Próximo destaque</span><kbd className="text-foreground">N</kbd></li>
                   <li className="flex justify-between"><span>Destaque anterior</span><kbd className="text-foreground">Shift+N</kbd></li>
                   <li className="flex justify-between"><span>Tela cheia</span><kbd className="text-foreground">F</kbd></li>
                   <li className="flex justify-between"><span>Este painel</span><kbd className="text-foreground">?</kbd></li>
                 </ul>
+              </div>
+            )}
+
+            {isPdfPath && totalPages > 0 && (
+              <div className="space-y-1">
+                <div className="h-1 w-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${Math.min(100, Math.round((page / totalPages) * 100))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>{Math.min(100, Math.round((page / totalPages) * 100))}% lido</span>
+                  <span>{Math.max(0, totalPages - page)} páginas restantes</span>
+                </div>
               </div>
             )}
 
@@ -847,7 +911,12 @@ export default function Reader() {
                   style={{
                     width: currentViewport?.width ? `${currentViewport.width}px` : undefined,
                     height: currentViewport?.height ? `${currentViewport.height}px` : undefined,
-                    filter: invertColors ? "invert(1) hue-rotate(180deg)" : undefined,
+                    filter: [
+                      invertColors ? "invert(1) hue-rotate(180deg)" : "",
+                      sepia ? "sepia(0.45) saturate(0.9) contrast(0.96) brightness(0.98)" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined,
                     transition: "filter 200ms",
                   }}
                   onMouseUp={handleMouseUp}
