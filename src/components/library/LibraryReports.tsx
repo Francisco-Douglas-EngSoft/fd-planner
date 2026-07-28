@@ -237,18 +237,6 @@ export function LibraryReports({ books }: Props) {
     }
   }
 
-  const _unusedByDay = useMemo(() => {
-    const m = new Map<string, { pages: number; minutes: number }>();
-    for (const s of sessions) {
-      const k = s.date;
-      const cur = m.get(k) ?? { pages: 0, minutes: 0 };
-      cur.pages += s.pages_read ?? 0;
-      cur.minutes += s.duration_minutes ?? 0;
-      m.set(k, cur);
-    }
-    return m;
-  }, [sessions]);
-
   const sumRange = (from: Date, to: Date) => {
     let pages = 0;
     let minutes = 0;
