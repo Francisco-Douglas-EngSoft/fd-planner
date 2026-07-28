@@ -7,7 +7,6 @@ import {
   Trash2,
   Search,
   Loader2,
-  Sparkles,
   RefreshCw,
   Library as LibraryIcon,
   FolderOpen,
@@ -29,15 +28,6 @@ import { BookUploadDialog } from "@/components/library/BookUploadDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
