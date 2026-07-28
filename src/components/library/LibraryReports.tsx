@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
   Cell,
   ComposedChart,
@@ -147,16 +146,18 @@ export function LibraryReports({ books }: Props) {
     setSaving(true);
     try {
       localStorage.setItem(BOOKS_GOAL_KEY, String(monthlyBooks));
-      const { error } = await supabase
+      const { data: existing } = await supabase
         .from("reading_goals")
-        .upsert(
-          {
-            user_id: user.id,
-            daily_pages_goal: dailyPages,
-            daily_minutes_goal: dailyMinutes,
-          },
-          { onConflict: "user_id" },
-        );
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const payload = {
+        daily_pages_goal: dailyPages,
+        daily_minutes_goal: dailyMinutes,
+      };
+      const { error } = existing
+        ? await supabase.from("reading_goals").update(payload).eq("id", existing.id)
+        : await supabase.from("reading_goals").insert({ user_id: user.id, ...payload });
       if (error) throw error;
       toast.success("Metas de leitura salvas");
     } catch {
