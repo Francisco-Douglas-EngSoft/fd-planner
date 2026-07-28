@@ -638,6 +638,15 @@ export default function Reader() {
     return content.items.map((i: { str?: string }) => i.str ?? "").join(" ");
   }
 
+  const goToPage = (target: number) => {
+    const next = clampPage(target, totalPages || target);
+    setPage(next);
+    // Volta ao topo da página ao navegar pelo sumário/miniaturas
+    requestAnimationFrame(() => {
+      pageContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const renderLeftPanel = (fullscreen: boolean) => (
     <Card className={`p-0 flex flex-col overflow-hidden ${fullscreen ? "h-full" : "max-h-[85vh]"}`}>
       <div className="grid grid-cols-2 border-b border-border/60 shrink-0">
