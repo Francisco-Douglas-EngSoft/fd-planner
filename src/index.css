@@ -1342,3 +1342,12 @@ table,
 .pdf-text-layer ::selection {
   background: hsl(var(--primary) / 0.35);
 }
+
+/* Utilitário: esconde a barra de rolagem mantendo o scroll */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

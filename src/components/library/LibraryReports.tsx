@@ -29,6 +29,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import type { BookRow } from "@/services/libraryService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +112,7 @@ interface Props {
 }
 
 export function LibraryReports({ books }: Props) {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
@@ -409,9 +412,9 @@ export function LibraryReports({ books }: Props) {
   const totalPages = sessions.reduce((a, s) => a + (s.pages_read ?? 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <Kpi icon={BookOpen} label="Páginas (12 meses)" value={totalPages.toLocaleString("pt-BR")} />
         <Kpi icon={Clock} label="Horas de leitura" value={(totalMinutes / 60).toFixed(1)} />
         <Kpi icon={Flame} label="Sequência" value={`${streak} dia${streak === 1 ? "" : "s"}`} />
@@ -434,7 +437,7 @@ export function LibraryReports({ books }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <Label htmlFor="g-pages">Páginas por dia</Label>
               <Input
@@ -465,13 +468,13 @@ export function LibraryReports({ books }: Props) {
                 onChange={(e) => setMonthlyBooks(Math.max(1, Number(e.target.value) || 0))}
               />
             </div>
-            <div className="flex items-end gap-2">
-              <Button className="flex-1 gap-2" onClick={saveGoals} disabled={saving}>
-                <Save className="h-4 w-4" /> Salvar metas
+            <div className="flex items-end gap-2 col-span-2 lg:col-span-1">
+              <Button className="flex-1 gap-2 min-w-0" onClick={saveGoals} disabled={saving}>
+                <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Salvar metas</span>
               </Button>
               <Button
                 variant="destructive"
-                className="gap-2"
+                className="gap-2 shrink-0"
                 onClick={() => setResetOpen(true)}
                 title="Zerar progresso de leitura"
               >
@@ -481,13 +484,13 @@ export function LibraryReports({ books }: Props) {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {periods.map((p) => {
               const pct = p.pagesGoal ? Math.min(100, Math.round((p.pages / p.pagesGoal) * 100)) : 0;
               const pctMin = p.minutesGoal ? Math.min(100, Math.round((p.minutes / p.minutesGoal) * 100)) : 0;
               const onPace = p.pages >= p.expectedPages;
               return (
-                <div key={p.key} className="border border-border p-4 space-y-3 bg-card/40">
+                <div key={p.key} className="border border-border p-3 sm:p-4 space-y-3 bg-card/40 min-w-0">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <span className="text-sm font-semibold">{p.label}</span>
@@ -516,7 +519,7 @@ export function LibraryReports({ books }: Props) {
                     </div>
                     <Progress value={pctMin} className="h-2" />
                   </div>
-                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/60">
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] pt-1 border-t border-border/60">
                     <span className="text-muted-foreground">
                       Meta de livros: <span className="text-foreground font-medium">{p.booksGoal}</span>
                     </span>
@@ -528,7 +531,7 @@ export function LibraryReports({ books }: Props) {
               );
             })}
 
-            <div className="border border-border p-4 space-y-3 bg-card/40">
+            <div className="border border-border p-3 sm:p-4 space-y-3 bg-card/40 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">Livros no mês</span>
                 <Badge variant={monthBooksDone >= monthlyBooks ? "default" : "secondary"}>
@@ -553,7 +556,7 @@ export function LibraryReports({ books }: Props) {
       </Card>
 
       {/* Gráficos */}
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">
         <ChartCard
           title="Páginas por dia (30 dias)"
           description="Barras diárias comparadas com a meta"
@@ -562,10 +565,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={last30}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={3} />
-              <YAxis tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 6 : 3} minTickGap={8} />
+              <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="paginas" name="Páginas" fill="hsl(var(--primary))" />
               <Line type="monotone" dataKey="meta" name="Meta" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
             </ComposedChart>
@@ -580,10 +583,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthly}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+              <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="paginas" name="Páginas" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="minutos" name="Minutos" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
             </LineChart>
@@ -598,13 +601,21 @@ export function LibraryReports({ books }: Props) {
           {byCategory.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={byCategory} dataKey="value" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                <Pie
+                  data={byCategory}
+                  dataKey="value"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={isMobile ? 40 : 55}
+                  outerRadius={isMobile ? 70 : 95}
+                  paddingAngle={2}
+                >
                   {byCategory.map((c, i) => (
                     <Cell key={i} fill={c.color} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number, _n, p: any) => [`${v} páginas`, p.payload.name]} />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -621,8 +632,8 @@ export function LibraryReports({ books }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={candles}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+                <YAxis tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(_v: any, _n: any, p: any) => {
@@ -647,10 +658,10 @@ export function LibraryReports({ books }: Props) {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={monthly}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={isMobile ? 1 : 0} minTickGap={8} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10 }} width={isMobile ? 28 : 40} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="livros" name="Concluídos" fill="hsl(var(--success))" />
               <Line type="monotone" dataKey="metaLivros" name="Meta" stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" dot={false} />
             </ComposedChart>
@@ -708,13 +719,13 @@ export function LibraryReports({ books }: Props) {
 function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
     <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="h-9 w-9 bg-primary/10 flex items-center justify-center shrink-0">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+        <div className="h-8 w-8 sm:h-9 sm:w-9 bg-primary/10 flex items-center justify-center shrink-0">
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-lg font-bold font-display">{value}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-base sm:text-lg font-bold font-display truncate">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -735,16 +746,16 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Icon className="h-4 w-4 text-primary" />
-          {title}
+    <Card className={cn("min-w-0", className)}>
+      <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+          <Icon className="h-4 w-4 text-primary shrink-0" />
+          <span className="min-w-0 truncate">{title}</span>
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[280px]">{children}</div>
+      <CardContent className="p-2 sm:p-6 sm:pt-0">
+        <div className="h-[220px] sm:h-[280px] w-full min-w-0">{children}</div>
       </CardContent>
     </Card>
   );

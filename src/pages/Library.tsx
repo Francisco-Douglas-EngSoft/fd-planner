@@ -184,50 +184,50 @@ export default function Library() {
   };
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
+    <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-6 space-y-5 sm:space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col md:flex-row md:items-end md:justify-between gap-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Biblioteca Digital</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Biblioteca Digital</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Organize seus PDFs e EPUBs por categoria e acompanhe o progresso de leitura.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 flex-1 md:flex-none"
             onClick={syncMissingCovers}
             disabled={syncing || books.length === 0}
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sincronizar capas
+            <span className="truncate">Sincronizar capas</span>
           </Button>
-          <Button size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
+          <Button size="sm" className="gap-2 flex-1 md:flex-none" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" />
             Enviar livros
           </Button>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatTile icon={LibraryIcon} label="Livros" value={String(stats.total)} />
         <StatTile icon={Layers} label="Categorias" value={String(stats.categories)} />
         <StatTile icon={Clock} label="Em leitura" value={String(stats.reading)} />
         <StatTile icon={CheckCircle2} label="Concluídos" value={String(stats.completed)} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4 lg:gap-6">
         <aside className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold px-1">
             Categorias
           </p>
-          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1">
+          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 -mx-3 px-3 lg:mx-0 lg:px-0 scrollbar-none">
             <CategoryButton
               active={activeCategory === "all"}
               onClick={() => setActiveCategory("all")}
@@ -270,8 +270,9 @@ export default function Library() {
                 className="pl-9"
               />
             </div>
+            <div className="flex gap-2 items-center">
             <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-              <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectTrigger className="flex-1 sm:w-[190px] sm:flex-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -281,7 +282,7 @@ export default function Library() {
                 <SelectItem value="progress">Maior progresso</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               <Button
                 variant={view === "grid" ? "default" : "outline"}
                 size="icon"
@@ -299,15 +300,18 @@ export default function Library() {
                 <ListIcon className="h-4 w-4" />
               </Button>
             </div>
+            </div>
           </div>
 
           <Tabs defaultValue="all" className="w-full">
-            <TabsList>
-              <TabsTrigger value="all">Todos ({filtered.length})</TabsTrigger>
-              <TabsTrigger value="reading">Em leitura ({reading.length})</TabsTrigger>
-              <TabsTrigger value="completed">Concluídos ({completed.length})</TabsTrigger>
-              <TabsTrigger value="reports">Relatórios</TabsTrigger>
-            </TabsList>
+            <div className="-mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-max min-w-full justify-start">
+                <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">Todos ({filtered.length})</TabsTrigger>
+                <TabsTrigger value="reading" className="text-xs sm:text-sm whitespace-nowrap">Em leitura ({reading.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs sm:text-sm whitespace-nowrap">Concluídos ({completed.length})</TabsTrigger>
+                <TabsTrigger value="reports" className="text-xs sm:text-sm whitespace-nowrap">Relatórios</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-4">
               <BookGrid books={filtered} isLoading={isLoading} {...gridProps} />
@@ -359,13 +363,13 @@ function StatTile({
 }) {
   return (
     <Card className="tint-card">
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="p-2 bg-primary/10 text-primary">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+        <div className="p-2 bg-primary/10 text-primary shrink-0">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-xl font-bold leading-tight">{value}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-lg sm:text-xl font-bold leading-tight">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -447,31 +451,31 @@ function BookGrid({
         {books.map((b) => (
           <Card key={b.id} className="tint-card">
             <CardContent className="p-3 flex items-center gap-3">
-              <div className="w-12 shrink-0">
+              <div className="w-10 sm:w-12 shrink-0">
                 <BookCover path={b.cover_path} title={b.title} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium truncate">{b.title}</p>
+                <p className="font-medium truncate text-sm sm:text-base">{b.title}</p>
                 <p className="text-xs text-muted-foreground truncate">
                   {b.author || "Autor desconhecido"} · {statusLabel(b.status)}
                 </p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2 mt-1 min-w-0">
                   {b.category && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-[10px] max-w-[45%] truncate">
                       {b.category}
                     </Badge>
                   )}
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11px] text-muted-foreground truncate">
                     {b.total_pages ? `${b.last_read_page ?? 0}/${b.total_pages} pág. · ${progressOf(b)}%` : "Sem paginação"}
                   </span>
                 </div>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <Button size="sm" onClick={() => onOpen(b.id)}>Abrir</Button>
-                <Button size="icon" variant="ghost" onClick={() => onEdit(b)} aria-label="Editar">
+              <div className="flex gap-0.5 sm:gap-1 shrink-0">
+                <Button size="sm" className="px-2 sm:px-3" onClick={() => onOpen(b.id)}>Abrir</Button>
+                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onEdit(b)} aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => onRemove(b.id)} aria-label="Remover">
+                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onRemove(b.id)} aria-label="Remover">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -483,7 +487,7 @@ function BookGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
       {books.map((b) => {
         const progress = progressOf(b);
         return (
@@ -499,30 +503,30 @@ function BookGrid({
                 </Badge>
               )}
             </div>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base line-clamp-2">{b.title}</CardTitle>
-              {b.author && <p className="text-xs text-muted-foreground line-clamp-1">{b.author}</p>}
+            <CardHeader className="pb-2 p-3 sm:p-6 sm:pb-2">
+              <CardTitle className="text-sm sm:text-base line-clamp-2">{b.title}</CardTitle>
+              {b.author && <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{b.author}</p>}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 p-3 pt-0 sm:p-6 sm:pt-0">
               {b.total_pages ? (
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground gap-1">
                     <span>{b.last_read_page ?? 0} / {b.total_pages} pág.</span>
                     <span>{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-1.5" />
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Sem progresso registrado</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Sem progresso registrado</p>
               )}
-              <div className="flex gap-2">
-                <Button size="sm" className="flex-1" onClick={() => onOpen(b.id)}>
+              <div className="flex gap-1 sm:gap-2">
+                <Button size="sm" className="flex-1 px-2" onClick={() => onOpen(b.id)}>
                   Abrir
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => onEdit(b)} aria-label="Editar">
+                <Button size="sm" variant="ghost" className="px-2" onClick={() => onEdit(b)} aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => onRemove(b.id)} aria-label="Remover">
+                <Button size="sm" variant="ghost" className="px-2" onClick={() => onRemove(b.id)} aria-label="Remover">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
