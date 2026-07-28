@@ -19,11 +19,14 @@ import {
   CalendarDays,
   Clock,
   Flame,
+  Lock,
+  RotateCcw,
   Save,
   Target,
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { BookRow } from "@/services/libraryService";
@@ -33,6 +36,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SessionRow {
   date: string;
@@ -100,12 +111,16 @@ interface Props {
 
 export function LibraryReports({ books }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dailyPages, setDailyPages] = useState(20);
   const [dailyMinutes, setDailyMinutes] = useState(30);
   const [monthlyBooks, setMonthlyBooks] = useState(2);
   const [saving, setSaving] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -179,6 +194,48 @@ export function LibraryReports({ books }: Props) {
     }
     return m;
   }, [sessions]);
+
+  async function handleReset() {
+    if (!user?.email) return;
+    if (!password) {
+      toast.error("Digite sua senha para confirmar");
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+      });
+      if (authError) {
+        toast.error("Senha incorreta");
+        return;
+      }
+
+      const [sess, bks, streak] = await Promise.all([
+        supabase.from("reading_sessions").delete().eq("user_id", user.id),
+        supabase
+          .from("books")
+          .update({ last_read_page: 0, status: "to_read" })
+          .eq("user_id", user.id),
+        supabase
+          .from("user_streaks")
+          .update({ current_streak: 0, longest_streak: 0, last_read_date: null })
+          .eq("user_id", user.id),
+      ]);
+      if (sess.error || bks.error || streak.error) throw sess.error ?? bks.error ?? streak.error;
+
+      setSessions([]);
+      await queryClient.invalidateQueries({ queryKey: ["books", user.id] });
+      toast.success("Progresso de leitura zerado");
+      setResetOpen(false);
+      setPassword("");
+    } catch {
+      toast.error("Não foi possível zerar o progresso");
+    } finally {
+      setResetting(false);
+    }
+  }
 
   const sumRange = (from: Date, to: Date) => {
     let pages = 0;
@@ -408,9 +465,18 @@ export function LibraryReports({ books }: Props) {
                 onChange={(e) => setMonthlyBooks(Math.max(1, Number(e.target.value) || 0))}
               />
             </div>
-            <div className="flex items-end">
-              <Button className="w-full gap-2" onClick={saveGoals} disabled={saving}>
+            <div className="flex items-end gap-2">
+              <Button className="flex-1 gap-2" onClick={saveGoals} disabled={saving}>
                 <Save className="h-4 w-4" /> Salvar metas
+              </Button>
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setResetOpen(true)}
+                title="Zerar progresso de leitura"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="hidden sm:inline">Zerar</span>
               </Button>
             </div>
           </div>
@@ -593,6 +659,48 @@ export function LibraryReports({ books }: Props) {
       </div>
 
       {loading && <p className="text-xs text-muted-foreground">Carregando relatórios...</p>}
+
+      <Dialog
+        open={resetOpen}
+        onOpenChange={(o) => {
+          setResetOpen(o);
+          if (!o) setPassword("");
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-destructive" /> Zerar progresso de leitura
+            </DialogTitle>
+            <DialogDescription>
+              Isso apaga todas as sessões de leitura, zera as páginas lidas de todos os livros e a
+              sequência. Os livros continuam na biblioteca. Confirme com a senha da sua conta.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reset-pass">Senha da conta</Label>
+            <Input
+              id="reset-pass"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleReset();
+              }}
+              placeholder="••••••••"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleReset} disabled={resetting || !password}>
+              {resetting ? "Zerando..." : "Confirmar e zerar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
