@@ -19,11 +19,14 @@ import {
   CalendarDays,
   Clock,
   Flame,
+  Lock,
+  RotateCcw,
   Save,
   Target,
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { BookRow } from "@/services/libraryService";
@@ -33,6 +36,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SessionRow {
   date: string;
@@ -100,12 +111,16 @@ interface Props {
 
 export function LibraryReports({ books }: Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dailyPages, setDailyPages] = useState(20);
   const [dailyMinutes, setDailyMinutes] = useState(30);
   const [monthlyBooks, setMonthlyBooks] = useState(2);
   const [saving, setSaving] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
