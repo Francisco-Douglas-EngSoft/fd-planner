@@ -653,7 +653,7 @@ export default function Reader() {
         <div className="flex items-center gap-2">
           {isPdf && (
             <Button variant="outline" size="sm" onClick={() => setShowThumbs((v) => !v)} className="gap-2">
-              <PanelLeft className="h-4 w-4" /> {showThumbs ? "Ocultar" : "Miniaturas"}
+              <PanelLeft className="h-4 w-4" /> {showThumbs ? "Ocultar painel" : "Sumário"}
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={addBookmark} className="gap-2">
@@ -702,13 +702,39 @@ export default function Reader() {
         <div
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `${showThumbs ? "180px" : "0px"} minmax(0, 1fr) 340px`,
+            gridTemplateColumns: `${showThumbs ? "250px" : "0px"} minmax(0, 1fr) 340px`,
           }}
         >
-          {/* Miniaturas */}
+          {/* Sumário / Miniaturas */}
           {showThumbs && (
-            <Card className="overflow-y-auto max-h-[85vh] p-0">
-              <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={setPage} />
+            <Card className="p-0 flex flex-col max-h-[85vh] overflow-hidden">
+              <div className="grid grid-cols-2 border-b border-border/60 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setLeftPanel("outline")}
+                  className={`text-xs py-2 font-medium transition-colors ${
+                    leftPanel === "outline" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  Sumário
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeftPanel("thumbs")}
+                  className={`text-xs py-2 font-medium transition-colors ${
+                    leftPanel === "thumbs" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  Miniaturas
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {leftPanel === "outline" ? (
+                  <PdfOutline pdf={pdf} currentPage={page} onSelect={setPage} />
+                ) : (
+                  <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={setPage} />
+                )}
+              </div>
             </Card>
           )}
           {!showThumbs && <div />}
