@@ -205,26 +205,57 @@ export function LibraryReports({ books }: Props) {
       Math.floor((b.getTime() - a.getTime()) / 86400000) + 1;
 
     const defs = [
-      { key: "daily", label: "Diária", from: today, icon: CalendarDays },
-      { key: "weekly", label: "Semanal", from: startOfWeek, icon: CalendarDays },
-      { key: "monthly", label: "Mensal", from: startOfMonth, icon: CalendarDays },
-      { key: "bimonthly", label: "Bimestral", from: bimStart, icon: CalendarDays },
-      { key: "semiannual", label: "Semestral", from: semStart, icon: CalendarDays },
+      { key: "daily", label: "Diária", from: today, to: today, months: 1 / 30 },
+      { key: "weekly", label: "Semanal", from: startOfWeek, to: addDays(startOfWeek, 6), months: 7 / 30 },
+      {
+        key: "monthly",
+        label: "Mensal",
+        from: startOfMonth,
+        to: new Date(today.getFullYear(), today.getMonth() + 1, 0),
+        months: 1,
+      },
+      {
+        key: "bimonthly",
+        label: "Bimestral",
+        from: bimStart,
+        to: new Date(bimStart.getFullYear(), bimStart.getMonth() + 2, 0),
+        months: 2,
+      },
+      {
+        key: "semiannual",
+        label: "Semestral",
+        from: semStart,
+        to: new Date(semStart.getFullYear(), semStart.getMonth() + 6, 0),
+        months: 6,
+      },
+      {
+        key: "annual",
+        label: "Anual",
+        from: new Date(today.getFullYear(), 0, 1),
+        to: new Date(today.getFullYear(), 11, 31),
+        months: 12,
+      },
     ];
 
     return defs.map((d) => {
-      const days = Math.max(1, daysBetween(d.from, today));
+      const totalDays = Math.max(1, daysBetween(d.from, d.to));
+      const elapsedDays = Math.max(1, Math.min(totalDays, daysBetween(d.from, today)));
       const { pages, minutes } = sumRange(d.from, today);
+      const pagesGoal = dailyPages * totalDays;
+      const minutesGoal = dailyMinutes * totalDays;
       return {
         ...d,
-        days,
+        totalDays,
+        elapsedDays,
         pages,
         minutes,
-        pagesGoal: dailyPages * days,
-        minutesGoal: dailyMinutes * days,
+        pagesGoal,
+        minutesGoal,
+        expectedPages: dailyPages * elapsedDays,
+        booksGoal: Math.max(1, Math.round(monthlyBooks * d.months)),
       };
     });
-  }, [byDay, dailyPages, dailyMinutes]);
+  }, [byDay, dailyPages, dailyMinutes, monthlyBooks]);
 
   /* ── barras: páginas por dia (últimos 30 dias) ── */
   const last30 = useMemo(() => {
