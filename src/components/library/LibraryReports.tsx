@@ -195,6 +195,60 @@ export function LibraryReports({ books }: Props) {
     return m;
   }, [sessions]);
 
+  async function handleReset() {
+    if (!user?.email) return;
+    if (!password) {
+      toast.error("Digite sua senha para confirmar");
+      return;
+    }
+    setResetting(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+      });
+      if (authError) {
+        toast.error("Senha incorreta");
+        return;
+      }
+
+      const [sess, bks, streak] = await Promise.all([
+        supabase.from("reading_sessions").delete().eq("user_id", user.id),
+        supabase
+          .from("books")
+          .update({ last_read_page: 0, status: "to_read" })
+          .eq("user_id", user.id),
+        supabase
+          .from("user_streaks")
+          .update({ current_streak: 0, longest_streak: 0, last_read_date: null })
+          .eq("user_id", user.id),
+      ]);
+      if (sess.error || bks.error || streak.error) throw sess.error ?? bks.error ?? streak.error;
+
+      setSessions([]);
+      await queryClient.invalidateQueries({ queryKey: ["books", user.id] });
+      toast.success("Progresso de leitura zerado");
+      setResetOpen(false);
+      setPassword("");
+    } catch {
+      toast.error("Não foi possível zerar o progresso");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  const _unusedByDay = useMemo(() => {
+    const m = new Map<string, { pages: number; minutes: number }>();
+    for (const s of sessions) {
+      const k = s.date;
+      const cur = m.get(k) ?? { pages: 0, minutes: 0 };
+      cur.pages += s.pages_read ?? 0;
+      cur.minutes += s.duration_minutes ?? 0;
+      m.set(k, cur);
+    }
+    return m;
+  }, [sessions]);
+
   const sumRange = (from: Date, to: Date) => {
     let pages = 0;
     let minutes = 0;
