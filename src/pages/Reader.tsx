@@ -1018,6 +1018,7 @@ export default function Reader() {
             </div>
 
             {!isFullscreen && <PageSummarizer getPageText={getCurrentPageText} page={page} />}
+            </div>
           </div>
 
           {/* Painel direito com abas */}
