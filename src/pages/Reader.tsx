@@ -22,6 +22,7 @@ import { PageSummarizer } from "@/components/reader/PageSummarizer";
 import { PdfTextLayer } from "@/components/reader/PdfTextLayer";
 import { HighlightsLayer } from "@/components/reader/HighlightsLayer";
 import { PdfThumbnails } from "@/components/reader/PdfThumbnails";
+import { PdfOutline } from "@/components/reader/PdfOutline";
 import { PdfSearch } from "@/components/reader/PdfSearch";
 import { SelectionPopover } from "@/components/reader/SelectionPopover";
 import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
@@ -71,6 +72,7 @@ export default function Reader() {
   const [invertColors, setInvertColors] = useState(false);
 
   const [showThumbs, setShowThumbs] = useState(true);
+  const [sidePanel, setSidePanel] = useState<"outline" | "thumbs">("outline");
   const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
 
   // Fullscreen toolbar / atalhos / navegação de destaques
