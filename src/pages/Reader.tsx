@@ -734,45 +734,18 @@ export default function Reader() {
         <div
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `${showThumbs ? "250px" : "0px"} minmax(0, 1fr) 340px`,
+            gridTemplateColumns: `${showThumbs && !isFullscreen ? "250px" : "0px"} minmax(0, 1fr) 340px`,
           }}
         >
           {/* Sumário / Miniaturas */}
-          {showThumbs && (
-            <Card className="p-0 flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="grid grid-cols-2 border-b border-border/60 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setLeftPanel("outline")}
-                  className={`text-xs py-2 font-medium transition-colors ${
-                    leftPanel === "outline" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  Sumário
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLeftPanel("thumbs")}
-                  className={`text-xs py-2 font-medium transition-colors ${
-                    leftPanel === "thumbs" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
-                  }`}
-                >
-                  Miniaturas
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                {leftPanel === "outline" ? (
-                  <PdfOutline pdf={pdf} currentPage={page} onSelect={setPage} />
-                ) : (
-                  <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={setPage} />
-                )}
-              </div>
-            </Card>
-          )}
-          {!showThumbs && <div />}
+          {showThumbs && !isFullscreen ? renderLeftPanel(false) : <div />}
 
           {/* Viewer */}
-          <div ref={viewerRef} className={`space-y-3 min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-col p-3" : ""}`}>
+          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-row p-3 gap-3" : "space-y-3"}`}>
+            {isFullscreen && showThumbs && (
+              <div className="w-[250px] shrink-0 h-full min-h-0">{renderLeftPanel(true)}</div>
+            )}
+            <div className={isFullscreen ? "flex-1 min-w-0 flex flex-col gap-3 min-h-0" : "space-y-3"}>
             {/* Toolbar (flutuante e arrastável em tela cheia) */}
             <Card
               className={`p-2 flex items-center gap-2 ${
