@@ -25,6 +25,7 @@ import { extractPdfMetadata } from "@/lib/pdfMetadata";
 import { BookCover } from "@/components/library/BookCover";
 import { BookEditDialog, BOOK_STATUSES } from "@/components/library/BookEditDialog";
 import { BookUploadDialog } from "@/components/library/BookUploadDialog";
+import { LibraryReports } from "@/components/library/LibraryReports";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -305,6 +306,7 @@ export default function Library() {
               <TabsTrigger value="all">Todos ({filtered.length})</TabsTrigger>
               <TabsTrigger value="reading">Em leitura ({reading.length})</TabsTrigger>
               <TabsTrigger value="completed">Concluídos ({completed.length})</TabsTrigger>
+              <TabsTrigger value="reports">Relatórios</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="mt-4">
@@ -315,6 +317,9 @@ export default function Library() {
             </TabsContent>
             <TabsContent value="completed" className="mt-4">
               <BookGrid books={completed} isLoading={isLoading} {...gridProps} />
+            </TabsContent>
+            <TabsContent value="reports" className="mt-4">
+              <LibraryReports books={books} />
             </TabsContent>
           </Tabs>
         </section>
