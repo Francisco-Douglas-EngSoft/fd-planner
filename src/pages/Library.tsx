@@ -184,50 +184,50 @@ export default function Library() {
   };
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
+    <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-6 space-y-5 sm:space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col md:flex-row md:items-end md:justify-between gap-4"
       >
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Biblioteca Digital</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Biblioteca Digital</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Organize seus PDFs e EPUBs por categoria e acompanhe o progresso de leitura.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 flex-1 md:flex-none"
             onClick={syncMissingCovers}
             disabled={syncing || books.length === 0}
           >
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sincronizar capas
+            <span className="truncate">Sincronizar capas</span>
           </Button>
-          <Button size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
+          <Button size="sm" className="gap-2 flex-1 md:flex-none" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" />
             Enviar livros
           </Button>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <StatTile icon={LibraryIcon} label="Livros" value={String(stats.total)} />
         <StatTile icon={Layers} label="Categorias" value={String(stats.categories)} />
         <StatTile icon={Clock} label="Em leitura" value={String(stats.reading)} />
         <StatTile icon={CheckCircle2} label="Concluídos" value={String(stats.completed)} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-4 lg:gap-6">
         <aside className="space-y-2">
           <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold px-1">
             Categorias
           </p>
-          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1">
+          <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 -mx-3 px-3 lg:mx-0 lg:px-0 scrollbar-none">
             <CategoryButton
               active={activeCategory === "all"}
               onClick={() => setActiveCategory("all")}
