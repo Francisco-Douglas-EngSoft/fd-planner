@@ -270,8 +270,9 @@ export default function Library() {
                 className="pl-9"
               />
             </div>
+            <div className="flex gap-2 items-center">
             <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-              <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectTrigger className="flex-1 sm:w-[190px] sm:flex-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -281,7 +282,7 @@ export default function Library() {
                 <SelectItem value="progress">Maior progresso</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               <Button
                 variant={view === "grid" ? "default" : "outline"}
                 size="icon"
@@ -299,15 +300,18 @@ export default function Library() {
                 <ListIcon className="h-4 w-4" />
               </Button>
             </div>
+            </div>
           </div>
 
           <Tabs defaultValue="all" className="w-full">
-            <TabsList>
-              <TabsTrigger value="all">Todos ({filtered.length})</TabsTrigger>
-              <TabsTrigger value="reading">Em leitura ({reading.length})</TabsTrigger>
-              <TabsTrigger value="completed">Concluídos ({completed.length})</TabsTrigger>
-              <TabsTrigger value="reports">Relatórios</TabsTrigger>
-            </TabsList>
+            <div className="-mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-none">
+              <TabsList className="w-max min-w-full justify-start">
+                <TabsTrigger value="all" className="text-xs sm:text-sm whitespace-nowrap">Todos ({filtered.length})</TabsTrigger>
+                <TabsTrigger value="reading" className="text-xs sm:text-sm whitespace-nowrap">Em leitura ({reading.length})</TabsTrigger>
+                <TabsTrigger value="completed" className="text-xs sm:text-sm whitespace-nowrap">Concluídos ({completed.length})</TabsTrigger>
+                <TabsTrigger value="reports" className="text-xs sm:text-sm whitespace-nowrap">Relatórios</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-4">
               <BookGrid books={filtered} isLoading={isLoading} {...gridProps} />
