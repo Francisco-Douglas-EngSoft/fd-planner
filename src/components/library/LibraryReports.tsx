@@ -372,7 +372,8 @@ export function LibraryReports({ books }: Props) {
             <Target className="h-4 w-4 text-primary" /> Metas de leitura
           </CardTitle>
           <CardDescription>
-            As metas semanais, mensais, bimestrais e semestrais são calculadas a partir da meta diária.
+            Ao digitar páginas/minutos por dia e livros por mês, todos os prazos (semanal, mensal,
+            bimestral, semestral e anual) são recalculados automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
