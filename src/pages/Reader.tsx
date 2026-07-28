@@ -880,6 +880,13 @@ export default function Reader() {
                 >
                   <Keyboard className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => setShowThumbs((v) => !v)}
+                  title={showThumbs ? "Ocultar sumário" : "Mostrar sumário"}
+                >
+                  <PanelLeft className="h-4 w-4" />
+                </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
