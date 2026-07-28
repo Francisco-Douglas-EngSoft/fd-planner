@@ -205,26 +205,57 @@ export function LibraryReports({ books }: Props) {
       Math.floor((b.getTime() - a.getTime()) / 86400000) + 1;
 
     const defs = [
-      { key: "daily", label: "Diária", from: today, icon: CalendarDays },
-      { key: "weekly", label: "Semanal", from: startOfWeek, icon: CalendarDays },
-      { key: "monthly", label: "Mensal", from: startOfMonth, icon: CalendarDays },
-      { key: "bimonthly", label: "Bimestral", from: bimStart, icon: CalendarDays },
-      { key: "semiannual", label: "Semestral", from: semStart, icon: CalendarDays },
+      { key: "daily", label: "Diária", from: today, to: today, months: 1 / 30 },
+      { key: "weekly", label: "Semanal", from: startOfWeek, to: addDays(startOfWeek, 6), months: 7 / 30 },
+      {
+        key: "monthly",
+        label: "Mensal",
+        from: startOfMonth,
+        to: new Date(today.getFullYear(), today.getMonth() + 1, 0),
+        months: 1,
+      },
+      {
+        key: "bimonthly",
+        label: "Bimestral",
+        from: bimStart,
+        to: new Date(bimStart.getFullYear(), bimStart.getMonth() + 2, 0),
+        months: 2,
+      },
+      {
+        key: "semiannual",
+        label: "Semestral",
+        from: semStart,
+        to: new Date(semStart.getFullYear(), semStart.getMonth() + 6, 0),
+        months: 6,
+      },
+      {
+        key: "annual",
+        label: "Anual",
+        from: new Date(today.getFullYear(), 0, 1),
+        to: new Date(today.getFullYear(), 11, 31),
+        months: 12,
+      },
     ];
 
     return defs.map((d) => {
-      const days = Math.max(1, daysBetween(d.from, today));
+      const totalDays = Math.max(1, daysBetween(d.from, d.to));
+      const elapsedDays = Math.max(1, Math.min(totalDays, daysBetween(d.from, today)));
       const { pages, minutes } = sumRange(d.from, today);
+      const pagesGoal = dailyPages * totalDays;
+      const minutesGoal = dailyMinutes * totalDays;
       return {
         ...d,
-        days,
+        totalDays,
+        elapsedDays,
         pages,
         minutes,
-        pagesGoal: dailyPages * days,
-        minutesGoal: dailyMinutes * days,
+        pagesGoal,
+        minutesGoal,
+        expectedPages: dailyPages * elapsedDays,
+        booksGoal: Math.max(1, Math.round(monthlyBooks * d.months)),
       };
     });
-  }, [byDay, dailyPages, dailyMinutes]);
+  }, [byDay, dailyPages, dailyMinutes, monthlyBooks]);
 
   /* ── barras: páginas por dia (últimos 30 dias) ── */
   const last30 = useMemo(() => {
@@ -341,7 +372,8 @@ export function LibraryReports({ books }: Props) {
             <Target className="h-4 w-4 text-primary" /> Metas de leitura
           </CardTitle>
           <CardDescription>
-            As metas semanais, mensais, bimestrais e semestrais são calculadas a partir da meta diária.
+            Ao digitar páginas/minutos por dia e livros por mês, todos os prazos (semanal, mensal,
+            bimestral, semestral e anual) são recalculados automaticamente.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -387,10 +419,17 @@ export function LibraryReports({ books }: Props) {
             {periods.map((p) => {
               const pct = p.pagesGoal ? Math.min(100, Math.round((p.pages / p.pagesGoal) * 100)) : 0;
               const pctMin = p.minutesGoal ? Math.min(100, Math.round((p.minutes / p.minutesGoal) * 100)) : 0;
+              const onPace = p.pages >= p.expectedPages;
               return (
                 <div key={p.key} className="border border-border p-4 space-y-3 bg-card/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">{p.label}</span>
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold">{p.label}</span>
+                      <p className="text-[11px] text-muted-foreground">
+                        {p.totalDays} dia{p.totalDays === 1 ? "" : "s"} · {p.elapsedDays} decorrido
+                        {p.elapsedDays === 1 ? "" : "s"}
+                      </p>
+                    </div>
                     <Badge variant={pct >= 100 ? "default" : "secondary"}>{pct}%</Badge>
                   </div>
                   <div className="space-y-1">
@@ -410,6 +449,14 @@ export function LibraryReports({ books }: Props) {
                       </span>
                     </div>
                     <Progress value={pctMin} className="h-2" />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/60">
+                    <span className="text-muted-foreground">
+                      Meta de livros: <span className="text-foreground font-medium">{p.booksGoal}</span>
+                    </span>
+                    <span className={onPace ? "text-success" : "text-warning"}>
+                      {onPace ? "No ritmo" : `Faltam ${Math.max(0, p.expectedPages - p.pages)} pág.`}
+                    </span>
                   </div>
                 </div>
               );
