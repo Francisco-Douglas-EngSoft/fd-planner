@@ -72,7 +72,7 @@ export default function Reader() {
   const [invertColors, setInvertColors] = useState(false);
 
   const [showThumbs, setShowThumbs] = useState(true);
-  const [sidePanel, setSidePanel] = useState<"outline" | "thumbs">("outline");
+  const [leftPanel, setLeftPanel] = useState<"outline" | "thumbs">("outline");
   const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
 
   // Fullscreen toolbar / atalhos / navegação de destaques
