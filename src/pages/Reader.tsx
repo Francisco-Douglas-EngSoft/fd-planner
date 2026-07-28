@@ -638,6 +638,38 @@ export default function Reader() {
     return content.items.map((i: { str?: string }) => i.str ?? "").join(" ");
   }
 
+  const renderLeftPanel = (fullscreen: boolean) => (
+    <Card className={`p-0 flex flex-col overflow-hidden ${fullscreen ? "h-full" : "max-h-[85vh]"}`}>
+      <div className="grid grid-cols-2 border-b border-border/60 shrink-0">
+        <button
+          type="button"
+          onClick={() => setLeftPanel("outline")}
+          className={`text-xs py-2 font-medium transition-colors ${
+            leftPanel === "outline" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+          }`}
+        >
+          Sumário
+        </button>
+        <button
+          type="button"
+          onClick={() => setLeftPanel("thumbs")}
+          className={`text-xs py-2 font-medium transition-colors ${
+            leftPanel === "thumbs" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/40"
+          }`}
+        >
+          Miniaturas
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {leftPanel === "outline" ? (
+          <PdfOutline pdf={pdf} currentPage={page} onSelect={setPage} />
+        ) : (
+          <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={setPage} />
+        )}
+      </div>
+    </Card>
+  );
+
   return (
     <div className="container mx-auto max-w-[1400px] px-4 py-4 space-y-3">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3 flex-wrap">
