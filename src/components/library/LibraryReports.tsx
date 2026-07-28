@@ -718,13 +718,13 @@ export function LibraryReports({ books }: Props) {
 function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
     <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="h-9 w-9 bg-primary/10 flex items-center justify-center shrink-0">
+      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+        <div className="h-8 w-8 sm:h-9 sm:w-9 bg-primary/10 flex items-center justify-center shrink-0">
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-lg font-bold font-display">{value}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-base sm:text-lg font-bold font-display truncate">{value}</p>
         </div>
       </CardContent>
     </Card>
@@ -745,16 +745,16 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Icon className="h-4 w-4 text-primary" />
-          {title}
+    <Card className={cn("min-w-0", className)}>
+      <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+          <Icon className="h-4 w-4 text-primary shrink-0" />
+          <span className="min-w-0 truncate">{title}</span>
         </CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[280px]">{children}</div>
+      <CardContent className="p-2 sm:p-6 sm:pt-0">
+        <div className="h-[220px] sm:h-[280px] w-full min-w-0">{children}</div>
       </CardContent>
     </Card>
   );
