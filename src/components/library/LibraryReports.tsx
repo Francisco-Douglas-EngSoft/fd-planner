@@ -418,10 +418,17 @@ export function LibraryReports({ books }: Props) {
             {periods.map((p) => {
               const pct = p.pagesGoal ? Math.min(100, Math.round((p.pages / p.pagesGoal) * 100)) : 0;
               const pctMin = p.minutesGoal ? Math.min(100, Math.round((p.minutes / p.minutesGoal) * 100)) : 0;
+              const onPace = p.pages >= p.expectedPages;
               return (
                 <div key={p.key} className="border border-border p-4 space-y-3 bg-card/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">{p.label}</span>
+                    <div className="min-w-0">
+                      <span className="text-sm font-semibold">{p.label}</span>
+                      <p className="text-[11px] text-muted-foreground">
+                        {p.totalDays} dia{p.totalDays === 1 ? "" : "s"} · {p.elapsedDays} decorrido
+                        {p.elapsedDays === 1 ? "" : "s"}
+                      </p>
+                    </div>
                     <Badge variant={pct >= 100 ? "default" : "secondary"}>{pct}%</Badge>
                   </div>
                   <div className="space-y-1">
@@ -441,6 +448,14 @@ export function LibraryReports({ books }: Props) {
                       </span>
                     </div>
                     <Progress value={pctMin} className="h-2" />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/60">
+                    <span className="text-muted-foreground">
+                      Meta de livros: <span className="text-foreground font-medium">{p.booksGoal}</span>
+                    </span>
+                    <span className={onPace ? "text-success" : "text-warning"}>
+                      {onPace ? "No ritmo" : `Faltam ${Math.max(0, p.expectedPages - p.pages)} pág.`}
+                    </span>
                   </div>
                 </div>
               );
