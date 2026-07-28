@@ -465,9 +465,18 @@ export function LibraryReports({ books }: Props) {
                 onChange={(e) => setMonthlyBooks(Math.max(1, Number(e.target.value) || 0))}
               />
             </div>
-            <div className="flex items-end">
-              <Button className="w-full gap-2" onClick={saveGoals} disabled={saving}>
+            <div className="flex items-end gap-2">
+              <Button className="flex-1 gap-2" onClick={saveGoals} disabled={saving}>
                 <Save className="h-4 w-4" /> Salvar metas
+              </Button>
+              <Button
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setResetOpen(true)}
+                title="Zerar progresso de leitura"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="hidden sm:inline">Zerar</span>
               </Button>
             </div>
           </div>
