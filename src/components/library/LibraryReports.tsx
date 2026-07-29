@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Clock,
   Flame,
+  Layers,
   Lock,
   RotateCcw,
   Save,
@@ -38,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +69,9 @@ const CHART_COLORS = [
 
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const BOOKS_GOAL_KEY = "fd:library:monthly-books-goal";
+const PLAN_START_KEY = "fd:library:plan-start";
+const PLAN_END_KEY = "fd:library:plan-end";
+const PLAN_BASED_KEY = "fd:library:plan-based-on-library";
 
 const iso = (d: Date) => {
   const c = new Date(d);
@@ -120,6 +125,9 @@ export function LibraryReports({ books }: Props) {
   const [dailyPages, setDailyPages] = useState(20);
   const [dailyMinutes, setDailyMinutes] = useState(30);
   const [monthlyBooks, setMonthlyBooks] = useState(2);
+  const [planStart, setPlanStart] = useState(() => iso(new Date()));
+  const [planEnd, setPlanEnd] = useState(() => iso(addDays(new Date(), 90)));
+  const [basedOnLibrary, setBasedOnLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -152,6 +160,11 @@ export function LibraryReports({ books }: Props) {
       }
       const stored = Number(localStorage.getItem(BOOKS_GOAL_KEY));
       if (stored > 0) setMonthlyBooks(stored);
+      const s = localStorage.getItem(PLAN_START_KEY);
+      const e = localStorage.getItem(PLAN_END_KEY);
+      if (s) setPlanStart(s);
+      if (e) setPlanEnd(e);
+      setBasedOnLibrary(localStorage.getItem(PLAN_BASED_KEY) === "true");
       setLoading(false);
     })();
     return () => {
@@ -164,6 +177,9 @@ export function LibraryReports({ books }: Props) {
     setSaving(true);
     try {
       localStorage.setItem(BOOKS_GOAL_KEY, String(monthlyBooks));
+      localStorage.setItem(PLAN_START_KEY, planStart);
+      localStorage.setItem(PLAN_END_KEY, planEnd);
+      localStorage.setItem(PLAN_BASED_KEY, String(basedOnLibrary));
       const { data: existing } = await supabase
         .from("reading_goals")
         .select("id")
