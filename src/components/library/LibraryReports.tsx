@@ -271,6 +271,63 @@ export function LibraryReports({ books }: Props) {
 
   const today = new Date();
 
+  /* ── total de páginas de toda a biblioteca ── */
+  const library = useMemo(() => {
+    let total = 0;
+    let read = 0;
+    let missing = 0;
+    for (const b of books) {
+      const tp = b.total_pages ?? 0;
+      if (tp > 0) {
+        total += tp;
+        read += Math.min(Math.max(b.last_read_page ?? 0, 0), tp);
+      } else {
+        missing += 1;
+      }
+    }
+    return { total, read, remaining: Math.max(0, total - read), missing, count: books.length };
+  }, [books]);
+
+  /* ── plano completo: data de início + prazo ── */
+  const plan = useMemo(() => {
+    const start = new Date(`${planStart}T12:00:00`);
+    const end = new Date(`${planEnd}T12:00:00`);
+    const valid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end >= start;
+    const dayMs = 86400000;
+    const totalDays = valid ? Math.floor((end.getTime() - start.getTime()) / dayMs) + 1 : 0;
+    const elapsedDays = valid
+      ? Math.max(0, Math.min(totalDays, Math.floor((today.getTime() - start.getTime()) / dayMs) + 1))
+      : 0;
+    const remainingDays = Math.max(0, totalDays - elapsedDays);
+    const pagesInPlan = valid ? sumRange(start, today > end ? end : today).pages : 0;
+    const remainingPages = Math.max(0, library.total - Math.max(library.read, 0));
+    const requiredPerDay = remainingDays > 0 ? Math.ceil(remainingPages / remainingDays) : remainingPages;
+    const expectedPages = totalDays > 0 ? Math.round((library.total * elapsedDays) / totalDays) : 0;
+    const pct = library.total ? Math.min(100, Math.round((library.read / library.total) * 100)) : 0;
+    const paceFinish =
+      dailyPages > 0 && remainingPages > 0
+        ? addDays(today, Math.ceil(remainingPages / dailyPages))
+        : today;
+    return {
+      valid,
+      start,
+      end,
+      totalDays,
+      elapsedDays,
+      remainingDays,
+      pagesInPlan,
+      remainingPages,
+      requiredPerDay,
+      expectedPages,
+      pct,
+      paceFinish,
+      onPace: library.read >= expectedPages,
+    };
+  }, [planStart, planEnd, library, byDay, dailyPages]);
+
+  /* meta diária efetiva: manual ou derivada do total da biblioteca */
+  const effectiveDailyPages = basedOnLibrary && plan.requiredPerDay > 0 ? plan.requiredPerDay : dailyPages;
+
   /* ── metas por período ── */
   const periods = useMemo(() => {
     const startOfWeek = addDays(today, -((today.getDay() + 6) % 7));
@@ -317,7 +374,7 @@ export function LibraryReports({ books }: Props) {
       const totalDays = Math.max(1, daysBetween(d.from, d.to));
       const elapsedDays = Math.max(1, Math.min(totalDays, daysBetween(d.from, today)));
       const { pages, minutes } = sumRange(d.from, today);
-      const pagesGoal = dailyPages * totalDays;
+      const pagesGoal = effectiveDailyPages * totalDays;
       const minutesGoal = dailyMinutes * totalDays;
       return {
         ...d,
@@ -327,11 +384,11 @@ export function LibraryReports({ books }: Props) {
         minutes,
         pagesGoal,
         minutesGoal,
-        expectedPages: dailyPages * elapsedDays,
+        expectedPages: effectiveDailyPages * elapsedDays,
         booksGoal: Math.max(1, Math.round(monthlyBooks * d.months)),
       };
     });
-  }, [byDay, dailyPages, dailyMinutes, monthlyBooks]);
+  }, [byDay, effectiveDailyPages, dailyMinutes, monthlyBooks]);
 
   /* ── barras: páginas por dia (últimos 30 dias) ── */
   const last30 = useMemo(() => {
@@ -343,11 +400,11 @@ export function LibraryReports({ books }: Props) {
         label: `${d.getDate()}/${d.getMonth() + 1}`,
         paginas: v?.pages ?? 0,
         minutos: v?.minutes ?? 0,
-        meta: dailyPages,
+        meta: effectiveDailyPages,
       });
     }
     return out;
-  }, [byDay, dailyPages]);
+  }, [byDay, effectiveDailyPages]);
 
   /* ── linha: evolução mensal (12 meses) ── */
   const monthly = useMemo(() => {
