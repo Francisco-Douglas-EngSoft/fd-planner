@@ -487,8 +487,13 @@ export function LibraryReports({ books }: Props) {
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
         <Kpi icon={BookOpen} label="Páginas (12 meses)" value={totalPages.toLocaleString("pt-BR")} />
+        <Kpi
+          icon={Layers}
+          label="Total da biblioteca"
+          value={library.total.toLocaleString("pt-BR")}
+        />
         <Kpi icon={Clock} label="Horas de leitura" value={(totalMinutes / 60).toFixed(1)} />
         <Kpi icon={Flame} label="Sequência" value={`${streak} dia${streak === 1 ? "" : "s"}`} />
         <Kpi
@@ -497,6 +502,123 @@ export function LibraryReports({ books }: Props) {
           value={`${monthBooksDone}/${monthlyBooks}`}
         />
       </div>
+
+      {/* Plano completo da biblioteca */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Layers className="h-4 w-4 text-primary" /> Plano completo da biblioteca
+          </CardTitle>
+          <CardDescription>
+            Soma de todas as páginas dos {library.count} livro{library.count === 1 ? "" : "s"} cadastrados.
+            Defina a data de início e o prazo final para concluir tudo — as metas são recalculadas
+            automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="p-start">Data de início</Label>
+              <Input
+                id="p-start"
+                type="date"
+                value={planStart}
+                onChange={(e) => setPlanStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-end">Prazo para concluir</Label>
+              <Input
+                id="p-end"
+                type="date"
+                value={planEnd}
+                min={planStart}
+                onChange={(e) => setPlanEnd(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2 flex items-center justify-between gap-3 border border-border bg-card/40 p-3 min-w-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Metas pelo total da biblioteca</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Usa {plan.requiredPerDay} pág./dia no lugar da meta manual
+                </p>
+              </div>
+              <Switch checked={basedOnLibrary} onCheckedChange={setBasedOnLibrary} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+            <PlanStat label="Total de páginas" value={library.total.toLocaleString("pt-BR")} />
+            <PlanStat label="Páginas lidas" value={library.read.toLocaleString("pt-BR")} />
+            <PlanStat label="Páginas restantes" value={plan.remainingPages.toLocaleString("pt-BR")} />
+            <PlanStat
+              label="Ritmo necessário"
+              value={`${plan.requiredPerDay.toLocaleString("pt-BR")} pág./dia`}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+              <span>Progresso da biblioteca</span>
+              <span>
+                {library.read.toLocaleString("pt-BR")} / {library.total.toLocaleString("pt-BR")} páginas ({plan.pct}%)
+              </span>
+            </div>
+            <Progress value={plan.pct} className="h-2" />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-[11px]">
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" /> Período
+              </p>
+              <p className="text-foreground font-medium">
+                {plan.valid
+                  ? `${plan.start.toLocaleDateString("pt-BR")} → ${plan.end.toLocaleDateString("pt-BR")}`
+                  : "Datas inválidas"}
+              </p>
+              <p className="text-muted-foreground">
+                {plan.totalDays} dia{plan.totalDays === 1 ? "" : "s"} · {plan.remainingDays} restante
+                {plan.remainingDays === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Esperado até hoje</p>
+              <p className="text-foreground font-medium">
+                {plan.expectedPages.toLocaleString("pt-BR")} páginas
+              </p>
+              <p className={plan.onPace ? "text-success" : "text-warning"}>
+                {plan.onPace
+                  ? "No ritmo do prazo"
+                  : `Atraso de ${(plan.expectedPages - library.read).toLocaleString("pt-BR")} pág.`}
+              </p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Lido dentro do plano</p>
+              <p className="text-foreground font-medium">
+                {plan.pagesInPlan.toLocaleString("pt-BR")} páginas
+              </p>
+              <p className="text-muted-foreground">registradas em sessões</p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Conclusão no ritmo atual</p>
+              <p className="text-foreground font-medium">
+                {plan.remainingPages === 0
+                  ? "Biblioteca concluída"
+                  : plan.paceFinish.toLocaleDateString("pt-BR")}
+              </p>
+              <p className="text-muted-foreground">com {dailyPages} pág./dia</p>
+            </div>
+          </div>
+
+          {library.missing > 0 && (
+            <p className="text-[11px] text-warning">
+              {library.missing} livro{library.missing === 1 ? "" : "s"} sem total de páginas definido —
+              edite os dados para um cálculo exato.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Metas */}
       <Card>
