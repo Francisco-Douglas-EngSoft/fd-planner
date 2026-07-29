@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Clock,
   Flame,
+  Layers,
   Lock,
   RotateCcw,
   Save,
@@ -38,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +69,9 @@ const CHART_COLORS = [
 
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const BOOKS_GOAL_KEY = "fd:library:monthly-books-goal";
+const PLAN_START_KEY = "fd:library:plan-start";
+const PLAN_END_KEY = "fd:library:plan-end";
+const PLAN_BASED_KEY = "fd:library:plan-based-on-library";
 
 const iso = (d: Date) => {
   const c = new Date(d);
@@ -120,6 +125,9 @@ export function LibraryReports({ books }: Props) {
   const [dailyPages, setDailyPages] = useState(20);
   const [dailyMinutes, setDailyMinutes] = useState(30);
   const [monthlyBooks, setMonthlyBooks] = useState(2);
+  const [planStart, setPlanStart] = useState(() => iso(new Date()));
+  const [planEnd, setPlanEnd] = useState(() => iso(addDays(new Date(), 90)));
+  const [basedOnLibrary, setBasedOnLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -152,6 +160,11 @@ export function LibraryReports({ books }: Props) {
       }
       const stored = Number(localStorage.getItem(BOOKS_GOAL_KEY));
       if (stored > 0) setMonthlyBooks(stored);
+      const s = localStorage.getItem(PLAN_START_KEY);
+      const e = localStorage.getItem(PLAN_END_KEY);
+      if (s) setPlanStart(s);
+      if (e) setPlanEnd(e);
+      setBasedOnLibrary(localStorage.getItem(PLAN_BASED_KEY) === "true");
       setLoading(false);
     })();
     return () => {
@@ -164,6 +177,9 @@ export function LibraryReports({ books }: Props) {
     setSaving(true);
     try {
       localStorage.setItem(BOOKS_GOAL_KEY, String(monthlyBooks));
+      localStorage.setItem(PLAN_START_KEY, planStart);
+      localStorage.setItem(PLAN_END_KEY, planEnd);
+      localStorage.setItem(PLAN_BASED_KEY, String(basedOnLibrary));
       const { data: existing } = await supabase
         .from("reading_goals")
         .select("id")
@@ -255,6 +271,63 @@ export function LibraryReports({ books }: Props) {
 
   const today = new Date();
 
+  /* ── total de páginas de toda a biblioteca ── */
+  const library = useMemo(() => {
+    let total = 0;
+    let read = 0;
+    let missing = 0;
+    for (const b of books) {
+      const tp = b.total_pages ?? 0;
+      if (tp > 0) {
+        total += tp;
+        read += Math.min(Math.max(b.last_read_page ?? 0, 0), tp);
+      } else {
+        missing += 1;
+      }
+    }
+    return { total, read, remaining: Math.max(0, total - read), missing, count: books.length };
+  }, [books]);
+
+  /* ── plano completo: data de início + prazo ── */
+  const plan = useMemo(() => {
+    const start = new Date(`${planStart}T12:00:00`);
+    const end = new Date(`${planEnd}T12:00:00`);
+    const valid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end >= start;
+    const dayMs = 86400000;
+    const totalDays = valid ? Math.floor((end.getTime() - start.getTime()) / dayMs) + 1 : 0;
+    const elapsedDays = valid
+      ? Math.max(0, Math.min(totalDays, Math.floor((today.getTime() - start.getTime()) / dayMs) + 1))
+      : 0;
+    const remainingDays = Math.max(0, totalDays - elapsedDays);
+    const pagesInPlan = valid ? sumRange(start, today > end ? end : today).pages : 0;
+    const remainingPages = Math.max(0, library.total - Math.max(library.read, 0));
+    const requiredPerDay = remainingDays > 0 ? Math.ceil(remainingPages / remainingDays) : remainingPages;
+    const expectedPages = totalDays > 0 ? Math.round((library.total * elapsedDays) / totalDays) : 0;
+    const pct = library.total ? Math.min(100, Math.round((library.read / library.total) * 100)) : 0;
+    const paceFinish =
+      dailyPages > 0 && remainingPages > 0
+        ? addDays(today, Math.ceil(remainingPages / dailyPages))
+        : today;
+    return {
+      valid,
+      start,
+      end,
+      totalDays,
+      elapsedDays,
+      remainingDays,
+      pagesInPlan,
+      remainingPages,
+      requiredPerDay,
+      expectedPages,
+      pct,
+      paceFinish,
+      onPace: library.read >= expectedPages,
+    };
+  }, [planStart, planEnd, library, byDay, dailyPages]);
+
+  /* meta diária efetiva: manual ou derivada do total da biblioteca */
+  const effectiveDailyPages = basedOnLibrary && plan.requiredPerDay > 0 ? plan.requiredPerDay : dailyPages;
+
   /* ── metas por período ── */
   const periods = useMemo(() => {
     const startOfWeek = addDays(today, -((today.getDay() + 6) % 7));
@@ -301,7 +374,7 @@ export function LibraryReports({ books }: Props) {
       const totalDays = Math.max(1, daysBetween(d.from, d.to));
       const elapsedDays = Math.max(1, Math.min(totalDays, daysBetween(d.from, today)));
       const { pages, minutes } = sumRange(d.from, today);
-      const pagesGoal = dailyPages * totalDays;
+      const pagesGoal = effectiveDailyPages * totalDays;
       const minutesGoal = dailyMinutes * totalDays;
       return {
         ...d,
@@ -311,11 +384,11 @@ export function LibraryReports({ books }: Props) {
         minutes,
         pagesGoal,
         minutesGoal,
-        expectedPages: dailyPages * elapsedDays,
+        expectedPages: effectiveDailyPages * elapsedDays,
         booksGoal: Math.max(1, Math.round(monthlyBooks * d.months)),
       };
     });
-  }, [byDay, dailyPages, dailyMinutes, monthlyBooks]);
+  }, [byDay, effectiveDailyPages, dailyMinutes, monthlyBooks]);
 
   /* ── barras: páginas por dia (últimos 30 dias) ── */
   const last30 = useMemo(() => {
@@ -327,11 +400,11 @@ export function LibraryReports({ books }: Props) {
         label: `${d.getDate()}/${d.getMonth() + 1}`,
         paginas: v?.pages ?? 0,
         minutos: v?.minutes ?? 0,
-        meta: dailyPages,
+        meta: effectiveDailyPages,
       });
     }
     return out;
-  }, [byDay, dailyPages]);
+  }, [byDay, effectiveDailyPages]);
 
   /* ── linha: evolução mensal (12 meses) ── */
   const monthly = useMemo(() => {
@@ -414,8 +487,13 @@ export function LibraryReports({ books }: Props) {
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
         <Kpi icon={BookOpen} label="Páginas (12 meses)" value={totalPages.toLocaleString("pt-BR")} />
+        <Kpi
+          icon={Layers}
+          label="Total da biblioteca"
+          value={library.total.toLocaleString("pt-BR")}
+        />
         <Kpi icon={Clock} label="Horas de leitura" value={(totalMinutes / 60).toFixed(1)} />
         <Kpi icon={Flame} label="Sequência" value={`${streak} dia${streak === 1 ? "" : "s"}`} />
         <Kpi
@@ -424,6 +502,123 @@ export function LibraryReports({ books }: Props) {
           value={`${monthBooksDone}/${monthlyBooks}`}
         />
       </div>
+
+      {/* Plano completo da biblioteca */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Layers className="h-4 w-4 text-primary" /> Plano completo da biblioteca
+          </CardTitle>
+          <CardDescription>
+            Soma de todas as páginas dos {library.count} livro{library.count === 1 ? "" : "s"} cadastrados.
+            Defina a data de início e o prazo final para concluir tudo — as metas são recalculadas
+            automaticamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="p-start">Data de início</Label>
+              <Input
+                id="p-start"
+                type="date"
+                value={planStart}
+                onChange={(e) => setPlanStart(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-end">Prazo para concluir</Label>
+              <Input
+                id="p-end"
+                type="date"
+                value={planEnd}
+                min={planStart}
+                onChange={(e) => setPlanEnd(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2 flex items-center justify-between gap-3 border border-border bg-card/40 p-3 min-w-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Metas pelo total da biblioteca</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Usa {plan.requiredPerDay} pág./dia no lugar da meta manual
+                </p>
+              </div>
+              <Switch checked={basedOnLibrary} onCheckedChange={setBasedOnLibrary} />
+            </div>
+          </div>
+
+          <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+            <PlanStat label="Total de páginas" value={library.total.toLocaleString("pt-BR")} />
+            <PlanStat label="Páginas lidas" value={library.read.toLocaleString("pt-BR")} />
+            <PlanStat label="Páginas restantes" value={plan.remainingPages.toLocaleString("pt-BR")} />
+            <PlanStat
+              label="Ritmo necessário"
+              value={`${plan.requiredPerDay.toLocaleString("pt-BR")} pág./dia`}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+              <span>Progresso da biblioteca</span>
+              <span>
+                {library.read.toLocaleString("pt-BR")} / {library.total.toLocaleString("pt-BR")} páginas ({plan.pct}%)
+              </span>
+            </div>
+            <Progress value={plan.pct} className="h-2" />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-[11px]">
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground flex items-center gap-1">
+                <CalendarDays className="h-3 w-3" /> Período
+              </p>
+              <p className="text-foreground font-medium">
+                {plan.valid
+                  ? `${plan.start.toLocaleDateString("pt-BR")} → ${plan.end.toLocaleDateString("pt-BR")}`
+                  : "Datas inválidas"}
+              </p>
+              <p className="text-muted-foreground">
+                {plan.totalDays} dia{plan.totalDays === 1 ? "" : "s"} · {plan.remainingDays} restante
+                {plan.remainingDays === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Esperado até hoje</p>
+              <p className="text-foreground font-medium">
+                {plan.expectedPages.toLocaleString("pt-BR")} páginas
+              </p>
+              <p className={plan.onPace ? "text-success" : "text-warning"}>
+                {plan.onPace
+                  ? "No ritmo do prazo"
+                  : `Atraso de ${(plan.expectedPages - library.read).toLocaleString("pt-BR")} pág.`}
+              </p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Lido dentro do plano</p>
+              <p className="text-foreground font-medium">
+                {plan.pagesInPlan.toLocaleString("pt-BR")} páginas
+              </p>
+              <p className="text-muted-foreground">registradas em sessões</p>
+            </div>
+            <div className="border border-border bg-card/40 p-3 space-y-1">
+              <p className="text-muted-foreground">Conclusão no ritmo atual</p>
+              <p className="text-foreground font-medium">
+                {plan.remainingPages === 0
+                  ? "Biblioteca concluída"
+                  : plan.paceFinish.toLocaleDateString("pt-BR")}
+              </p>
+              <p className="text-muted-foreground">com {dailyPages} pág./dia</p>
+            </div>
+          </div>
+
+          {library.missing > 0 && (
+            <p className="text-[11px] text-warning">
+              {library.missing} livro{library.missing === 1 ? "" : "s"} sem total de páginas definido —
+              edite os dados para um cálculo exato.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Metas */}
       <Card>
@@ -731,6 +926,16 @@ function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: st
     </Card>
   );
 }
+
+function PlanStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border border-border bg-card/40 p-3 min-w-0">
+      <p className="text-[11px] text-muted-foreground truncate">{label}</p>
+      <p className="text-sm sm:text-base font-bold font-display truncate">{value}</p>
+    </div>
+  );
+}
+
 
 function ChartCard({
   title,
