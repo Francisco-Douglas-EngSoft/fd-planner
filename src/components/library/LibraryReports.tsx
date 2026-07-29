@@ -936,7 +936,6 @@ function PlanStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-}
 
 function ChartCard({
   title,
