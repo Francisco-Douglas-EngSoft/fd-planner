@@ -936,20 +936,6 @@ function PlanStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function KpiLegacy({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <Card>
-      <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-        <div className="h-8 w-8 sm:h-9 sm:w-9 bg-primary/10 flex items-center justify-center shrink-0">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{label}</p>
-          <p className="text-base sm:text-lg font-bold font-display truncate">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function ChartCard({
