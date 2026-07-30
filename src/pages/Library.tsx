@@ -461,10 +461,43 @@ function BookGrid({
       ? Math.min(100, Math.round(((b.last_read_page ?? 0) / b.total_pages) * 100))
       : 0;
 
+  // Paginação: renderiza apenas uma página por vez para não montar centenas de capas.
+  const totalPages = Math.max(1, Math.ceil(books.length / BOOKS_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageBooks = books.slice((currentPage - 1) * BOOKS_PAGE_SIZE, currentPage * BOOKS_PAGE_SIZE);
+
+  const pager =
+    totalPages > 1 ? (
+      <div className="flex items-center justify-between gap-3 pt-4">
+        <p className="text-xs text-muted-foreground">
+          Página {currentPage} de {totalPages} · {books.length} livros
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            onClick={() => onPageChange(currentPage - 1)}
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => onPageChange(currentPage + 1)}
+          >
+            Próxima
+          </Button>
+        </div>
+      </div>
+    ) : null;
+
   if (view === "list") {
     return (
+      <div>
       <div className="flex flex-col gap-2">
-        {books.map((b) => (
+        {pageBooks.map((b) => (
           <Card key={b.id} className="tint-card">
             <CardContent className="p-3 flex items-center gap-3">
               <div className="w-10 sm:w-12 shrink-0">
@@ -499,12 +532,15 @@ function BookGrid({
           </Card>
         ))}
       </div>
+      {pager}
+      </div>
     );
   }
 
   return (
+    <div>
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-      {books.map((b) => {
+      {pageBooks.map((b) => {
         const progress = progressOf(b);
         return (
           <Card key={b.id} className="tint-card group hover:shadow-md transition-shadow overflow-hidden">
@@ -550,6 +586,8 @@ function BookGrid({
           </Card>
         );
       })}
+    </div>
+    {pager}
     </div>
   );
 }
