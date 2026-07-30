@@ -466,7 +466,10 @@ export default function Reader() {
     if (changed) {
       lastPageRef.current = page;
       if (isFirstPageOfSession) return; // respeita a restauração do progresso salvo
-      if (suppressScrollResetRef.current) return; // navegação por destaques/notas
+      if (suppressScrollResetRef.current) {
+        window.setTimeout(() => { suppressScrollResetRef.current = false; }, 800);
+        return; // navegação por destaques/notas
+      }
       pendingTopRef.current = true;
     }
     if (!pendingTopRef.current) return;
