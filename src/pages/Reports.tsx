@@ -48,6 +48,7 @@ import { ptBR } from 'date-fns/locale';
 import { formatHoursToHMS } from '@/lib/timeUtils';
 import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 import { fetchAllPaginated } from '@/lib/supabasePagination';
+import { fetchCompletedHours, applyCompletedHours } from '@/lib/studyHours';
 
 interface Course {
   id: string;
