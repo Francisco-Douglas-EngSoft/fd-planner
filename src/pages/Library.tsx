@@ -26,6 +26,7 @@ import { BookCover } from "@/components/library/BookCover";
 import { BookEditDialog, BOOK_STATUSES } from "@/components/library/BookEditDialog";
 import { BookUploadDialog } from "@/components/library/BookUploadDialog";
 import { LibraryReports } from "@/components/library/LibraryReports";
+import { ReadingPlanAI } from "@/components/library/ReadingPlanAI";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -322,6 +323,7 @@ export default function Library() {
                 <TabsTrigger value="reading" className="text-xs sm:text-sm whitespace-nowrap">Em leitura ({reading.length})</TabsTrigger>
                 <TabsTrigger value="completed" className="text-xs sm:text-sm whitespace-nowrap">Concluídos ({completed.length})</TabsTrigger>
                 <TabsTrigger value="reports" className="text-xs sm:text-sm whitespace-nowrap">Relatórios</TabsTrigger>
+                <TabsTrigger value="ai-plan" className="text-xs sm:text-sm whitespace-nowrap">Plano IA</TabsTrigger>
               </TabsList>
             </div>
 
@@ -336,6 +338,9 @@ export default function Library() {
             </TabsContent>
             <TabsContent value="reports" className="mt-4">
               <LibraryReports books={books} />
+            </TabsContent>
+            <TabsContent value="ai-plan" className="mt-4">
+              <ReadingPlanAI books={books} />
             </TabsContent>
           </Tabs>
         </section>
