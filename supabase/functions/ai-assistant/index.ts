@@ -41,11 +41,7 @@ Deno.serve(async (req) => {
 
     // Ad-hoc rate limit: 20 requisições / minuto por usuário autenticado
     // (user.id não pode ser trocado pelo cliente, ao contrário do header).
-    const rl = checkRateLimit({
-      key: `ai-assistant:${user.id}:${clientIpFrom(req)}`,
-      limit: 20,
-      windowMs: 60_000,
-    });
+    const rl = checkRateLimit({ key: `ai-assistant:${user.id}`, limit: 20, windowMs: 60_000 });
     if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
 
     const { messages }: { messages: UIMessage[] } = await req.json();
