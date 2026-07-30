@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -40,8 +40,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ui/QueryState";
 
 const UNCATEGORIZED = "__uncategorized__";
+const BOOKS_PAGE_SIZE = 24;
 
 function inferFileType(name: string): string {
   const ext = name.toLowerCase().split(".").pop() ?? "";
@@ -59,9 +61,10 @@ type SortKey = "recent" | "title" | "author" | "progress";
 export default function Library() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: books = [], isLoading, create, update, remove } = useBooks();
+  const { data: books = [], isLoading, isError, error, refetch, create, update, remove } = useBooks();
 
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -181,6 +184,11 @@ export default function Library() {
     onOpen: (id: string) => navigate(`/leitor/${id}`),
     onRemove: handleRemove,
     onEdit: (b: BookRow) => setEditing(b),
+    isError,
+    error,
+    onRetry: () => refetch(),
+    page,
+    onPageChange: setPage,
   };
 
   return (
