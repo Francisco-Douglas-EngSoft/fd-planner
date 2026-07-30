@@ -835,6 +835,8 @@ export default function Planning() {
             ))}
           </motion.div>
         )}
+
+        {plans.length > 0 && <GlobalGoalCard plans={plans as never} />}
       </div>
 
       {/* Today's Study Card */}
