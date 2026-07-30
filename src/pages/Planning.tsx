@@ -1159,14 +1159,9 @@ export default function Planning() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-14 w-14 border-4 border-primary/20 border-t-primary"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-primary animate-pulse" />
-              </div>
-            </div>
-          </div>
+          <LoadingState message="Carregando planejamentos..." />
+        ) : loadError ? (
+          <ErrorState error={loadError} onRetry={fetchPlans} />
         ) : (
           filteredPlans.length === 0 ? (
           <Card className="p-12 text-center border-dashed border-2 bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl">
