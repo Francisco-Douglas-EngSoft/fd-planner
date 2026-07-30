@@ -124,7 +124,7 @@ export function ReadingPlanAI({ books }: { books: BookRow[] }) {
         </CardContent>
       </Card>
 
-      {error && <ErrorState message={error} onRetry={generate} />}
+      {error && <ErrorState title={error} onRetry={generate} />}
 
       {!plan && !error && !loading && (
         <EmptyState
