@@ -7,13 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkles, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
 
 const transport = new DefaultChatTransport({
   api: endpoint,
-  headers: {
-    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+  // Envia sempre o JWT do usuário autenticado — a edge function exige sessão válida.
+  headers: async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("Faça login para usar o assistente.");
+    return { Authorization: `Bearer ${token}` };
   },
 });
 
