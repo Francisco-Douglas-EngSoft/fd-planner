@@ -422,6 +422,11 @@ function BookGrid({
   onOpen,
   onRemove,
   onEdit,
+  isError,
+  error,
+  onRetry,
+  page,
+  onPageChange,
 }: {
   books: BookRow[];
   isLoading: boolean;
@@ -429,22 +434,25 @@ function BookGrid({
   onOpen: (id: string) => void;
   onRemove: (id: string) => void;
   onEdit: (book: BookRow) => void;
+  isError?: boolean;
+  error?: unknown;
+  onRetry?: () => void;
+  page: number;
+  onPageChange: (page: number) => void;
 }) {
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" /> Carregando biblioteca...
-      </div>
-    );
+    return <LoadingState message="Carregando biblioteca..." />;
+  }
+  if (isError) {
+    return <ErrorState title="Erro ao carregar a biblioteca" error={error} onRetry={onRetry} />;
   }
   if (!books || books.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-16 text-center text-muted-foreground flex flex-col items-center gap-3">
-          <BookOpen className="h-10 w-10" />
-          <p>Nenhum livro por aqui ainda. Envie seu primeiro PDF ou EPUB.</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={BookOpen}
+        title="Nenhum livro por aqui ainda"
+        description="Envie seu primeiro PDF ou EPUB para começar a acompanhar sua leitura."
+      />
     );
   }
 
