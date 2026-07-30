@@ -1,4 +1,5 @@
 import { convertToModelMessages, streamText, type UIMessage } from "npm:ai@5.0.60";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
 import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
@@ -15,9 +16,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Ad-hoc rate limit: 20 requests / minute per caller (auth id or IP).
-    const bucketKey = req.headers.get("Authorization") ?? clientIpFrom(req);
-    const rl = checkRateLimit({ key: `ai-assistant:${bucketKey}`, limit: 20, windowMs: 60_000 });
+    // Autenticação obrigatória: exige um JWT de usuário válido.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const user = userData?.user;
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Ad-hoc rate limit: 20 requisições / minuto por usuário autenticado
+    // (user.id não pode ser trocado pelo cliente, ao contrário do header).
+    const rl = checkRateLimit({
+      key: `ai-assistant:${user.id}:${clientIpFrom(req)}`,
+      limit: 20,
+      windowMs: 60_000,
+    });
     if (!rl.ok) return rateLimitResponse(rl, corsHeaders);
 
     const { messages }: { messages: UIMessage[] } = await req.json();
