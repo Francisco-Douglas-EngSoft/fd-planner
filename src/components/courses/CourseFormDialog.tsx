@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, X, Trash2, GripVertical, ChevronDown, ChevronRight, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ImageUpload } from './ImageUpload';
+import { PasteModulesDialog, PastedModule } from './PasteModulesDialog';
 import {
   Dialog,
   DialogContent,
@@ -255,6 +256,7 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasteDialog, setShowPasteDialog] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -331,6 +333,27 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
 
   const addModule = () => {
     setModules([...modules, { name: '', hours: '01:00:00', subModules: [], isExpanded: false }]);
+  };
+
+  const handlePastedModules = (pasted: PastedModule[], mode: 'replace' | 'append') => {
+    const mapped: Module[] = pasted.map((m) => ({
+      name: m.name,
+      hours: hoursToTimeFormat(m.hours),
+      subModules: m.subModules.map((s) => ({ name: s.name, hours: hoursToTimeFormat(s.hours) })),
+      isExpanded: false,
+    }));
+
+    if (mode === 'append') {
+      const current = modules.filter((m) => m.name.trim());
+      setModules([...current, ...mapped]);
+    } else {
+      setModules(mapped.length > 0 ? mapped : [{ name: '', hours: '01:00:00', subModules: [], isExpanded: false }]);
+    }
+
+    toast({
+      title: 'Módulos importados',
+      description: `${mapped.length} módulo(s) adicionados a partir do texto colado.`,
+    });
   };
 
   const removeModule = (index: number) => {
@@ -662,9 +685,21 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium">Módulos (arraste para reorganizar)</Label>
-              <span className="text-sm font-medium text-primary">
-                Carga total: {calculateTotalHours()}
-              </span>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPasteDialog(true)}
+                  className="h-8 text-xs"
+                >
+                  <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+                  Colar módulos
+                </Button>
+                <span className="text-sm font-medium text-primary">
+                  Carga total: {calculateTotalHours()}
+                </span>
+              </div>
             </div>
 
             <DndContext
@@ -710,6 +745,13 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
             </Button>
           </div>
         </form>
+
+        <PasteModulesDialog
+          open={showPasteDialog}
+          onOpenChange={setShowPasteDialog}
+          onConfirm={handlePastedModules}
+          hasExistingModules={modules.some((m) => m.name.trim())}
+        />
       </DialogContent>
     </Dialog>
   );
