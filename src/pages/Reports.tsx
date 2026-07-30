@@ -194,7 +194,9 @@ export default function Reports() {
       supabase.from('clean_streaks').select('current_streak, longest_streak, addiction_type').eq('user_id', user.id),
     ]);
 
-    const coursesList = coursesResult.data || [];
+    // Horas concluídas reais (módulos/submódulos) — evita divergência com o Dashboard.
+    const completedHoursMap = await fetchCompletedHours(user.id);
+    const coursesList = applyCompletedHours(coursesResult.data || [], completedHoursMap);
     const focusSessionsList = focusResult.data || [];
     const tasksList = tasksResult.data || [];
     const allTasksList = allTasksResult.data || [];
