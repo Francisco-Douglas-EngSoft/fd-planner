@@ -319,7 +319,10 @@ export default function Reader() {
       const target = sortedAnnotations[next];
       setHighlightNavIndex(next);
       const samePage = target.page === page;
-      if (!samePage) setPage(target.page);
+      if (!samePage) {
+        suppressScrollResetRef.current = true;
+        setPage(target.page);
+      }
       const rect = target.rects?.[0];
       if (rect) setTimeout(() => scrollToRect(rect), samePage ? 60 : 500);
       toast.message(
