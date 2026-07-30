@@ -276,51 +276,40 @@ export default function Notes() {
 
       {/* Notes Grid */}
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 space-y-3">
-                <div className="h-5 bg-muted rounded w-3/4" />
-                <div className="h-4 bg-muted rounded w-full" />
-                <div className="h-4 bg-muted rounded w-2/3" />
-                <div className="flex gap-2">
-                  <div className="h-5 bg-muted rounded-full w-16" />
-                  <div className="h-5 bg-muted rounded-full w-16" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <LoadingState message="Carregando notas..." />
+      ) : notesQuery.isError ? (
+        <ErrorState
+          title="Erro ao carregar notas"
+          error={notesQuery.error}
+          onRetry={() => notesQuery.refetch()}
+        />
       ) : filteredNotes.length === 0 ? (
-        <Card className="p-10 text-center border-dashed border-2 bg-gradient-to-br from-card to-muted/20">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary mx-auto mb-4 flex items-center justify-center shadow-glow">
-            <StickyNote className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h4 className="font-bold text-lg mb-2">
-            {searchQuery || selectedTag ? 'Nenhuma nota encontrada' : 'Nenhuma nota criada'}
-          </h4>
-          <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-            {searchQuery || selectedTag 
-              ? 'Tente ajustar os filtros de busca' 
+        <EmptyState
+          icon={StickyNote}
+          title={searchQuery || selectedTag ? 'Nenhuma nota encontrada' : 'Nenhuma nota criada'}
+          description={
+            searchQuery || selectedTag
+              ? 'Tente ajustar os filtros de busca'
               : 'Comece a documentar seu aprendizado criando sua primeira nota'
-            }
-          </p>
-          {!searchQuery && !selectedTag && (
-            <Button 
-              className="bg-gradient-primary hover:opacity-90 shadow-glow"
-              onClick={() => {
-                setEditNote(null);
-                setShowNoteDialog(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar primeira nota
-            </Button>
-          )}
-        </Card>
+          }
+          action={
+            !searchQuery && !selectedTag ? (
+              <Button
+                onClick={() => {
+                  setEditNote(null);
+                  setShowNoteDialog(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar primeira nota
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
+        <>
         <div className="grid gap-4 lg:grid-cols-2">
-          {filteredNotes.map((note, index) => (
+          {paginatedNotes.map((note, index) => (
             <Card 
               key={note.id}
               className="group hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer overflow-hidden border-0 shadow-card"
@@ -434,6 +423,32 @@ export default function Notes() {
             </Card>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Página {currentPage} de {totalPages} · {filteredNotes.length} notas
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* Stats */}
