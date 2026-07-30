@@ -2,7 +2,7 @@ import { convertToModelMessages, streamText, type UIMessage } from "npm:ai@5.0.6
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
-import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
