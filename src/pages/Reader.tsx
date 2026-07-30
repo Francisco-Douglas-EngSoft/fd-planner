@@ -83,6 +83,9 @@ export default function Reader() {
   const restoredPrefsRef = useRef(false);
   const initialSaveSkippedRef = useRef(false);
   const scrollRestoredRef = useRef(false);
+  const suppressScrollResetRef = useRef(false);
+  const lastPageRef = useRef<number | null>(null);
+  const pendingTopRef = useRef(false);
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
@@ -317,7 +320,10 @@ export default function Reader() {
       const target = sortedAnnotations[next];
       setHighlightNavIndex(next);
       const samePage = target.page === page;
-      if (!samePage) setPage(target.page);
+      if (!samePage) {
+        suppressScrollResetRef.current = true;
+        setPage(target.page);
+      }
       const rect = target.rects?.[0];
       if (rect) setTimeout(() => scrollToRect(rect), samePage ? 60 : 500);
       toast.message(
@@ -451,6 +457,33 @@ export default function Reader() {
     if (target > 0) el.scrollTop = target;
     scrollRestoredRef.current = true;
   }, [book, rendering, page]);
+
+  // Ao trocar de página, sempre inicia a leitura no topo da nova página.
+  // Roda também quando a renderização termina, pois a altura do container muda.
+  useEffect(() => {
+    const changed = lastPageRef.current !== page;
+    const isFirstPageOfSession = lastPageRef.current === null;
+    if (changed) {
+      lastPageRef.current = page;
+      if (isFirstPageOfSession) return; // respeita a restauração do progresso salvo
+      if (suppressScrollResetRef.current) {
+        window.setTimeout(() => { suppressScrollResetRef.current = false; }, 800);
+        return; // navegação por destaques/notas
+      }
+      pendingTopRef.current = true;
+    }
+    if (!pendingTopRef.current) return;
+    const el = pageContainerRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    if (!rendering) {
+      pendingTopRef.current = false;
+      suppressScrollResetRef.current = false;
+      requestAnimationFrame(() => {
+        pageContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+      });
+    }
+  }, [page, rendering]);
 
   // Debounce salvamento de scroll
   useEffect(() => {
