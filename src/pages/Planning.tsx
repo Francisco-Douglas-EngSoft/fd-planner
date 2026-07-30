@@ -43,6 +43,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays, isWithinInterval, isValid, parseISO, startOfWeek, addDays, subWeeks, addWeeks, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { fetchCompletedHours, getCourseCompletedHours } from '@/lib/studyHours';
+import { GlobalGoalCard } from '@/components/planning/GlobalGoalCard';
 import { LoadingState, ErrorState } from '@/components/ui/QueryState';
 
 const daysOfWeekFull = [
@@ -835,6 +836,8 @@ export default function Planning() {
             ))}
           </motion.div>
         )}
+
+        {plans.length > 0 && <GlobalGoalCard plans={plans as never} />}
       </div>
 
       {/* Today's Study Card */}
