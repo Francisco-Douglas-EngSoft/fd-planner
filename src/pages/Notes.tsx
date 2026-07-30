@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, FileText, Calendar, Tag, BookOpen, MoreVertical, Edit, Trash2, StickyNote, FolderInput } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,8 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
+import { fetchAllPaginated } from '@/lib/supabasePagination';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/QueryState';
 
 interface Note {
   id: string;
@@ -46,60 +49,61 @@ const moodEmojis: Record<string, string> = {
   'neutral': '😐',
 };
 
+const PAGE_SIZE = 12;
+
 export default function Notes() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | 'all'>('all');
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [editNote, setEditNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchNotes();
-      fetchFolders();
-    }
-  }, [user]);
+  // Cache (react-query) + paginação em blocos de 500 linhas no servidor,
+  // evitando o limite padrão de 1000 registros do Supabase.
+  const notesQuery = useQuery({
+    queryKey: ['study_notes', user?.id],
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    queryFn: async () =>
+      (await fetchAllPaginated<Note>(
+        () =>
+          supabase
+            .from('study_notes')
+            .select('*, courses (name)')
+            .eq('user_id', user!.id)
+            .order('updated_at', { ascending: false }) as never,
+      )) as Note[],
+  });
 
-  const fetchFolders = async () => {
-    if (!user) return;
-    const { data, error } = await (supabase as any)
-      .from('note_folders')
-      .select('id, name, color')
-      .eq('user_id', user.id)
-      .order('name');
-    if (!error && data) setFolders(data as NoteFolder[]);
-  };
+  const foldersQuery = useQuery({
+    queryKey: ['note_folders', user?.id],
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('note_folders')
+        .select('id, name, color')
+        .eq('user_id', user!.id)
+        .order('name');
+      if (error) throw new Error(error.message);
+      return (data || []) as NoteFolder[];
+    },
+  });
 
-  const fetchNotes = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('study_notes')
-      .select(`
-        *,
-        courses (name)
-      `)
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+  const notes = useMemo(() => notesQuery.data ?? [], [notesQuery.data]);
+  const folders = foldersQuery.data ?? [];
+  const isLoading = notesQuery.isLoading;
 
-    if (error) {
-      toast({
-        title: 'Erro ao carregar notas',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      setNotes(((data || []) as unknown) as Note[]);
-    }
-    setIsLoading(false);
-  };
+  const fetchNotes = () => qc.invalidateQueries({ queryKey: ['study_notes', user?.id] });
+  const fetchFolders = () => qc.invalidateQueries({ queryKey: ['note_folders', user?.id] });
+  const setNotes = (updater: (prev: Note[]) => Note[]) =>
+    qc.setQueryData(['study_notes', user?.id], (prev: Note[] | undefined) => updater(prev ?? []));
 
   const deleteNote = async (noteId: string) => {
     const { error } = await supabase
