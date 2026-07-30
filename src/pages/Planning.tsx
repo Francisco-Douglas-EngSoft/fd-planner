@@ -252,8 +252,27 @@ export default function Planning() {
         description: error.message,
         variant: 'destructive',
       });
+      setLoadError(error.message);
     } else {
-      setPlans(data || []);
+      setLoadError(null);
+      // Normaliza `completed_hours` com o cálculo real (módulos/submódulos),
+      // usando a mesma fonte do Dashboard e dos Relatórios.
+      let normalized = data || [];
+      try {
+        const hours = await fetchCompletedHours(user.id);
+        normalized = normalized.map((plan: any) => ({
+          ...plan,
+          study_plan_courses: (plan.study_plan_courses || []).map((pc: any) => ({
+            ...pc,
+            courses: pc.courses
+              ? { ...pc.courses, completed_hours: getCourseCompletedHours(hours, pc.course_id) }
+              : pc.courses,
+          })),
+        }));
+      } catch {
+        // Mantém os dados do banco caso o cálculo detalhado falhe.
+      }
+      setPlans(normalized);
     }
     setIsLoading(false);
   };
