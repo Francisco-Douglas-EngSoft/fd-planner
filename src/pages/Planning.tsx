@@ -200,6 +200,7 @@ export default function Planning() {
   const [selectedPlan, setSelectedPlan] = useState<StudyPlan | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
