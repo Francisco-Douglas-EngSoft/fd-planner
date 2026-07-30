@@ -169,6 +169,18 @@ export default function Notes() {
   }, {});
   const uncategorizedCount = notes.filter((n) => !n.folder_id).length;
 
+  // Paginação em memória sobre o resultado já filtrado.
+  const totalPages = Math.max(1, Math.ceil(filteredNotes.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedNotes = filteredNotes.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedTag, selectedFolderId]);
+
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
     if (!isValid(date)) return '—';
