@@ -42,6 +42,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays, isWithinInterval, isValid, parseISO, startOfWeek, addDays, subWeeks, addWeeks, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { fetchCompletedHours, getCourseCompletedHours } from '@/lib/studyHours';
 
 const daysOfWeekFull = [
   { id: 'sunday', label: 'Domingo', abbrev: 'Dom' },
