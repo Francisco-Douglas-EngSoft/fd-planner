@@ -85,6 +85,7 @@ export default function Reader() {
   const scrollRestoredRef = useRef(false);
   const suppressScrollResetRef = useRef(false);
   const lastPageRef = useRef<number | null>(null);
+  const pendingTopRef = useRef(false);
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
