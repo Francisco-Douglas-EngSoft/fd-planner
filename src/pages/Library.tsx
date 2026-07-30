@@ -72,6 +72,10 @@ export default function Library() {
   const [view, setView] = useState<"grid" | "list">("grid");
   const [editing, setEditing] = useState<BookRow | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [query, activeCategory, sort]);
+
   const categories = useMemo(() => {
     const map = new Map<string, number>();
     let none = 0;
