@@ -457,6 +457,35 @@ export default function Reader() {
     scrollRestoredRef.current = true;
   }, [book, rendering, page]);
 
+  // Ao trocar de página, sempre inicia a leitura no topo da nova página
+  useEffect(() => {
+    const el = pageContainerRef.current;
+    if (!el) return;
+    if (lastPageRef.current === page) return;
+    const isFirstPageOfSession = lastPageRef.current === null;
+    lastPageRef.current = page;
+    // Não interfere na restauração do progresso salvo nem na navegação por destaques
+    if (isFirstPageOfSession) return;
+    if (suppressScrollResetRef.current) {
+      suppressScrollResetRef.current = false;
+      return;
+    }
+    el.scrollTop = 0;
+    requestAnimationFrame(() => {
+      pageContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
+    });
+  }, [page]);
+
+  // Garante o topo também quando a renderização do PDF termina (altura muda)
+  useEffect(() => {
+    if (rendering) return;
+    if (suppressScrollResetRef.current) return;
+    if (!scrollRestoredRef.current && (book?.last_read_scroll ?? 0) > 0) return;
+    const el = pageContainerRef.current;
+    if (!el || el.scrollTop === 0) return;
+    if (lastPageRef.current !== page) el.scrollTop = 0;
+  }, [rendering, page, book]);
+
   // Debounce salvamento de scroll
   useEffect(() => {
     const el = pageContainerRef.current;
