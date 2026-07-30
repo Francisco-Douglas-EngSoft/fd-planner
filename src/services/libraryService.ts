@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { fetchAllPaginated } from "@/lib/supabasePagination";
 
 export type BookRow = Database["public"]["Tables"]["books"]["Row"];
 export type BookInsert = Database["public"]["Tables"]["books"]["Insert"];
@@ -7,13 +8,15 @@ export type BookUpdate = Database["public"]["Tables"]["books"]["Update"];
 
 export const libraryService = {
   async list(userId: string): Promise<BookRow[]> {
-    const { data, error } = await supabase
-      .from("books")
-      .select("*")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-    if (error) throw error;
-    return data ?? [];
+    // Busca paginada (500 por bloco) para não esbarrar no limite de 1000 linhas.
+    return fetchAllPaginated<BookRow>(
+      () =>
+        supabase
+          .from("books")
+          .select("*")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false }) as never,
+    );
   },
 
   async get(id: string): Promise<BookRow | null> {
