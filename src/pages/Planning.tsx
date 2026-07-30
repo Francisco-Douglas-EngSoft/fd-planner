@@ -42,6 +42,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, differenceInDays, isWithinInterval, isValid, parseISO, startOfWeek, addDays, subWeeks, addWeeks, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { fetchCompletedHours, getCourseCompletedHours } from '@/lib/studyHours';
+import { LoadingState, ErrorState } from '@/components/ui/QueryState';
 
 const daysOfWeekFull = [
   { id: 'sunday', label: 'Domingo', abbrev: 'Dom' },
@@ -199,6 +201,7 @@ export default function Planning() {
   const [selectedPlan, setSelectedPlan] = useState<StudyPlan | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<'weekly' | 'monthly'>('weekly');
@@ -251,8 +254,27 @@ export default function Planning() {
         description: error.message,
         variant: 'destructive',
       });
+      setLoadError(error.message);
     } else {
-      setPlans(data || []);
+      setLoadError(null);
+      // Normaliza `completed_hours` com o cálculo real (módulos/submódulos),
+      // usando a mesma fonte do Dashboard e dos Relatórios.
+      let normalized = data || [];
+      try {
+        const hours = await fetchCompletedHours(user.id);
+        normalized = normalized.map((plan: any) => ({
+          ...plan,
+          study_plan_courses: (plan.study_plan_courses || []).map((pc: any) => ({
+            ...pc,
+            courses: pc.courses
+              ? { ...pc.courses, completed_hours: getCourseCompletedHours(hours, pc.course_id) }
+              : pc.courses,
+          })),
+        }));
+      } catch {
+        // Mantém os dados do banco caso o cálculo detalhado falhe.
+      }
+      setPlans(normalized);
     }
     setIsLoading(false);
   };
@@ -1138,14 +1160,9 @@ export default function Planning() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-14 w-14 border-4 border-primary/20 border-t-primary"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <BookOpen className="h-5 w-5 text-primary animate-pulse" />
-              </div>
-            </div>
-          </div>
+          <LoadingState message="Carregando planejamentos..." />
+        ) : loadError ? (
+          <ErrorState error={loadError} onRetry={fetchPlans} />
         ) : (
           filteredPlans.length === 0 ? (
           <Card className="p-12 text-center border-dashed border-2 bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl">

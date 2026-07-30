@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, FileText, Calendar, Tag, BookOpen, MoreVertical, Edit, Trash2, StickyNote, FolderInput } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,8 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
+import { fetchAllPaginated } from '@/lib/supabasePagination';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/QueryState';
 
 interface Note {
   id: string;
@@ -46,60 +49,61 @@ const moodEmojis: Record<string, string> = {
   'neutral': '😐',
 };
 
+const PAGE_SIZE = 12;
+
 export default function Notes() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null | 'all'>('all');
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [editNote, setEditNote] = useState<Note | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    if (user) {
-      fetchNotes();
-      fetchFolders();
-    }
-  }, [user]);
+  // Cache (react-query) + paginação em blocos de 500 linhas no servidor,
+  // evitando o limite padrão de 1000 registros do Supabase.
+  const notesQuery = useQuery({
+    queryKey: ['study_notes', user?.id],
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    queryFn: async () =>
+      (await fetchAllPaginated<Note>(
+        () =>
+          supabase
+            .from('study_notes')
+            .select('*, courses (name)')
+            .eq('user_id', user!.id)
+            .order('updated_at', { ascending: false }) as never,
+      )) as Note[],
+  });
 
-  const fetchFolders = async () => {
-    if (!user) return;
-    const { data, error } = await (supabase as any)
-      .from('note_folders')
-      .select('id, name, color')
-      .eq('user_id', user.id)
-      .order('name');
-    if (!error && data) setFolders(data as NoteFolder[]);
-  };
+  const foldersQuery = useQuery({
+    queryKey: ['note_folders', user?.id],
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('note_folders')
+        .select('id, name, color')
+        .eq('user_id', user!.id)
+        .order('name');
+      if (error) throw new Error(error.message);
+      return (data || []) as NoteFolder[];
+    },
+  });
 
-  const fetchNotes = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from('study_notes')
-      .select(`
-        *,
-        courses (name)
-      `)
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+  const notes = useMemo(() => notesQuery.data ?? [], [notesQuery.data]);
+  const folders = foldersQuery.data ?? [];
+  const isLoading = notesQuery.isLoading;
 
-    if (error) {
-      toast({
-        title: 'Erro ao carregar notas',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } else {
-      setNotes(((data || []) as unknown) as Note[]);
-    }
-    setIsLoading(false);
-  };
+  const fetchNotes = () => qc.invalidateQueries({ queryKey: ['study_notes', user?.id] });
+  const fetchFolders = () => qc.invalidateQueries({ queryKey: ['note_folders', user?.id] });
+  const setNotes = (updater: (prev: Note[]) => Note[]) =>
+    qc.setQueryData(['study_notes', user?.id], (prev: Note[] | undefined) => updater(prev ?? []));
 
   const deleteNote = async (noteId: string) => {
     const { error } = await supabase
@@ -164,6 +168,18 @@ export default function Notes() {
     return acc;
   }, {});
   const uncategorizedCount = notes.filter((n) => !n.folder_id).length;
+
+  // Paginação em memória sobre o resultado já filtrado.
+  const totalPages = Math.max(1, Math.ceil(filteredNotes.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedNotes = filteredNotes.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedTag, selectedFolderId]);
 
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -260,51 +276,40 @@ export default function Notes() {
 
       {/* Notes Grid */}
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-4 space-y-3">
-                <div className="h-5 bg-muted rounded w-3/4" />
-                <div className="h-4 bg-muted rounded w-full" />
-                <div className="h-4 bg-muted rounded w-2/3" />
-                <div className="flex gap-2">
-                  <div className="h-5 bg-muted rounded-full w-16" />
-                  <div className="h-5 bg-muted rounded-full w-16" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <LoadingState message="Carregando notas..." />
+      ) : notesQuery.isError ? (
+        <ErrorState
+          title="Erro ao carregar notas"
+          error={notesQuery.error}
+          onRetry={() => notesQuery.refetch()}
+        />
       ) : filteredNotes.length === 0 ? (
-        <Card className="p-10 text-center border-dashed border-2 bg-gradient-to-br from-card to-muted/20">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-primary mx-auto mb-4 flex items-center justify-center shadow-glow">
-            <StickyNote className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h4 className="font-bold text-lg mb-2">
-            {searchQuery || selectedTag ? 'Nenhuma nota encontrada' : 'Nenhuma nota criada'}
-          </h4>
-          <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-            {searchQuery || selectedTag 
-              ? 'Tente ajustar os filtros de busca' 
+        <EmptyState
+          icon={StickyNote}
+          title={searchQuery || selectedTag ? 'Nenhuma nota encontrada' : 'Nenhuma nota criada'}
+          description={
+            searchQuery || selectedTag
+              ? 'Tente ajustar os filtros de busca'
               : 'Comece a documentar seu aprendizado criando sua primeira nota'
-            }
-          </p>
-          {!searchQuery && !selectedTag && (
-            <Button 
-              className="bg-gradient-primary hover:opacity-90 shadow-glow"
-              onClick={() => {
-                setEditNote(null);
-                setShowNoteDialog(true);
-              }}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Criar primeira nota
-            </Button>
-          )}
-        </Card>
+          }
+          action={
+            !searchQuery && !selectedTag ? (
+              <Button
+                onClick={() => {
+                  setEditNote(null);
+                  setShowNoteDialog(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar primeira nota
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
+        <>
         <div className="grid gap-4 lg:grid-cols-2">
-          {filteredNotes.map((note, index) => (
+          {paginatedNotes.map((note, index) => (
             <Card 
               key={note.id}
               className="group hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer overflow-hidden border-0 shadow-card"
@@ -418,6 +423,32 @@ export default function Notes() {
             </Card>
           ))}
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Página {currentPage} de {totalPages} · {filteredNotes.length} notas
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* Stats */}

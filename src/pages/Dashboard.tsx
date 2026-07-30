@@ -29,6 +29,7 @@ import { useGuestMode } from '@/hooks/useGuestMode';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDurationHuman } from '@/lib/timeUtils';
+import { computeCompletedHours, sumFocusMinutes } from '@/lib/studyHours';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -105,26 +106,14 @@ export default function Dashboard() {
       const activeCourses = courses.filter(c => c.status !== 'completed');
       const completedCourses = courses.filter(c => c.status === 'completed');
 
-      // Horas Estudadas = soma real das horas concluídas nos módulos/submódulos.
-      // Regra: se o módulo tem submódulos, contam apenas os submódulos concluídos;
-      // caso contrário, conta o módulo inteiro quando concluído.
-      const subsByModule = new Map<string, { hours: number | null; is_completed: boolean | null }[]>();
-      for (const s of subModules) {
-        const list = subsByModule.get(s.module_id) || [];
-        list.push(s);
-        subsByModule.set(s.module_id, list);
-      }
-
-      const courseCompletedHours = modules.reduce((sum, m) => {
-        const subs = subsByModule.get(m.id) || [];
-        if (subs.length > 0) {
-          return sum + subs.filter(s => s.is_completed).reduce((acc, s) => acc + (s.hours || 0), 0);
-        }
-        return sum + (m.is_completed ? (m.hours || 0) : 0);
-      }, 0);
+      // Fonte única de verdade: src/lib/studyHours.ts
+      const { totalCompletedHours: courseCompletedHours } = computeCompletedHours(
+        modules as never,
+        subModules as never,
+      );
 
       const totalCourseHours = activeCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
-      const totalFocusMinutes = focusSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+      const totalFocusMinutes = sumFocusMinutes(focusSessions);
 
       setUserName(profileResult.data?.full_name || user.email?.split('@')[0] || 'Estudante');
       setStats({
