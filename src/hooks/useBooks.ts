@@ -10,6 +10,10 @@ export function useBooks() {
     queryKey: ["books", user?.id],
     queryFn: () => (user ? libraryService.list(user.id) : Promise.resolve([] as BookRow[])),
     enabled: !!user,
+    // Cache: evita refetch a cada navegação entre abas da Biblioteca.
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const create = useMutation({
