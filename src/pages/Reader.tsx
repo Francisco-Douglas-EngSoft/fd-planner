@@ -28,6 +28,7 @@ import { SelectionPopover } from "@/components/reader/SelectionPopover";
 import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
 import { PageInput } from "@/components/reader/PageInput";
 import { clampPage, isPageCountLoading } from "@/lib/pageNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // pdfjs worker
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +44,7 @@ export default function Reader() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -713,25 +715,25 @@ export default function Reader() {
   );
 
   return (
-    <div className="container mx-auto max-w-[1400px] px-4 py-4 space-y-3">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
+    <div className="container mx-auto max-w-[1400px] px-2 sm:px-4 py-3 sm:py-4 space-y-3">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start sm:items-center justify-between gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Button variant="ghost" size="sm" onClick={() => navigate("/biblioteca")} className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Biblioteca
+            <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Biblioteca</span>
           </Button>
-          <div>
-            <h1 className="text-xl font-semibold line-clamp-1">{book?.title}</h1>
-            {book?.author && <p className="text-xs text-muted-foreground">{book.author}</p>}
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-semibold line-clamp-1">{book?.title}</h1>
+            {book?.author && <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{book.author}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isPdf && (
             <Button variant="outline" size="sm" onClick={() => setShowThumbs((v) => !v)} className="gap-2">
-              <PanelLeft className="h-4 w-4" /> {showThumbs ? "Ocultar painel" : "Sumário"}
+              <PanelLeft className="h-4 w-4" /> <span className="hidden sm:inline">{showThumbs ? "Ocultar painel" : "Sumário"}</span>
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={addBookmark} className="gap-2">
-            <Bookmark className="h-4 w-4" /> Marcar
+            <Bookmark className="h-4 w-4" /> <span className="hidden sm:inline">Marcar</span>
           </Button>
           <Button
             variant="outline" size="sm" className="gap-2"
@@ -745,7 +747,7 @@ export default function Reader() {
               else toast.success(`${data?.pages_indexed ?? 0} páginas indexadas`);
             }}
           >
-            <Sparkles className="h-4 w-4" /> Indexar
+            <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Indexar</span>
           </Button>
         </div>
       </motion.div>
@@ -776,24 +778,30 @@ export default function Reader() {
         <div
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `${showThumbs && !isFullscreen ? "250px" : "0px"} minmax(0, 1fr) 340px`,
+            gridTemplateColumns: isMobile
+              ? "minmax(0, 1fr)"
+              : `${showThumbs && !isFullscreen ? "250px" : "0px"} minmax(0, 1fr) minmax(0, 340px)`,
           }}
         >
           {/* Sumário / Miniaturas */}
-          {showThumbs && !isFullscreen ? renderLeftPanel(false) : <div />}
+          {showThumbs && !isFullscreen ? (
+            <div className={isMobile ? "max-h-[45vh] flex flex-col min-h-0" : "contents"}>{renderLeftPanel(false)}</div>
+          ) : isMobile ? null : (
+            <div />
+          )}
 
           {/* Viewer */}
-          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-row p-3 gap-3" : "space-y-3"}`}>
+          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? `h-screen w-screen flex ${isMobile ? "flex-col" : "flex-row"} p-2 sm:p-3 gap-2 sm:gap-3` : "space-y-3"}`}>
             {isFullscreen && showThumbs && (
-              <div className="w-[250px] shrink-0 h-full min-h-0">{renderLeftPanel(true)}</div>
+              <div className={isMobile ? "w-full shrink-0 h-[35vh] min-h-0" : "w-[250px] shrink-0 h-full min-h-0"}>{renderLeftPanel(true)}</div>
             )}
             <div className={isFullscreen ? "flex-1 min-w-0 flex flex-col gap-3 min-h-0" : "space-y-3"}>
             {/* Toolbar (flutuante e arrastável em tela cheia) */}
             <Card
-              className={`p-2 flex items-center gap-2 ${
+              className={`p-1.5 sm:p-2 flex items-center gap-1 sm:gap-2 ${
                 isFullscreen
-                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80"
-                  : "justify-between flex-wrap"
+                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80 max-w-[calc(100vw-1rem)] overflow-x-auto scrollbar-none"
+                  : "justify-between flex-wrap overflow-x-auto scrollbar-none"
               }`}
               style={
                 isFullscreen
@@ -980,7 +988,7 @@ export default function Reader() {
             <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
               <Card
                 ref={pageContainerRef}
-                className={`p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[80vh]"}`}
+                className={`p-2 sm:p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[65vh] sm:max-h-[80vh]"}`}
               >
                 {rendering && (
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-2 py-1 text-xs text-muted-foreground">
@@ -1071,7 +1079,7 @@ export default function Reader() {
           </div>
 
           {/* Painel direito com abas */}
-          <Card className="p-0 max-h-[85vh] flex flex-col overflow-hidden">
+          <Card className="p-0 min-w-0 max-h-[60vh] lg:max-h-[85vh] flex flex-col overflow-hidden">
             <Tabs value={sidePanel} onValueChange={(v) => setSidePanel(v as typeof sidePanel)} className="flex flex-col flex-1 min-h-0">
               <TabsList className="grid grid-cols-3 m-2">
                 <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
