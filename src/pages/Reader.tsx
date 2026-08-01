@@ -988,7 +988,7 @@ export default function Reader() {
             <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
               <Card
                 ref={pageContainerRef}
-                className={`p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[80vh]"}`}
+                className={`p-2 sm:p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[65vh] sm:max-h-[80vh]"}`}
               >
                 {rendering && (
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-2 py-1 text-xs text-muted-foreground">
