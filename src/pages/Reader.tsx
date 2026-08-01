@@ -28,6 +28,7 @@ import { SelectionPopover } from "@/components/reader/SelectionPopover";
 import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
 import { PageInput } from "@/components/reader/PageInput";
 import { clampPage, isPageCountLoading } from "@/lib/pageNavigation";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // pdfjs worker
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +44,7 @@ export default function Reader() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
