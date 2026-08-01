@@ -75,7 +75,7 @@ export function BookEditDialog({ book, categories, open, onOpenChange, onSave }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar livro</DialogTitle>
         </DialogHeader>
