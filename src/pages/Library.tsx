@@ -197,7 +197,7 @@ export default function Library() {
   };
 
   return (
-    <div className="container mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-6 space-y-5 sm:space-y-6">
+    <div className="w-full mx-auto max-w-7xl px-0 sm:px-2 py-2 sm:py-6 space-y-5 sm:space-y-6">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -530,10 +530,10 @@ function BookGrid({
               </div>
               <div className="flex gap-0.5 sm:gap-1 shrink-0">
                 <Button size="sm" className="px-2 sm:px-3" onClick={() => onOpen(b.id)}>Abrir</Button>
-                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onEdit(b)} aria-label="Editar">
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => onEdit(b)} aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="hidden sm:inline-flex" onClick={() => onRemove(b.id)} aria-label="Remover">
+                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => onRemove(b.id)} aria-label="Remover">
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
