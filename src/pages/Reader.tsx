@@ -715,25 +715,25 @@ export default function Reader() {
   );
 
   return (
-    <div className="container mx-auto max-w-[1400px] px-4 py-4 space-y-3">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
+    <div className="container mx-auto max-w-[1400px] px-2 sm:px-4 py-3 sm:py-4 space-y-3">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start sm:items-center justify-between gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Button variant="ghost" size="sm" onClick={() => navigate("/biblioteca")} className="gap-2">
-            <ArrowLeft className="h-4 w-4" /> Biblioteca
+            <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Biblioteca</span>
           </Button>
-          <div>
-            <h1 className="text-xl font-semibold line-clamp-1">{book?.title}</h1>
-            {book?.author && <p className="text-xs text-muted-foreground">{book.author}</p>}
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-semibold line-clamp-1">{book?.title}</h1>
+            {book?.author && <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-1">{book.author}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isPdf && (
             <Button variant="outline" size="sm" onClick={() => setShowThumbs((v) => !v)} className="gap-2">
-              <PanelLeft className="h-4 w-4" /> {showThumbs ? "Ocultar painel" : "Sumário"}
+              <PanelLeft className="h-4 w-4" /> <span className="hidden sm:inline">{showThumbs ? "Ocultar painel" : "Sumário"}</span>
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={addBookmark} className="gap-2">
-            <Bookmark className="h-4 w-4" /> Marcar
+            <Bookmark className="h-4 w-4" /> <span className="hidden sm:inline">Marcar</span>
           </Button>
           <Button
             variant="outline" size="sm" className="gap-2"
@@ -747,7 +747,7 @@ export default function Reader() {
               else toast.success(`${data?.pages_indexed ?? 0} páginas indexadas`);
             }}
           >
-            <Sparkles className="h-4 w-4" /> Indexar
+            <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Indexar</span>
           </Button>
         </div>
       </motion.div>
