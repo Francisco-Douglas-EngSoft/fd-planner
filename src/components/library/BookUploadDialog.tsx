@@ -188,7 +188,7 @@ export function BookUploadDialog({ open, onOpenChange, userId, categories, onCre
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Enviar livros</DialogTitle>
         </DialogHeader>
@@ -279,7 +279,7 @@ export function BookUploadDialog({ open, onOpenChange, userId, categories, onCre
                       placeholder="Autor (opcional)"
                     />
                     <p className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-2">
-                      <span className="truncate max-w-[220px]">{it.file.name}</span>
+                      <span className="truncate max-w-[55vw] sm:max-w-[220px]">{it.file.name}</span>
                       <span>· {formatSize(it.file.size)}</span>
                       {it.pages > 0 && (
                         <span className="inline-flex items-center gap-1 text-primary">
