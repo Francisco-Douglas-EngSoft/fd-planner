@@ -1079,7 +1079,7 @@ export default function Reader() {
           </div>
 
           {/* Painel direito com abas */}
-          <Card className="p-0 max-h-[85vh] flex flex-col overflow-hidden">
+          <Card className="p-0 min-w-0 max-h-[60vh] lg:max-h-[85vh] flex flex-col overflow-hidden">
             <Tabs value={sidePanel} onValueChange={(v) => setSidePanel(v as typeof sidePanel)} className="flex flex-col flex-1 min-h-0">
               <TabsList className="grid grid-cols-3 m-2">
                 <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
