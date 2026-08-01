@@ -778,16 +778,22 @@ export default function Reader() {
         <div
           className="grid gap-3"
           style={{
-            gridTemplateColumns: `${showThumbs && !isFullscreen ? "250px" : "0px"} minmax(0, 1fr) 340px`,
+            gridTemplateColumns: isMobile
+              ? "minmax(0, 1fr)"
+              : `${showThumbs && !isFullscreen ? "250px" : "0px"} minmax(0, 1fr) minmax(0, 340px)`,
           }}
         >
           {/* Sumário / Miniaturas */}
-          {showThumbs && !isFullscreen ? renderLeftPanel(false) : <div />}
+          {showThumbs && !isFullscreen ? (
+            <div className={isMobile ? "max-h-[45vh] flex flex-col min-h-0" : "contents"}>{renderLeftPanel(false)}</div>
+          ) : isMobile ? null : (
+            <div />
+          )}
 
           {/* Viewer */}
-          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? "h-screen w-screen flex flex-row p-3 gap-3" : "space-y-3"}`}>
+          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? `h-screen w-screen flex ${isMobile ? "flex-col" : "flex-row"} p-2 sm:p-3 gap-2 sm:gap-3` : "space-y-3"}`}>
             {isFullscreen && showThumbs && (
-              <div className="w-[250px] shrink-0 h-full min-h-0">{renderLeftPanel(true)}</div>
+              <div className={isMobile ? "w-full shrink-0 h-[35vh] min-h-0" : "w-[250px] shrink-0 h-full min-h-0"}>{renderLeftPanel(true)}</div>
             )}
             <div className={isFullscreen ? "flex-1 min-w-0 flex flex-col gap-3 min-h-0" : "space-y-3"}>
             {/* Toolbar (flutuante e arrastável em tela cheia) */}
