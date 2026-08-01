@@ -21,6 +21,7 @@ import {
   X,
   Search,
 } from 'lucide-react';
+import { Library, Bookmark, Network, Layers, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -34,6 +35,7 @@ import { Logo } from '@/components/ui/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePendingTasksCount } from '@/hooks/usePendingTasksCount';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const primaryNavItems = [
   { path: '/dashboard', label: 'Início', icon: LayoutDashboard },
@@ -45,6 +47,11 @@ const primaryNavItems = [
 const secondaryNavItems = [
   { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
   { path: '/notas', label: 'Notas', icon: StickyNote },
+  { path: '/biblioteca', label: 'Biblioteca', icon: Library },
+  { path: '/marcadores', label: 'Marcadores', icon: Bookmark },
+  { path: '/mapas', label: 'Mapas Mentais', icon: Network },
+  { path: '/flashcards', label: 'Flashcards', icon: Layers },
+  { path: '/assistente', label: 'Assistente IA', icon: Sparkles },
   { path: '/antivicio', label: 'AntiVício', icon: Shield },
   { path: '/redes', label: 'Redes', icon: Share2 },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
@@ -60,8 +67,15 @@ export function BottomNavigation() {
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const pendingTasks = usePendingTasksCount();
+  const { isAdmin } = useUserRole();
 
-  const isMoreActive = secondaryNavItems.some(item => item.path === location.pathname);
+  const menuItems = [
+    ...primaryNavItems,
+    ...secondaryNavItems,
+    ...(isAdmin ? [{ path: '/admin', label: 'Admin', icon: Shield }] : []),
+  ];
+
+  const isMoreActive = !primaryNavItems.some(item => item.path === location.pathname);
 
   const handleLogout = async () => {
     await signOut();
@@ -163,7 +177,7 @@ export function BottomNavigation() {
                   Navegação
                 </p>
                 <nav className="px-2 space-y-0.5">
-                  {[...primaryNavItems, ...secondaryNavItems].map((item) => {
+                  {menuItems.map((item) => {
                     const isActive = location.pathname === item.path;
                     return (
                       <NavLink
