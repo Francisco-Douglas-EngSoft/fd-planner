@@ -798,10 +798,10 @@ export default function Reader() {
             <div className={isFullscreen ? "flex-1 min-w-0 flex flex-col gap-3 min-h-0" : "space-y-3"}>
             {/* Toolbar (flutuante e arrastável em tela cheia) */}
             <Card
-              className={`p-2 flex items-center gap-2 ${
+              className={`p-1.5 sm:p-2 flex items-center gap-1 sm:gap-2 ${
                 isFullscreen
-                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80"
-                  : "justify-between flex-wrap"
+                  ? "fixed z-50 shadow-2xl bg-background/95 backdrop-blur border-border/80 max-w-[calc(100vw-1rem)] overflow-x-auto scrollbar-none"
+                  : "justify-between flex-wrap overflow-x-auto scrollbar-none"
               }`}
               style={
                 isFullscreen
