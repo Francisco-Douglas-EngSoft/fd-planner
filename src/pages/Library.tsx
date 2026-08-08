@@ -205,8 +205,8 @@ export default function Library() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Biblioteca Digital</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 italic">
-            "Otimo os Livros que ficaram principalmente os de Engenharia de Software, eles podem me torna em um Engenheiro profissional?"
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Organize seus PDFs e EPUBs por categoria e acompanhe o progresso de leitura.
           </p>
         </div>
 
