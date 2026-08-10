@@ -112,7 +112,7 @@ export default function Dashboard() {
         subModules as never,
       );
 
-      const totalCourseHours = activeCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
+      const totalCourseHours = courses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
       const totalFocusMinutes = sumFocusMinutes(focusSessions);
 
       setUserName(profileResult.data?.full_name || user.email?.split('@')[0] || 'Estudante');
