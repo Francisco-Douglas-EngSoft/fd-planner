@@ -147,6 +147,7 @@ interface SortableCourseCardProps {
   daysUntilStart: number; // Days until course starts
   onCardClick: () => void;
   justDraggedRef: React.MutableRefObject<number>;
+  realHours: Record<string, number>;
 }
 
 function SortableCourseCard({ 
@@ -167,6 +168,7 @@ function SortableCourseCard({
   daysUntilStart,
   onCardClick,
   justDraggedRef,
+  realHours,
 }: SortableCourseCardProps) {
   const {
     attributes,
@@ -197,7 +199,7 @@ function SortableCourseCard({
   };
 
   const courseTotalHours = pc.courses?.total_hours || 0;
-  const completedHours = realHours[pc.course_id] ?? pc.courses?.completed_hours || 0;
+  const completedHours = (realHours[pc.course_id] ?? pc.courses?.completed_hours) || 0;
   const remainingHours = Math.max(0, courseTotalHours - completedHours);
   const courseProgress = courseTotalHours > 0 
     ? Math.round((completedHours / courseTotalHours) * 100) 
