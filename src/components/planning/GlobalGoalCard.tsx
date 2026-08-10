@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { fetchCompletedHours } from '@/lib/studyHours';
+import { useAuth } from '@/contexts/AuthContext';
 import { addDays, format, differenceInCalendarDays, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -94,6 +96,14 @@ export function projectCompletion(
 
 export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
   const [config, setConfig] = useState<GoalConfig>(loadConfig);
+  const [realCompletedHours, setRealCompletedHours] = useState<Record<string, number>>({});
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      fetchCompletedHours(user.id).then(h => setRealCompletedHours(h.byCourse)).catch(console.error);
+    }
+  }, [user]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
@@ -110,7 +120,7 @@ export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
         const id = pc.course_id || pc.courses?.id;
         if (!id || seen.has(id)) continue;
         seen.add(id);
-        completed += pc.courses?.completed_hours || 0;
+        completed += realCompletedHours[id] ?? pc.courses?.completed_hours || 0;
       }
     }
     return { totalHours: total, completedHours: Math.min(completed, total || completed) };

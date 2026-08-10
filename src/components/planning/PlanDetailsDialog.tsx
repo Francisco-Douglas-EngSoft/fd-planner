@@ -14,6 +14,8 @@ import { DailyProgressReport } from './DailyProgressReport';
 import { CompleteCourseDialog } from './CompleteCourseDialog';
 import { AcademicCalendar } from './AcademicCalendar';
 import { CourseScheduleDialog } from './CourseScheduleDialog';
+import { fetchCompletedHours } from '@/lib/studyHours';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DndContext,
   closestCenter,
@@ -195,7 +197,7 @@ function SortableCourseCard({
   };
 
   const courseTotalHours = pc.courses?.total_hours || 0;
-  const completedHours = pc.courses?.completed_hours || 0;
+  const completedHours = realHours[pc.course_id] ?? pc.courses?.completed_hours || 0;
   const remainingHours = Math.max(0, courseTotalHours - completedHours);
   const courseProgress = courseTotalHours > 0 
     ? Math.round((completedHours / courseTotalHours) * 100) 
@@ -444,6 +446,14 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
     completedHours: number;
     startDate: string;
   } | null>(null);
+  const { user } = useAuth();
+  const [realHours, setRealHours] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (open && user) {
+      fetchCompletedHours(user.id).then(h => setRealHours(h.byCourse)).catch(console.error);
+    }
+  }, [open, user]);
 
   // Drag state: tracks which course is being dragged + timestamp guard to suppress
   // the click that fires right after a drag completes (prevents opening the course).
