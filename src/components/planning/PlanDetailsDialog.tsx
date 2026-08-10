@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -441,6 +441,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [courseToComplete, setCourseToComplete] = useState<{ id: string; name: string } | null>(null);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [loadingHours, setLoadingHours] = useState(true);
   const [scheduleDialog, setScheduleDialog] = useState<{
     courseId: string;
     courseName: string;
@@ -453,7 +454,11 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
 
   useEffect(() => {
     if (open && user) {
-      fetchCompletedHours(user.id).then(h => setRealHours(h.byCourse)).catch(console.error);
+      setLoadingHours(true);
+      fetchCompletedHours(user.id)
+        .then(h => setRealHours(h.byCourse))
+        .catch(console.error)
+        .finally(() => setLoadingHours(false));
     }
   }, [open, user]);
 
@@ -958,12 +963,18 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
           <div className="flex items-center justify-between">
             <SheetTitle className="text-2xl">{plan.name}</SheetTitle>
           </div>
-          {plan.description && (
-            <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-          )}
+          <SheetDescription>
+            {plan.description || 'Detalhes e acompanhamento do planejamento'}
+          </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue="overview" className="mt-4">
+        {loadingHours ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-3">
+            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground animate-pulse">Sincronizando horas reais...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="overview" className="mt-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview" className="flex items-center gap-2 text-xs">
               <BookOpen className="h-4 w-4" />
@@ -1348,7 +1359,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
             />
           </TabsContent>
         </Tabs>
-      </SheetContent>
+      )}
 
       {/* Course Schedule Dialog (clicar no curso abre o cronograma detalhado) */}
       {scheduleDialog && plan && (
@@ -1380,6 +1391,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
           setCourseToComplete(null);
         }}
       />
+      </SheetContent>
     </Sheet>
   );
 }
