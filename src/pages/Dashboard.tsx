@@ -107,14 +107,10 @@ export default function Dashboard() {
       const completedCourses = courses.filter(c => c.status === 'completed');
 
       // Fonte única de verdade: src/lib/studyHours.ts
-      const { totalCompletedHours: courseCompletedHours } = computeCompletedHours(
-        modules as never,
-        subModules as never,
-      );
-
       const studyHours = computeCompletedHours(modules as never, subModules as never);
       const courseCompletedHours = studyHours.totalCompletedHours;
       const syncedCourses = applyCompletedHours(courses, studyHours);
+      
       const totalCourseHours = syncedCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
       const totalFocusMinutes = sumFocusMinutes(focusSessions);
 

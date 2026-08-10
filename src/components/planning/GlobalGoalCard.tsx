@@ -120,7 +120,7 @@ export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
         const id = pc.course_id || pc.courses?.id;
         if (!id || seen.has(id)) continue;
         seen.add(id);
-        completed += realCompletedHours[id] ?? pc.courses?.completed_hours || 0;
+        completed += (realCompletedHours[id] ?? pc.courses?.completed_hours) || 0;
       }
     }
     return { totalHours: total, completedHours: Math.min(completed, total || completed) };
