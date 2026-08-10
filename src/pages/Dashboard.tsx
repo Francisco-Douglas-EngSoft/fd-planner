@@ -19,6 +19,8 @@ import { StudyHubWidgets } from '@/components/dashboard/StudyHubWidgets';
 import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 import { WeeklyDeltaCard } from '@/components/dashboard/WeeklyDeltaCard';
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
+import { ExpansionPlan } from '@/components/dashboard/ExpansionPlan';
+
 
 import { CompletedCoursesStats } from '@/components/dashboard/CompletedCoursesStats';
 import { CategoryProgressReport } from '@/components/dashboard/CategoryProgressReport';
@@ -313,7 +315,9 @@ export default function Dashboard() {
           <TabsTrigger value="studies">Estudos</TabsTrigger>
           <TabsTrigger value="habits">Hábitos</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
+          <TabsTrigger value="expansion">Expansão</TabsTrigger>
         </TabsList>
+
 
         {/* Visão geral */}
         <TabsContent value="overview" className="space-y-6 mt-0">
@@ -355,7 +359,13 @@ export default function Dashboard() {
         <TabsContent value="audit" className="mt-0">
           <StudyAudit />
         </TabsContent>
+
+        {/* Expansão */}
+        <TabsContent value="expansion" className="mt-0">
+          <ExpansionPlan />
+        </TabsContent>
       </Tabs>
     </div>
   );
 }
+

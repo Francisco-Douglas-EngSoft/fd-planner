@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, MoreVertical, Edit, Trash2, LayoutGrid, CalendarDays, CalendarCheck, GraduationCap, Filter, GripVertical } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, MoreVertical, Edit, Trash2, LayoutGrid, CalendarDays, CalendarCheck, GraduationCap, Filter, GripVertical, Rocket } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DndContext,
@@ -213,6 +214,8 @@ export default function Planning() {
   const [formInitialCategory, setFormInitialCategory] = useState<'regular' | 'faculdade' | undefined>(undefined);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [showExpansionHint, setShowExpansionHint] = useState(false);
+
 
   useEffect(() => {
     if (user) {
@@ -322,7 +325,13 @@ export default function Planning() {
     }
   };
 
+  const handleNewCourse = () => {
+    setEditPlan(null);
+    setShowFormDialog(true);
+  };
+
   const handleEdit = (plan: StudyPlan, e?: React.MouseEvent) => {
+
     if (e) e.stopPropagation();
     setEditPlan(plan);
     setShowFormDialog(true);
