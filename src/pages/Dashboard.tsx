@@ -29,7 +29,7 @@ import { useGuestMode } from '@/hooks/useGuestMode';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDurationHuman } from '@/lib/timeUtils';
-import { computeCompletedHours, sumFocusMinutes } from '@/lib/studyHours';
+import { computeCompletedHours, sumFocusMinutes, applyCompletedHours } from '@/lib/studyHours';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -107,12 +107,11 @@ export default function Dashboard() {
       const completedCourses = courses.filter(c => c.status === 'completed');
 
       // Fonte única de verdade: src/lib/studyHours.ts
-      const { totalCompletedHours: courseCompletedHours } = computeCompletedHours(
-        modules as never,
-        subModules as never,
-      );
-
-      const totalCourseHours = activeCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
+      const studyHours = computeCompletedHours(modules as never, subModules as never);
+      const courseCompletedHours = studyHours.totalCompletedHours;
+      const syncedCourses = applyCompletedHours(courses, studyHours);
+      
+      const totalCourseHours = syncedCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
       const totalFocusMinutes = sumFocusMinutes(focusSessions);
 
       setUserName(profileResult.data?.full_name || user.email?.split('@')[0] || 'Estudante');

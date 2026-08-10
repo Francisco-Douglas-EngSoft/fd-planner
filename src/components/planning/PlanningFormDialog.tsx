@@ -711,7 +711,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
 
     const { data, error } = await supabase
       .from('courses')
-      .select('id, name, total_hours, category, status, completed_hours')
+      .select('id, name, total_hours, category, status, completed_hours, user_id')
       .eq('user_id', user.id)
       .order('name');
 
