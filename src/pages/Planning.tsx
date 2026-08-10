@@ -756,6 +756,16 @@ export default function Planning() {
             </div>
             
             <div className="flex items-center gap-2 shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowExpansionHint(true)} 
+                className="hidden sm:flex gap-2 border-primary/20 hover:bg-primary/5 h-9 sm:h-11 rounded-xl px-4"
+              >
+                <Rocket className="h-4 w-4 text-primary" />
+                Roadmap 2027
+              </Button>
+
               <Button
                 variant="outline"
                 className="gap-2 rounded-xl px-3 sm:px-5 h-9 sm:h-11 border-primary/30 hover:bg-primary/10"
@@ -784,6 +794,37 @@ export default function Planning() {
               </Button>
             </div>
           </div>
+
+          <AnimatePresence>
+            {showExpansionHint && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mb-2"
+              >
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                        <Rocket className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold">Plano de Expansão: Marketplace & IA</p>
+                        <p className="text-xs text-muted-foreground">
+                          Em breve: compartilhe seus cronogramas com a comunidade e use IA para ajustar prazos automaticamente.
+                        </p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={() => setShowExpansionHint(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           
           {/* View Mode Toggle & Auto Generate - separate row on mobile */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
