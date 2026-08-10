@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, MoreVertical, Edit, Trash2, LayoutGrid, CalendarDays, CalendarCheck, GraduationCap, Filter, GripVertical, Rocket } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+
 import {
   DndContext,
   closestCenter,
@@ -215,6 +217,7 @@ export default function Planning() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showExpansionHint, setShowExpansionHint] = useState(false);
+
 
 
   useEffect(() => {
