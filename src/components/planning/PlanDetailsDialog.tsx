@@ -1385,6 +1385,8 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
           setCourseToComplete(null);
         }}
       />
+        )}
+      </SheetContent>
     </Sheet>
   );
 }
