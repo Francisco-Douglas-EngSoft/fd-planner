@@ -1280,6 +1280,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
                         return (
                           <SortableCourseCard
                             key={pc.course_id}
+                            realHours={realHours}
                             pc={pc}
                             idx={idx}
                             dailyHoursForCourse={dailyHoursForCourse}
