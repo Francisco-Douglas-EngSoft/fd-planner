@@ -696,7 +696,10 @@ export function LibraryReports({ books }: Props) {
             </div>
             <div className="flex items-end gap-2 col-span-2 lg:col-span-1">
               <Button className="flex-1 gap-2 min-w-0" onClick={saveGoals} disabled={saving}>
-                <Save className="h-4 w-4 shrink-0" /> <span className="truncate">Salvar metas</span>
+                <Save className="h-4 w-4 shrink-0" />
+                <span className="truncate">
+                  {saveState === "saving" ? "Salvando..." : saveState === "saved" ? "Salvo" : "Salvar metas"}
+                </span>
               </Button>
               <Button
                 variant="destructive"
