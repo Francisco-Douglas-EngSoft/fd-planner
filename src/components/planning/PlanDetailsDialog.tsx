@@ -1359,7 +1359,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
             />
           </TabsContent>
         </Tabs>
-      </SheetContent>
+      )}
 
       {/* Course Schedule Dialog (clicar no curso abre o cronograma detalhado) */}
       {scheduleDialog && plan && (
