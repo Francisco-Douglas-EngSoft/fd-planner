@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -441,6 +441,7 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [courseToComplete, setCourseToComplete] = useState<{ id: string; name: string } | null>(null);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [loadingHours, setLoadingHours] = useState(true);
   const [scheduleDialog, setScheduleDialog] = useState<{
     courseId: string;
     courseName: string;
@@ -453,7 +454,11 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
 
   useEffect(() => {
     if (open && user) {
-      fetchCompletedHours(user.id).then(h => setRealHours(h.byCourse)).catch(console.error);
+      setLoadingHours(true);
+      fetchCompletedHours(user.id)
+        .then(h => setRealHours(h.byCourse))
+        .catch(console.error)
+        .finally(() => setLoadingHours(false));
     }
   }, [open, user]);
 

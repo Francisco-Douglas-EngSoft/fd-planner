@@ -30,6 +30,10 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDurationHuman } from '@/lib/timeUtils';
 import { computeCompletedHours, sumFocusMinutes, applyCompletedHours } from '@/lib/studyHours';
+import { StudyAudit } from '@/components/dashboard/StudyAudit';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -45,6 +49,8 @@ export default function Dashboard() {
     achievements: 0,
     totalCourseHours: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const { user } = useAuth();
   const { isReadOnly, getDemoData } = useGuestMode();
@@ -62,6 +68,8 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     if (!user) return;
+    setLoading(true);
+    setError(null);
 
     try {
       const [profileResult, coursesResult, tasksResult, achievementsResult, focusResult, modulesResult, subModulesResult] = await Promise.all([
@@ -128,8 +136,11 @@ export default function Dashboard() {
         achievements: achievementsResult.count || 0,
         totalCourseHours,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard stats:', error);
+      setError(error.message || 'Erro ao carregar estatísticas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -266,20 +277,33 @@ export default function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-        {statCards.map((card, index) => {
-          if (card.link) {
+        {loading ? (
+          Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+          ))
+        ) : error ? (
+          <div className="col-span-full">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </div>
+        ) : (
+          statCards.map((card, index) => {
+            if (card.link) {
+              return (
+                <Link key={index} to={card.link} className="block">
+                  {renderCard(card, index)}
+                </Link>
+              );
+            }
             return (
-              <Link key={index} to={card.link} className="block">
+              <div key={index} className="block">
                 {renderCard(card, index)}
-              </Link>
+              </div>
             );
-          }
-          return (
-            <div key={index} className="block">
-              {renderCard(card, index)}
-            </div>
-          );
-        })}
+          })
+        )}
       </div>
 
       {/* Tabs por área */}
@@ -288,6 +312,7 @@ export default function Dashboard() {
           <TabsTrigger value="overview">Visão geral</TabsTrigger>
           <TabsTrigger value="studies">Estudos</TabsTrigger>
           <TabsTrigger value="habits">Hábitos</TabsTrigger>
+          <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
         {/* Visão geral */}
@@ -324,6 +349,11 @@ export default function Dashboard() {
         {/* Hábitos */}
         <TabsContent value="habits" className="space-y-6 mt-0">
           <AntiVicioStats />
+        </TabsContent>
+
+        {/* Auditoria */}
+        <TabsContent value="audit" className="mt-0">
+          <StudyAudit />
         </TabsContent>
       </Tabs>
     </div>

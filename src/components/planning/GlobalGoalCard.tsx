@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Target, CalendarClock, Flag, TrendingUp } from 'lucide-react';
+import { Target, CalendarClock, Flag, TrendingUp, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'planning:global-goal';
@@ -97,11 +97,16 @@ export function projectCompletion(
 export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
   const [config, setConfig] = useState<GoalConfig>(loadConfig);
   const [realCompletedHours, setRealCompletedHours] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
-      fetchCompletedHours(user.id).then(h => setRealCompletedHours(h.byCourse)).catch(console.error);
+      setLoading(true);
+      fetchCompletedHours(user.id)
+        .then(h => setRealCompletedHours(h.byCourse))
+        .catch(console.error)
+        .finally(() => setLoading(false));
     }
   }, [user]);
 
@@ -147,7 +152,12 @@ export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
     });
 
   return (
-    <Card className="tint-card mt-4" style={{ ['--tint' as string]: 'var(--tint-violet)' }}>
+    <Card className="tint-card mt-4 relative overflow-hidden" style={{ ['--tint' as string]: 'var(--tint-violet)' }}>
+      {loading && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <span className="tint-icon inline-flex items-center justify-center rounded-lg p-1.5">
