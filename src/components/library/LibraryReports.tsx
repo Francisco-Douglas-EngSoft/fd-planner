@@ -129,6 +129,9 @@ export function LibraryReports({ books }: Props) {
   const [planEnd, setPlanEnd] = useState(() => iso(addDays(new Date(), 90)));
   const [basedOnLibrary, setBasedOnLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const loadedRef = useRef(false);
+  const goalIdRef = useRef<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -148,13 +151,14 @@ export function LibraryReports({ books }: Props) {
           .order("date", { ascending: true }),
         supabase
           .from("reading_goals")
-          .select("daily_pages_goal, daily_minutes_goal")
+          .select("id, daily_pages_goal, daily_minutes_goal")
           .eq("user_id", user.id)
           .maybeSingle(),
       ]);
       if (cancelled) return;
       setSessions((sRes.data as SessionRow[]) ?? []);
       if (gRes.data) {
+        goalIdRef.current = gRes.data.id ?? null;
         setDailyPages(gRes.data.daily_pages_goal ?? 20);
         setDailyMinutes(gRes.data.daily_minutes_goal ?? 30);
       }
@@ -166,40 +170,67 @@ export function LibraryReports({ books }: Props) {
       if (e) setPlanEnd(e);
       setBasedOnLibrary(localStorage.getItem(PLAN_BASED_KEY) === "true");
       setLoading(false);
+      loadedRef.current = true;
     })();
     return () => {
       cancelled = true;
+      loadedRef.current = false;
     };
   }, [user]);
 
-  async function saveGoals() {
+  const persistGoals = useCallback(async (silent: boolean) => {
     if (!user) return;
-    setSaving(true);
+    if (!silent) setSaving(true);
+    setSaveState("saving");
     try {
       localStorage.setItem(BOOKS_GOAL_KEY, String(monthlyBooks));
       localStorage.setItem(PLAN_START_KEY, planStart);
       localStorage.setItem(PLAN_END_KEY, planEnd);
       localStorage.setItem(PLAN_BASED_KEY, String(basedOnLibrary));
-      const { data: existing } = await supabase
-        .from("reading_goals")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      if (!goalIdRef.current) {
+        const { data: existing } = await supabase
+          .from("reading_goals")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        goalIdRef.current = existing?.id ?? null;
+      }
       const payload = {
         daily_pages_goal: dailyPages,
         daily_minutes_goal: dailyMinutes,
       };
-      const { error } = existing
-        ? await supabase.from("reading_goals").update(payload).eq("id", existing.id)
-        : await supabase.from("reading_goals").insert({ user_id: user.id, ...payload });
-      if (error) throw error;
-      toast.success("Metas de leitura salvas");
+      if (goalIdRef.current) {
+        const { error } = await supabase.from("reading_goals").update(payload).eq("id", goalIdRef.current);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("reading_goals")
+          .insert({ user_id: user.id, ...payload })
+          .select("id")
+          .single();
+        if (error) throw error;
+        goalIdRef.current = data?.id ?? null;
+      }
+      setSaveState("saved");
+      if (!silent) toast.success("Metas de leitura salvas");
     } catch {
-      toast.error("Não foi possível salvar as metas");
+      setSaveState("error");
+      if (!silent) toast.error("Não foi possível salvar as metas");
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
-  }
+  }, [user, monthlyBooks, planStart, planEnd, basedOnLibrary, dailyPages, dailyMinutes]);
+
+  const saveGoals = useCallback(() => persistGoals(false), [persistGoals]);
+
+  // Salvamento automático (debounce) sempre que uma meta muda.
+  useEffect(() => {
+    if (!user || loading || !loadedRef.current) return;
+    const t = setTimeout(() => {
+      void persistGoals(true);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [user, loading, dailyPages, dailyMinutes, monthlyBooks, planStart, planEnd, basedOnLibrary, persistGoals]);
 
   /* ── agregações por dia ── */
   const byDay = useMemo(() => {
