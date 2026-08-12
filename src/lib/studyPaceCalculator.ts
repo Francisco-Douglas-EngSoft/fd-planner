@@ -88,16 +88,18 @@ export function derivePaceConfig(
   overrides?: { min?: number | null; max?: number | null },
 ): PaceConfig {
   const ideal = Math.max(0.25, dailyHours);
-  const minOverride = overrides?.min;
-  const maxOverride = overrides?.max;
+  
+  // Use explicit overrides if provided and valid (> 0)
   const min =
-    typeof minOverride === 'number' && minOverride > 0
-      ? Math.max(0.25, minOverride)
-      : Math.max(0.25, ideal * 0.5);
+    typeof overrides?.min === 'number' && overrides.min > 0
+      ? Math.max(0.1, overrides.min)
+      : Math.max(0.1, ideal * 0.5);
+      
   const max =
-    typeof maxOverride === 'number' && maxOverride > 0
-      ? Math.max(min, maxOverride)
-      : ideal * 1.5;
+    typeof overrides?.max === 'number' && overrides.max > 0
+      ? Math.max(min, overrides.max)
+      : Math.max(ideal, ideal * 1.5);
+
   return { min, ideal, max };
 }
 
