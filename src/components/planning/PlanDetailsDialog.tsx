@@ -1098,6 +1098,11 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
                   <span className="text-xs">Horas/Dia</span>
                 </div>
                 <p className="text-xl font-bold font-mono">{formatHoursHMS(dailyHours)}</p>
+                {(plan as any).min_daily_hours && (plan as any).max_daily_hours && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Range: {(plan as any).min_daily_hours}h - {(plan as any).max_daily_hours}h
+                  </p>
+                )}
               </div>
               <div className="p-4 rounded-lg bg-muted/50 space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
