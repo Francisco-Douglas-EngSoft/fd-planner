@@ -469,7 +469,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
                             </p>
 
                             {/* Barra de progresso do curso no dia */}
-                            {!isBreak && effectiveCourseId && courseDailyPlannedMin > 0 && (
+                            {!isBreak && effectiveCourseId && (typeof effectiveDailyGoalMin !== 'undefined' ? effectiveDailyGoalMin : courseDailyPlannedMin) > 0 && (
                               <div className="mt-2 space-y-1">
                                 <Progress
                                   value={progressPct}
@@ -480,7 +480,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
                                 />
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                   <span>
-                                    {studiedMin}/{courseDailyPlannedMin} min hoje
+                                    {studiedMin}/{(typeof effectiveDailyGoalMin !== 'undefined' ? effectiveDailyGoalMin : courseDailyPlannedMin)} min hoje
                                   </span>
                                   <span>{progressPct}%</span>
                                 </div>
