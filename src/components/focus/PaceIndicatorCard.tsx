@@ -94,8 +94,8 @@ export function PaceIndicatorCard({
   }, [studyDays]);
 
   const config = derivePaceConfig(dailyHours, { 
-    min: (courseId || userId) ? (indicator as any).min_daily_hours : null,
-    max: (courseId || userId) ? (indicator as any).max_daily_hours : null
+    min: (courseId || userId) ? (actualHours as any).min_daily_hours : null,
+    max: (courseId || userId) ? (actualHours as any).max_daily_hours : null
   });
   const indicator = useMemo(
     () =>
