@@ -68,7 +68,7 @@ function getTodayKey(): string {
   return format(new Date(), "yyyy-MM-dd");
 }
 
-export function FocusGoalsPanel({ className }: { className?: string }) {
+export function FocusGoalsPanel({ className, activeStudyPlan }: { className?: string, activeStudyPlan?: any }) {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -434,6 +434,38 @@ export function FocusGoalsPanel({ className }: { className?: string }) {
             </Select>
           </div>
         </div>
+
+        {activeStudyPlan && (
+          <div className="space-y-4 pb-4 border-b border-border/50">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <Target className="h-4 w-4" />
+              Meta do Planejamento Ativo
+            </div>
+            <div className="space-y-2 p-3 rounded-lg border bg-primary/5 border-primary/20">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-medium">{activeStudyPlan.name}</span>
+                <Badge variant="outline" className="text-[10px] bg-primary/10">Ideal: {activeStudyPlan.daily_hours}h</Badge>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                <div className="flex flex-col p-1.5 rounded bg-orange-500/10 text-orange-600">
+                  <span className="opacity-70">Mínimo</span>
+                  <span className="font-bold">{activeStudyPlan.min_daily_hours || 0.5}h</span>
+                </div>
+                <div className="flex flex-col p-1.5 rounded bg-primary/10 text-primary">
+                  <span className="opacity-70">Ideal</span>
+                  <span className="font-bold">{activeStudyPlan.daily_hours}h</span>
+                </div>
+                <div className="flex flex-col p-1.5 rounded bg-blue-500/10 text-blue-600">
+                  <span className="opacity-70">Máximo</span>
+                  <span className="font-bold">{activeStudyPlan.max_daily_hours || 8}h</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 italic text-center">
+                Mantenha-se entre o mínimo e o máximo para um progresso saudável.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium">

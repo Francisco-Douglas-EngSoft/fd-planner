@@ -1807,7 +1807,7 @@ export default function Focus() {
             <TabsContent value="hoje" className="mt-3 space-y-3">
               <DailyAgenda onStartSession={handleStartFromAgenda} refreshKey={focusRefreshKey} />
               <div className="hidden sm:block">
-                <FocusGoalsPanel />
+                <FocusGoalsPanel activeStudyPlan={studyPlans.find(p => p.id === selectedPlan)} />
               </div>
               <div className="hidden sm:block">
                 <TodaySessionsHistory />
