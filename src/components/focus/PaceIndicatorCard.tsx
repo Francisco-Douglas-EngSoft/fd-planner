@@ -93,7 +93,10 @@ export function PaceIndicatorCard({
     setDraftDays(studyDays);
   }, [studyDays]);
 
-  const config = derivePaceConfig(dailyHours);
+  const config = derivePaceConfig(dailyHours, { 
+    min: (actualHours as any).min_daily_hours,
+    max: (actualHours as any).max_daily_hours
+  });
   const indicator = useMemo(
     () =>
       evaluatePace({
@@ -331,6 +334,30 @@ export function PaceIndicatorCard({
                 )}
               </TooltipContent>
             </Tooltip>
+
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mt-3 text-center">
+              {/* Ritmo Mínimo */}
+              <div className="p-2 rounded bg-orange-500/10 border border-orange-500/20 min-w-0">
+                <p className="text-[10px] uppercase text-orange-600 font-bold truncate">Mínimo</p>
+                <p className="text-xs sm:text-sm font-mono font-bold truncate mt-0.5 text-orange-700">
+                  {formatHoursHMS(config.min)}
+                </p>
+              </div>
+              {/* Ritmo Ideal */}
+              <div className="p-2 rounded bg-primary/10 border border-primary/20 min-w-0">
+                <p className="text-[10px] uppercase text-primary font-bold truncate">Ideal</p>
+                <p className="text-xs sm:text-sm font-mono font-bold truncate mt-0.5 text-primary">
+                  {formatHoursHMS(config.ideal)}
+                </p>
+              </div>
+              {/* Ritmo Máximo */}
+              <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20 min-w-0">
+                <p className="text-[10px] uppercase text-blue-600 font-bold truncate">Máximo</p>
+                <p className="text-xs sm:text-sm font-mono font-bold truncate mt-0.5 text-blue-700">
+                  {formatHoursHMS(config.max)}
+                </p>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-1.5 sm:gap-2 mt-3 text-center">
               {/* Esperado Semana */}

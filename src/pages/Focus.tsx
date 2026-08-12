@@ -498,6 +498,16 @@ export default function Focus() {
       const courseIdsFromActivePlans = new Set<string>();
       
       (data as unknown as StudyPlanCourse[]).forEach(pc => {
+        // Enriquecer dados de ritmo se disponíveis
+        if (pc.study_plan) {
+          (pc as any).min_daily_hours = (pc.study_plan as any).min_daily_hours;
+          (pc as any).max_daily_hours = (pc.study_plan as any).max_daily_hours;
+        }
+        // Enriquecer dados de ritmo se disponíveis
+        if (pc.study_plan) {
+          (pc as any).min_daily_hours = (pc.study_plan as any).min_daily_hours;
+          (pc as any).max_daily_hours = (pc.study_plan as any).max_daily_hours;
+        }
         const plan = pc.study_plan;
         if (!plan) return;
 
@@ -1802,7 +1812,7 @@ export default function Focus() {
             <TabsContent value="hoje" className="mt-3 space-y-3">
               <DailyAgenda onStartSession={handleStartFromAgenda} refreshKey={focusRefreshKey} />
               <div className="hidden sm:block">
-                <FocusGoalsPanel />
+                <FocusGoalsPanel activeStudyPlan={studyPlans.find(p => p.id === selectedPlan)} />
               </div>
               <div className="hidden sm:block">
                 <TodaySessionsHistory />

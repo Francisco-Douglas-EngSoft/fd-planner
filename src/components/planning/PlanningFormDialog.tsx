@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/utils';
-import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { differenceInDays, parseISO, addDays, format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -1504,7 +1504,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         description: description || null,
         start_date: validatedStartDate,
         end_date: validatedEndDate,
-        daily_hours: Number.parseFloat(dailyHours) || 1.5,
+        daily_hours: Number.parseFloat(dailyHours) || 2,
         min_daily_hours: Number.parseFloat(minDailyHours) || 0.5,
         max_daily_hours: Number.parseFloat(maxDailyHours) || 8,
         study_days: studyDays,
@@ -1989,18 +1989,18 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
             )}
 
             {/* Min/Max Daily Hours Section */}
-            <div className="space-y-4 p-4 rounded-lg border border-primary/20 bg-primary/5">
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-primary" />
                 <Label className="text-sm font-semibold">Configuração de Horas Diárias</Label>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
                 {/* Minimum Hours */}
                 <div className="space-y-2">
-                  <Label htmlFor="minDailyHours" className="text-xs">
-                    Mínimo por Dia
-                    <span className="text-muted-foreground ml-1">(horas)</span>
+                  <Label htmlFor="minDailyHours" className="text-xs font-semibold flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+                    <TrendingDown className="h-3 w-3" />
+                    Mínimo Diário
                   </Label>
                   <Input
                     id="minDailyHours"
@@ -2009,26 +2009,28 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                     onChange={(e) => {
                       const val = Number.parseFloat(e.target.value);
                       setMinDailyHours(e.target.value);
-                      // Auto-adjust daily hours if below min
                       if (val > Number.parseFloat(dailyHours)) {
                         setDailyHours(e.target.value);
                       }
+                      if (val > Number.parseFloat(maxDailyHours)) {
+                        setMaxDailyHours(e.target.value);
+                      }
                     }}
-                    min="0.5"
-                    max={maxDailyHours}
-                    step="0.5"
-                    className="w-full"
+                    min="0.1"
+                    max="24"
+                    step="0.1"
+                    className="w-full bg-background"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Meta mínima diária
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Ritmo de sobrevivência
                   </p>
                 </div>
 
                 {/* Target Hours (Daily Hours) */}
                 <div className="space-y-2">
-                  <Label htmlFor="dailyHours" className="text-xs">
+                  <Label htmlFor="dailyHours" className="text-xs font-bold flex items-center gap-1.5 text-primary">
+                    <Target className="h-3 w-3" />
                     Meta Ideal
-                    <span className="text-primary ml-1 font-semibold">(principal)</span>
                   </Label>
                   <Input
                     id="dailyHours"
@@ -2037,39 +2039,27 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                     onChange={(e) => {
                       const val = Number.parseFloat(e.target.value);
                       setDailyHours(e.target.value);
-                      // Validate against min/max
                       const min = Number.parseFloat(minDailyHours);
                       const max = Number.parseFloat(maxDailyHours);
-                      if (val < min) {
-                        toast({
-                          title: 'Atenção',
-                          description: `A meta ideal deve ser maior ou igual ao mínimo (${min}h)`,
-                          variant: 'destructive',
-                        });
-                      }
-                      if (val > max) {
-                        toast({
-                          title: 'Atenção',
-                          description: `A meta ideal deve ser menor ou igual ao máximo (${max}h)`,
-                          variant: 'destructive',
-                        });
-                      }
+                      
+                      if (val < min) setMinDailyHours(e.target.value);
+                      if (val > max) setMaxDailyHours(e.target.value);
                     }}
-                    min={minDailyHours}
-                    max={maxDailyHours}
-                    step="0.5"
-                    className="w-full border-primary/50"
+                    min="0.1"
+                    max="24"
+                    step="0.1"
+                    className="w-full border-primary bg-background shadow-sm"
                   />
-                  <p className="text-[10px] text-primary font-medium">
-                    Seu objetivo diário
+                  <p className="text-[10px] text-primary font-semibold italic">
+                    Seu ritmo planejado
                   </p>
                 </div>
 
                 {/* Maximum Hours */}
                 <div className="space-y-2">
-                  <Label htmlFor="maxDailyHours" className="text-xs">
-                    Máximo por Dia
-                    <span className="text-muted-foreground ml-1">(horas)</span>
+                  <Label htmlFor="maxDailyHours" className="text-xs font-semibold flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                    <TrendingUp className="h-3 w-3" />
+                    Máximo Diário
                   </Label>
                   <Input
                     id="maxDailyHours"
@@ -2078,18 +2068,20 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                     onChange={(e) => {
                       const val = Number.parseFloat(e.target.value);
                       setMaxDailyHours(e.target.value);
-                      // Auto-adjust daily hours if above max
                       if (val < Number.parseFloat(dailyHours)) {
                         setDailyHours(e.target.value);
                       }
+                      if (val < Number.parseFloat(minDailyHours)) {
+                        setMinDailyHours(e.target.value);
+                      }
                     }}
-                    min={minDailyHours}
-                    max="12"
-                    step="0.5"
-                    className="w-full"
+                    min="0.1"
+                    max="24"
+                    step="0.1"
+                    className="w-full bg-background"
                   />
-                  <p className="text-[10px] text-muted-foreground">
-                    Limite máximo diário
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Limite de alta performance
                   </p>
                 </div>
               </div>

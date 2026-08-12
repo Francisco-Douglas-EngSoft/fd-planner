@@ -119,7 +119,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
       // Fetch active plans (today falls within start-end range)
       const { data: plansData } = await supabase
         .from("study_plans")
-        .select("id, name, start_date, end_date")
+        .select("id, name, start_date, end_date, daily_hours, min_daily_hours, max_daily_hours")
         .eq("user_id", user.id)
         .lte("start_date", today)
         .gte("end_date", today);
@@ -381,15 +381,21 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
                           0
                         )
                     : 0;
+                  
+                  // Se o curso faz parte de um plano com daily_hours, a meta mínima pode ser maior
+                  const plan = plans.find(p => p.id === block.study_plan_id);
+                  const planDailyGoalMin = plan && (plan as any).daily_hours ? (plan as any).daily_hours * 60 : 0;
+                  const effectiveDailyGoalMin = Math.max(courseDailyPlannedMin, planDailyGoalMin);
+
                   const studiedMin = effectiveCourseId ? studiedByCourse[effectiveCourseId] || 0 : 0;
                   const isCourseDoneToday =
                     !isBreak &&
                     !!effectiveCourseId &&
-                    courseDailyPlannedMin > 0 &&
-                    studiedMin >= courseDailyPlannedMin;
+                    effectiveDailyGoalMin > 0 &&
+                    studiedMin >= effectiveDailyGoalMin;
                   const progressPct =
-                    courseDailyPlannedMin > 0
-                      ? Math.min(100, Math.round((studiedMin / courseDailyPlannedMin) * 100))
+                    effectiveDailyGoalMin > 0
+                      ? Math.min(100, Math.round((studiedMin / effectiveDailyGoalMin) * 100))
                       : 0;
 
                   return (
@@ -463,7 +469,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
                             </p>
 
                             {/* Barra de progresso do curso no dia */}
-                            {!isBreak && effectiveCourseId && courseDailyPlannedMin > 0 && (
+                            {!isBreak && effectiveCourseId && (typeof effectiveDailyGoalMin !== 'undefined' ? effectiveDailyGoalMin : courseDailyPlannedMin) > 0 && (
                               <div className="mt-2 space-y-1">
                                 <Progress
                                   value={progressPct}
@@ -474,7 +480,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
                                 />
                                 <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                                   <span>
-                                    {studiedMin}/{courseDailyPlannedMin} min hoje
+                                    {studiedMin}/{(typeof effectiveDailyGoalMin !== 'undefined' ? effectiveDailyGoalMin : courseDailyPlannedMin)} min hoje
                                   </span>
                                   <span>{progressPct}%</span>
                                 </div>
