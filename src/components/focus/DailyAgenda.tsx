@@ -119,7 +119,7 @@ export function DailyAgenda({ onStartSession, className, refreshKey }: DailyAgen
       // Fetch active plans (today falls within start-end range)
       const { data: plansData } = await supabase
         .from("study_plans")
-        .select("id, name, start_date, end_date, daily_hours")
+        .select("id, name, start_date, end_date, daily_hours, min_daily_hours, max_daily_hours")
         .eq("user_id", user.id)
         .lte("start_date", today)
         .gte("end_date", today);

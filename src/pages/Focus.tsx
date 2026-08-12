@@ -503,6 +503,11 @@ export default function Focus() {
           (pc as any).min_daily_hours = (pc.study_plan as any).min_daily_hours;
           (pc as any).max_daily_hours = (pc.study_plan as any).max_daily_hours;
         }
+        // Enriquecer dados de ritmo se disponíveis
+        if (pc.study_plan) {
+          (pc as any).min_daily_hours = (pc.study_plan as any).min_daily_hours;
+          (pc as any).max_daily_hours = (pc.study_plan as any).max_daily_hours;
+        }
         const plan = pc.study_plan;
         if (!plan) return;
 
