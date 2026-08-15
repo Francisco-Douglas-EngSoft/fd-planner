@@ -1318,8 +1318,7 @@ table,
 
 /* Elementos que devem permanecer circulares */
 .rounded-full,
-[role="progressbar"],
-.rounded-full * {
+[role="progressbar"] {
   border-radius: 9999px !important;
 }
 
