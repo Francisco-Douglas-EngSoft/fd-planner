@@ -74,7 +74,7 @@ const LandingPage = () => {
               Contato
             </a>
             <Link to="/auth">
-              <Button size="sm" className="bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white shadow-lg shadow-[#a7c4dc]/20 h-9">
+              <Button size="sm" className="bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] shadow-lg shadow-[#a7c4dc]/20 h-9">
                 Acessar
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
@@ -286,7 +286,7 @@ const LandingPage = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/auth">
-                <Button className="bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white px-8 py-6 h-auto  shadow-lg shadow-[#a7c4dc]/20">
+                <Button className="bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] px-8 py-6 h-auto  shadow-lg shadow-[#a7c4dc]/20">
                   Acessar Plataforma <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>

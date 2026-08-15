@@ -242,7 +242,7 @@ export default function Auth() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
+                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                 >
                   {isLoading ? 'Enviando...' : 'Enviar link'}
                 </Button>
@@ -306,7 +306,7 @@ export default function Auth() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
+                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                 >
                   {isLoading ? 'Salvando...' : 'Salvar nova senha'}
                 </Button>
@@ -327,13 +327,13 @@ export default function Auth() {
                 <TabsList className="grid grid-cols-2 w-full bg-[#1c2128] border border-[#232a33] p-1 rounded-xl mb-6">
                   <TabsTrigger
                     value="login"
-                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-white text-gray-400"
+                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-[#101317] text-gray-400"
                   >
                     Entrar
                   </TabsTrigger>
                   <TabsTrigger
                     value="signup"
-                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-white text-gray-400"
+                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-[#101317] text-gray-400"
                   >
                     Criar conta
                   </TabsTrigger>
@@ -388,7 +388,7 @@ export default function Auth() {
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
+                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                     >
                       {isLoading ? 'Entrando...' : 'Entrar na plataforma'}
                     </Button>
@@ -453,7 +453,7 @@ export default function Auth() {
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#8ba7c0] text-white font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
+                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                     >
                       {isLoading ? 'Criando conta...' : 'Criar minha conta'}
                     </Button>
