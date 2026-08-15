@@ -13,7 +13,7 @@ initSentry();
 // Initialize theme classes before React mounts to prevent flash
 (() => {
   const theme = localStorage.getItem('fdplanner-theme') || 'dark';
-  const lightVariant = localStorage.getItem('fdplanner-light-variant') || 'verdant';
+  const lightVariant = localStorage.getItem('fdplanner-light-variant') || 'crystal';
   const darkVariant = localStorage.getItem('fdplanner-dark-variant') || 'graphite';
   
   const root = document.documentElement;
