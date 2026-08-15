@@ -11,16 +11,17 @@
      Cada card do sistema usa uma dessas cores como destaque.
   ═══════════════════════════════════════════════════════════════ */
   :root {
-    --tint-blue: 217 91% 60%;
-    --tint-violet: 262 83% 63%;
-    --tint-emerald: 152 63% 45%;
-    --tint-amber: 38 92% 52%;
-    --tint-rose: 340 82% 60%;
-    --tint-cyan: 190 90% 48%;
-    --tint-orange: 22 90% 56%;
-    --tint-teal: 172 66% 45%;
-    --tint-indigo: 238 80% 64%;
-    --tint-pink: 322 80% 62%;
+    /* Tons refinados (Slate & Platinum): saturação contida, elegante */
+    --tint-blue: 210 55% 66%;
+    --tint-violet: 255 40% 70%;
+    --tint-emerald: 158 34% 56%;
+    --tint-amber: 38 48% 62%;
+    --tint-rose: 344 42% 66%;
+    --tint-cyan: 192 42% 62%;
+    --tint-orange: 24 48% 62%;
+    --tint-teal: 176 34% 56%;
+    --tint-indigo: 230 42% 70%;
+    --tint-pink: 320 38% 68%;
   }
 
   /* Card com cor de destaque própria. Defina --tint via inline style
