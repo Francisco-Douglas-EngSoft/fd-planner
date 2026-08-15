@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
 
 const INPUT =
-  'w-full bg-[#131922] border border-[#1f2937] rounded-xl h-12 px-4 pl-10 text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:border-[#38bdf8] focus:outline-none transition-colors';
+  'w-full bg-[#1c2128] border border-[#232a33] rounded-xl h-12 px-4 pl-10 text-white placeholder:text-gray-500 focus-visible:ring-0 focus-visible:border-[#a7c4dc] focus:outline-none transition-colors';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -128,11 +128,11 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0b0f14] text-white font-body flex selection:bg-[#38bdf8]/30">
+    <div className="min-h-screen w-full bg-[#101317] text-white font-body flex selection:bg-[#a7c4dc]/30">
       {/* Painel de marca (esquerda) */}
-      <aside className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#0b0f14] via-[#131922] to-[#1f2937] p-12 xl:p-16 flex-col justify-between">
-        <div aria-hidden className="absolute -top-40 -right-40 w-[70%] h-[70%] bg-[#38bdf8]/20 blur-[120px] rounded-full" />
-        <div aria-hidden className="absolute -bottom-40 -left-20 w-[50%] h-[50%] bg-[#1f2937]/40 blur-[100px] rounded-full" />
+      <aside className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#101317] via-[#1c2128] to-[#232a33] p-12 xl:p-16 flex-col justify-between">
+        <div aria-hidden className="absolute -top-40 -right-40 w-[70%] h-[70%] bg-[#a7c4dc]/20 blur-[120px] rounded-full" />
+        <div aria-hidden className="absolute -bottom-40 -left-20 w-[50%] h-[50%] bg-[#232a33]/40 blur-[100px] rounded-full" />
 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -140,7 +140,7 @@ export default function Auth() {
           transition={{ duration: 0.5 }}
           className="relative z-10 flex items-center gap-2"
         >
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#38bdf8] to-[#1f2937] grid place-items-center shadow-lg shadow-[#38bdf8]/30">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-[#a7c4dc] to-[#232a33] grid place-items-center shadow-lg shadow-[#a7c4dc]/30">
             <Zap className="h-5 w-5 text-white" />
           </div>
           <span className="font-display text-xl font-bold tracking-tight">FD-Planner</span>
@@ -152,13 +152,13 @@ export default function Auth() {
           transition={{ duration: 0.7, delay: 0.1 }}
           className="relative z-10 space-y-8"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#38bdf8]/10 border border-[#38bdf8]/20 text-[#38bdf8] text-sm font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#a7c4dc]/10 border border-[#a7c4dc]/20 text-[#a7c4dc] text-sm font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#a7c4dc] animate-pulse" />
             Plataforma de estudos
           </div>
           <h1 className="font-display text-4xl xl:text-5xl font-bold leading-tight max-w-md">
             O sucesso não é um destino — é um sistema de{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] to-[#7dd3fc]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#a7c4dc] to-[#cfd8e3]">
               hábitos consistentes
             </span>
             .
@@ -175,9 +175,9 @@ export default function Auth() {
             ].map((s) => (
               <div
                 key={s.v}
-                className="rounded-2xl border border-[#1f2937]/50 bg-[#131922]/40 backdrop-blur-md p-4 text-center"
+                className="rounded-2xl border border-[#232a33]/50 bg-[#1c2128]/40 backdrop-blur-md p-4 text-center"
               >
-                <p className="font-display text-xl font-bold text-[#7dd3fc]">{s.k}</p>
+                <p className="font-display text-xl font-bold text-[#cfd8e3]">{s.k}</p>
                 <p className="text-[11px] uppercase tracking-widest text-gray-400 mt-1">{s.v}</p>
               </div>
             ))}
@@ -190,9 +190,9 @@ export default function Auth() {
       </aside>
 
       {/* Formulário (direita) */}
-      <main className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 relative bg-[#0b0f14]">
+      <main className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 relative bg-[#101317]">
         <div aria-hidden className="absolute inset-0 pointer-events-none lg:hidden">
-          <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#38bdf8]/15 blur-[100px] rounded-full" />
+          <div className="absolute -top-32 -right-24 w-80 h-80 bg-[#a7c4dc]/15 blur-[100px] rounded-full" />
         </div>
 
         <motion.div
@@ -206,14 +206,14 @@ export default function Auth() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-2 text-gray-400 hover:text-white hover:bg-[#131922]"
+                className="gap-2 text-gray-400 hover:text-white hover:bg-[#1c2128]"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Início
               </Button>
             </Link>
             <div className="lg:hidden flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#38bdf8] to-[#1f2937] grid place-items-center">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-[#a7c4dc] to-[#232a33] grid place-items-center">
                 <Zap className="h-4 w-4 text-white" />
               </div>
               <span className="font-display font-bold">FD-Planner</span>
@@ -242,14 +242,14 @@ export default function Auth() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-semibold rounded-xl shadow-lg shadow-[#38bdf8]/20"
+                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                 >
                   {isLoading ? 'Enviando...' : 'Enviar link'}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  className="w-full text-gray-400 hover:text-white hover:bg-[#131922]"
+                  className="w-full text-gray-400 hover:text-white hover:bg-[#1c2128]"
                   onClick={() => setAuthView('login')}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
@@ -306,7 +306,7 @@ export default function Auth() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-semibold rounded-xl shadow-lg shadow-[#38bdf8]/20"
+                  className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                 >
                   {isLoading ? 'Salvando...' : 'Salvar nova senha'}
                 </Button>
@@ -324,16 +324,16 @@ export default function Auth() {
                 onValueChange={(v) => setAuthView(v as AuthView)}
                 className="w-full"
               >
-                <TabsList className="grid grid-cols-2 w-full bg-[#131922] border border-[#1f2937] p-1 rounded-xl mb-6">
+                <TabsList className="grid grid-cols-2 w-full bg-[#1c2128] border border-[#232a33] p-1 rounded-xl mb-6">
                   <TabsTrigger
                     value="login"
-                    className="rounded-lg data-[state=active]:bg-[#38bdf8] data-[state=active]:text-white text-gray-400"
+                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-[#101317] text-gray-400"
                   >
                     Entrar
                   </TabsTrigger>
                   <TabsTrigger
                     value="signup"
-                    className="rounded-lg data-[state=active]:bg-[#38bdf8] data-[state=active]:text-white text-gray-400"
+                    className="rounded-lg data-[state=active]:bg-[#a7c4dc] data-[state=active]:text-[#101317] text-gray-400"
                   >
                     Criar conta
                   </TabsTrigger>
@@ -361,7 +361,7 @@ export default function Auth() {
                         <button
                           type="button"
                           onClick={() => setAuthView('forgot')}
-                          className="text-xs text-[#7dd3fc] hover:text-[#38bdf8] font-medium"
+                          className="text-xs text-[#cfd8e3] hover:text-[#a7c4dc] font-medium"
                         >
                           Esqueceu?
                         </button>
@@ -388,7 +388,7 @@ export default function Auth() {
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full h-12 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-semibold rounded-xl shadow-lg shadow-[#38bdf8]/20"
+                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                     >
                       {isLoading ? 'Entrando...' : 'Entrar na plataforma'}
                     </Button>
@@ -453,7 +453,7 @@ export default function Auth() {
                     <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full h-12 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-semibold rounded-xl shadow-lg shadow-[#38bdf8]/20"
+                      className="w-full h-12 bg-[#a7c4dc] hover:bg-[#cfd8e3] text-[#101317] font-semibold rounded-xl shadow-lg shadow-[#a7c4dc]/20"
                     >
                       {isLoading ? 'Criando conta...' : 'Criar minha conta'}
                     </Button>
@@ -464,17 +464,17 @@ export default function Auth() {
               {/* Divider */}
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#1f2937]" />
+                  <div className="w-full border-t border-[#232a33]" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                  <span className="bg-[#0b0f14] px-3 text-gray-500">ou</span>
+                  <span className="bg-[#101317] px-3 text-gray-500">ou</span>
                 </div>
               </div>
 
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-12 gap-2 bg-transparent border-[#1f2937] text-white hover:bg-[#131922] hover:border-[#38bdf8]/50 rounded-xl"
+                className="w-full h-12 gap-2 bg-transparent border-[#232a33] text-white hover:bg-[#1c2128] hover:border-[#a7c4dc]/50 rounded-xl"
                 onClick={() => {
                   enterAsGuest();
                   navigate('/dashboard');

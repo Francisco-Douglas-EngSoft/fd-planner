@@ -24,7 +24,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const lightVariants: { id: LightVariant; name: string; description: string }[] = [
-  { id: 'crystal', name: 'Crystal', description: 'Elegante com tons violeta e ciano' },
+  { id: 'crystal', name: 'Crystal', description: 'Slate & Platinum — grafite frio, platina e azul gelo' },
   { id: 'ivory', name: 'Ivory', description: 'Suave e minimalista com tons dourados' },
   { id: 'arctic', name: 'Arctic', description: 'Profissional com azuis frios' },
   { id: 'verdant', name: 'Verdant', description: 'Barra lateral verde fresca e moderna' },
@@ -35,7 +35,7 @@ export const darkVariants: { id: DarkVariant; name: string; description: string 
   { id: 'ocean', name: 'Deep Ocean', description: 'Profundezas oceânicas com bioluminescência azul' },
   { id: 'neon', name: 'Neon Tokyo', description: 'Cyberpunk moderno com neon rosa e azul elétrico' },
   { id: 'royal', name: 'Royal Purple', description: 'Luxo e elegância com roxos profundos e dourado' },
-  { id: 'graphite', name: 'Grafite Fosco', description: 'Chumbo, fosco e cinza escuro com textos brancos — sóbrio e profissional' },
+  { id: 'graphite', name: 'Slate & Platinum', description: 'Slate & Platinum — grafite frio com platina e azul gelo' },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -53,7 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem('fdplanner-light-variant') as LightVariant;
       if (stored && ['crystal', 'ivory', 'arctic', 'verdant'].includes(stored)) return stored;
     }
-    return 'verdant';
+    return 'crystal';
   });
 
   const [darkVariant, setDarkVariantState] = useState<DarkVariant>(() => {
