@@ -35,7 +35,7 @@ export const darkVariants: { id: DarkVariant; name: string; description: string 
   { id: 'ocean', name: 'Deep Ocean', description: 'Profundezas oceânicas com bioluminescência azul' },
   { id: 'neon', name: 'Neon Tokyo', description: 'Cyberpunk moderno com neon rosa e azul elétrico' },
   { id: 'royal', name: 'Royal Purple', description: 'Luxo e elegância com roxos profundos e dourado' },
-  { id: 'graphite', name: 'Grafite Fosco', description: 'Slate & Platinum — grafite frio com platina e azul gelo' },
+  { id: 'graphite', name: 'Slate & Platinum', description: 'Slate & Platinum — grafite frio com platina e azul gelo' },
 ];
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
