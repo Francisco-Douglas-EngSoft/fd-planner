@@ -133,7 +133,7 @@
     --secondary-foreground: 216 22% 22%;
 
     --muted: 213 18% 94%;
-    --muted-foreground: 213 14% 42%;
+    --muted-foreground: 213 14% 38%;
 
     --accent: 205 52% 48%;
     --accent-foreground: 0 0% 100%;
@@ -151,7 +151,7 @@
     --input: 213 18% 88%;
     --ring: 205 52% 48%;
     
-    --radius: 0.3125rem;
+    --radius: 0.75rem;
     
     /* Sidebar - Modern clean style */
     --sidebar-background: 0 0% 100%;
@@ -213,7 +213,7 @@
     --secondary-foreground: 30 20% 15%;
     
     --muted: 40 20% 94%;
-    --muted-foreground: 30 15% 45%;
+    --muted-foreground: 30 15% 38%;
     
     --accent: 25 80% 55%;
     --accent-foreground: 40 40% 99%;
@@ -276,7 +276,7 @@
     --secondary-foreground: 215 35% 15%;
     
     --muted: 210 15% 94%;
-    --muted-foreground: 210 15% 45%;
+    --muted-foreground: 210 15% 38%;
     
     --accent: 190 85% 48%;
     --accent-foreground: 0 0% 100%;
@@ -344,7 +344,7 @@
     --secondary-foreground: 220 18% 20%;
 
     --muted: 215 20% 94%;
-    --muted-foreground: 218 12% 42%;
+    --muted-foreground: 218 12% 38%;
 
     --accent: 204 94% 66%; /* sky-300 */
     --accent-foreground: 220 20% 12%;
@@ -414,7 +414,7 @@
     --secondary-foreground: 160 15% 92%;
     
     --muted: 170 16% 12%;
-    --muted-foreground: 165 12% 58%;
+    --muted-foreground: 165 12% 66%;
     
     --accent: 280 70% 62%;
     --accent-foreground: 0 0% 100%;
@@ -493,7 +493,7 @@
     --secondary-foreground: 200 20% 92%;
     
     --muted: 210 32% 11%;
-    --muted-foreground: 205 18% 56%;
+    --muted-foreground: 205 18% 66%;
     
     --accent: 180 75% 55%;
     --accent-foreground: 210 45% 5%;
@@ -572,7 +572,7 @@
     --secondary-foreground: 220 15% 95%;
     
     --muted: 220 22% 12%;
-    --muted-foreground: 220 15% 50%;
+    --muted-foreground: 220 15% 66%;
     
     --accent: 195 85% 55%;
     --accent-foreground: 220 30% 6%;
@@ -636,7 +636,7 @@
     --secondary-foreground: 270 15% 92%;
     
     --muted: 270 22% 12%;
-    --muted-foreground: 270 15% 58%;
+    --muted-foreground: 270 15% 66%;
     
     --accent: 45 95% 58%;
     --accent-foreground: 270 30% 6%;
@@ -716,7 +716,7 @@
     --secondary-foreground: 213 22% 92%;
 
     --muted: 216 14% 15%;
-    --muted-foreground: 213 14% 62%;
+    --muted-foreground: 213 14% 68%;
 
     --accent: 205 48% 72%;
     --accent-foreground: 214 22% 10%;
@@ -817,12 +817,12 @@
 
   /* Apply card gradient when data attribute is set */
   :root[data-gradient-card="true"] .card-with-theme {
-    background: var(--gradient-card) !important;
+    background: var(--gradient-card);
   }
 
   /* Apply sidebar gradient when data attribute is set */
   :root[data-gradient-sidebar="true"] .sidebar-with-theme {
-    background: var(--gradient-sidebar) !important;
+    background: var(--gradient-sidebar);
   }
 
   .glass-card {
@@ -1274,6 +1274,20 @@
   .focus-ring {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
+
+  /* Foco visível em todos os controles interativos */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
   
   /* Selection */
   ::selection {
@@ -1283,13 +1297,54 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SOFT CORNERS — raio discreto e uniforme (Slate & Platinum)
+   SOFT CORNERS + ESCALA DE ELEVAÇÃO
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --radius: 5px !important;
+  --radius-surface: 14px;
+  --radius-control: 10px;
+
+  /* Elevação em 3 níveis */
+  --elevation-flat: 0 1px 2px hsl(220 20% 10% / 0.05);
+  --elevation-hover: 0 6px 18px -6px hsl(220 20% 10% / 0.14);
+  --elevation-modal: 0 24px 60px -20px hsl(220 20% 10% / 0.32);
 }
+
+.dark {
+  --elevation-flat: 0 1px 2px hsl(0 0% 0% / 0.4);
+  --elevation-hover: 0 6px 18px -6px hsl(0 0% 0% / 0.55);
+  --elevation-modal: 0 24px 60px -20px hsl(0 0% 0% / 0.7);
+}
+
+@layer components {
+  .elevation-flat { box-shadow: var(--elevation-flat); }
+  .elevation-hover { box-shadow: var(--elevation-hover); }
+  .elevation-modal { box-shadow: var(--elevation-modal); }
+  .elevation-interactive {
+    box-shadow: var(--elevation-flat);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .elevation-interactive:hover { box-shadow: var(--elevation-hover); }
+}
+
+/* Superfícies: cards, diálogos, painéis */
 .card,
 [class*="card-"],
+[role="dialog"],
+[role="alertdialog"],
+dialog,
+aside,
+nav,
+section,
+article,
+table,
+.rounded-lg,
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl {
+  border-radius: var(--radius-surface);
+}
+
+/* Controles: botões, campos, abas */
 button,
 .btn,
 input,
@@ -1297,29 +1352,17 @@ textarea,
 select,
 [role="tab"],
 [role="tablist"],
-[role="dialog"],
-[role="alertdialog"],
-aside,
-nav,
-section,
-article,
-dialog,
-.badge,
-table,
 .rounded,
 .rounded-sm,
-.rounded-md,
-.rounded-lg,
-.rounded-xl,
-.rounded-2xl,
-.rounded-3xl {
-  border-radius: 5px !important;
+.rounded-md {
+  border-radius: var(--radius-control);
 }
 
-/* Elementos que devem permanecer circulares */
+/* Elementos que devem permanecer circulares / pílula */
+.badge,
 .rounded-full,
 [role="progressbar"] {
-  border-radius: 9999px !important;
+  border-radius: 9999px;
 }
 
 /* ============ PDF.js Text Layer (necessário para seleção de texto no Reader) ============ */

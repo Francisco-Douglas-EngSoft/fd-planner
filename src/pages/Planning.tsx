@@ -48,6 +48,8 @@ import { ptBR } from 'date-fns/locale';
 import { fetchCompletedHours, getCourseCompletedHours } from '@/lib/studyHours';
 import { GlobalGoalCard } from '@/components/planning/GlobalGoalCard';
 import { LoadingState, ErrorState } from '@/components/ui/QueryState';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CardSkeletonGrid } from '@/components/ui/card-skeleton';
 
 const daysOfWeekFull = [
   { id: 'sunday', label: 'Domingo', abbrev: 'Dom' },
@@ -165,6 +167,7 @@ interface StudyPlan {
   description: string | null;
   start_date: string;
   end_date: string;
+  no_deadline?: boolean | null;
   daily_hours: number | null;
   min_daily_hours?: number | null;
   max_daily_hours?: number | null;
@@ -212,7 +215,25 @@ export default function Planning() {
   const [timeBlocks, setTimeBlocks] = useState<StudyTimeBlock[]>([]);
   const [timeDialogOpen, setTimeDialogOpen] = useState(false);
   const [timeDialogDay, setTimeDialogDay] = useState<string | undefined>(undefined);
-  const [planFilter, setPlanFilter] = useState<'all' | 'regular' | 'faculdade'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'regular' | 'faculdade'>(
+    () => (localStorage.getItem('planning:filter:category') as 'all' | 'regular' | 'faculdade') || 'all'
+  );
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'no_deadline'>(
+    () => (localStorage.getItem('planning:filter:status') as 'all' | 'active' | 'completed' | 'no_deadline') || 'all'
+  );
+  const [sortBy, setSortBy] = useState<'manual' | 'deadline' | 'progress'>(
+    () => (localStorage.getItem('planning:filter:sort') as 'manual' | 'deadline' | 'progress') || 'manual'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('planning:filter:category', planFilter);
+  }, [planFilter]);
+  useEffect(() => {
+    localStorage.setItem('planning:filter:status', statusFilter);
+  }, [statusFilter]);
+  useEffect(() => {
+    localStorage.setItem('planning:filter:sort', sortBy);
+  }, [sortBy]);
   const [formInitialCategory, setFormInitialCategory] = useState<'regular' | 'faculdade' | undefined>(undefined);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -350,6 +371,14 @@ export default function Planning() {
     const start = safeParseISO(plan.start_date);
     const end = safeParseISO(plan.end_date);
 
+    // Planos sem prazo não têm progresso de período: usamos os cursos concluídos.
+    if (plan.no_deadline) {
+      const courses = plan.study_plan_courses ?? [];
+      if (courses.length === 0) return 0;
+      const done = courses.filter((pc) => pc.is_completed).length;
+      return Math.round((done / courses.length) * 100);
+    }
+
     if (!start || !end) return 0;
     if (today < start) return 0;
     if (today > end) return 100;
@@ -361,6 +390,25 @@ export default function Planning() {
 
     return Math.round((elapsedDays / totalDays) * 100);
   };
+
+  // Horas totais planejadas: usa a carga real dos cursos vinculados (sem duplicar
+  // cursos presentes em mais de um planejamento) e cai para total_hours do plano.
+  const { totalPlannedHours, totalUniqueCourses } = useMemo(() => {
+    const seen = new Set<string>();
+    let hours = 0;
+    for (const plan of plans) {
+      const linked = plan.study_plan_courses ?? [];
+      let planHours = 0;
+      for (const pc of linked) {
+        const id = pc.course_id;
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        planHours += (pc.courses?.total_hours ?? pc.allocated_hours) || 0;
+      }
+      hours += linked.length > 0 ? planHours : (plan.total_hours || 0);
+    }
+    return { totalPlannedHours: hours, totalUniqueCourses: seen.size };
+  }, [plans]);
 
   // Calculate estimated completion date for a plan
   const calculateEstimatedCompletion = (plan: StudyPlan): Date | null => {
@@ -693,9 +741,36 @@ export default function Planning() {
   }, [orderStorageKey]);
 
   const filteredPlans = useMemo(() => {
-    const base = planFilter === 'all'
+    const now = new Date();
+    let base = planFilter === 'all'
       ? plans
       : plans.filter(p => (p.planning_category || 'regular') === planFilter);
+
+    if (statusFilter !== 'all') {
+      base = base.filter((p) => {
+        const start = safeParseISO(p.start_date);
+        const end = safeParseISO(p.end_date);
+        if (statusFilter === 'no_deadline') return Boolean(p.no_deadline);
+        if (p.no_deadline) return statusFilter === 'active';
+        if (statusFilter === 'active') return Boolean(start && end && now >= start && now <= end);
+        return Boolean(end && now > end);
+      });
+    }
+
+    if (sortBy === 'deadline') {
+      return [...base].sort((a, b) => {
+        if (a.no_deadline && !b.no_deadline) return 1;
+        if (!a.no_deadline && b.no_deadline) return -1;
+        const ae = safeParseISO(a.end_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const be = safeParseISO(b.end_date)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return ae - be;
+      });
+    }
+
+    if (sortBy === 'progress') {
+      return [...base].sort((a, b) => calculateProgress(b) - calculateProgress(a));
+    }
+
     if (manualOrder.length === 0) return base;
     const indexMap = new Map(manualOrder.map((id, i) => [id, i]));
     return [...base].sort((a, b) => {
@@ -703,7 +778,7 @@ export default function Planning() {
       const bi = indexMap.has(b.id) ? indexMap.get(b.id)! : Number.MAX_SAFE_INTEGER;
       return ai - bi;
     });
-  }, [plans, planFilter, manualOrder]);
+  }, [plans, planFilter, statusFilter, sortBy, manualOrder]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -859,8 +934,8 @@ export default function Planning() {
           >
             {[
               { icon: BookOpen, label: 'Total Planos', value: plans.length, tint: 'blue' },
-              { icon: Clock, label: 'Horas Total', value: `${Math.round(plans.reduce((sum, p) => sum + (p.total_hours || 0), 0))}h`, tint: 'violet' },
-              { icon: CalendarIcon, label: 'Cursos Totais', value: plans.reduce((sum, p) => sum + (p.study_plan_courses?.length || 0), 0), tint: 'cyan' },
+              { icon: Clock, label: 'Horas Total', value: `${Math.round(totalPlannedHours)}h`, tint: 'violet' },
+              { icon: CalendarIcon, label: 'Cursos Totais', value: totalUniqueCourses, tint: 'cyan' },
               { icon: CalendarCheck, label: 'Ativos Hoje', value: plans.filter(p => { const start = safeParseISO(p.start_date); const end = safeParseISO(p.end_date); return start && end && today >= start && today <= end; }).length, tint: 'emerald' },
             ].map((stat) => (
               <motion.div
@@ -1213,38 +1288,71 @@ export default function Planning() {
               </TabsList>
             </Tabs>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { id: 'all', label: 'Todos os status' },
+              { id: 'active', label: 'Ativos' },
+              { id: 'completed', label: 'Concluídos' },
+              { id: 'no_deadline', label: 'Sem prazo' },
+            ] as const).map((s) => (
+              <Button
+                key={s.id}
+                type="button"
+                size="sm"
+                variant={statusFilter === s.id ? 'default' : 'outline'}
+                className="h-9 rounded-full px-3 text-xs"
+                onClick={() => setStatusFilter(s.id)}
+              >
+                {s.label}
+              </Button>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Ordenar:</span>
+              {([
+                { id: 'manual', label: 'Manual' },
+                { id: 'deadline', label: 'Prazo' },
+                { id: 'progress', label: 'Progresso' },
+              ] as const).map((s) => (
+                <Button
+                  key={s.id}
+                  type="button"
+                  size="sm"
+                  variant={sortBy === s.id ? 'secondary' : 'ghost'}
+                  className="h-9 rounded-full px-3 text-xs"
+                  onClick={() => setSortBy(s.id)}
+                >
+                  {s.label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {isLoading ? (
-          <LoadingState message="Carregando planejamentos..." />
+          <CardSkeletonGrid count={3} />
         ) : loadError ? (
           <ErrorState error={loadError} onRetry={fetchPlans} />
         ) : (
           filteredPlans.length === 0 ? (
-          <Card className="p-12 text-center border-dashed border-2 bg-gradient-to-br from-card via-card to-primary/5 rounded-2xl">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary to-primary/80 mx-auto mb-5 flex items-center justify-center shadow-2xl shadow-primary/30">
-              <BookOpen className="h-10 w-10 text-primary-foreground" />
-            </div>
-            <h4 className="font-bold text-xl mb-2">
-              {planFilter === 'all' && 'Nenhum planejamento criado'}
-              {planFilter === 'faculdade' && 'Nenhum planejamento de faculdade'}
-              {planFilter === 'regular' && 'Nenhum planejamento de cursos'}
-            </h4>
-            <p className="text-muted-foreground text-sm mb-8 max-w-md mx-auto">
-              Organize seus estudos de forma inteligente criando seu primeiro planejamento personalizado
-            </p>
-            <Button 
-              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 shadow-xl shadow-primary/25 rounded-xl px-8 h-12 text-base font-semibold"
-              onClick={() => {
-                setEditPlan(null);
-                setFormInitialCategory(planFilter === 'faculdade' ? 'faculdade' : planFilter === 'regular' ? 'regular' : undefined);
-                setShowFormDialog(true);
-              }}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              {planFilter === 'faculdade' ? 'Criar planejamento de faculdade' : planFilter === 'regular' ? 'Criar planejamento de cursos' : 'Criar primeiro planejamento'}
-            </Button>
-          </Card>
+          <EmptyState
+            icon={BookOpen}
+            title={
+              statusFilter !== 'all'
+                ? 'Nenhum planejamento neste filtro'
+                : planFilter === 'faculdade'
+                  ? 'Nenhum planejamento de faculdade'
+                  : planFilter === 'regular'
+                    ? 'Nenhum planejamento de cursos'
+                    : 'Nenhum planejamento criado'
+            }
+            description="Organize seus estudos de forma inteligente criando seu primeiro planejamento personalizado."
+            actionLabel={planFilter === 'faculdade' ? 'Criar planejamento de faculdade' : planFilter === 'regular' ? 'Criar planejamento de cursos' : 'Criar primeiro planejamento'}
+            onAction={() => {
+              setEditPlan(null);
+              setFormInitialCategory(planFilter === 'faculdade' ? 'faculdade' : planFilter === 'regular' ? 'regular' : undefined);
+              setShowFormDialog(true);
+            }}
+          />
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={filteredPlans.map(p => p.id)} strategy={rectSortingStrategy}>
@@ -1348,9 +1456,15 @@ export default function Planning() {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
-                          <span className="font-medium">
-                            {safeFormatISO(plan.start_date, "dd MMM yyyy")} — {safeFormatISO(plan.end_date, "dd MMM yyyy")}
-                          </span>
+                          {plan.no_deadline ? (
+                            <Badge variant="outline" className="rounded-full text-[10px] px-2 py-0 font-medium">
+                              Sem prazo definido
+                            </Badge>
+                          ) : (
+                            <span className="font-medium">
+                              {safeFormatISO(plan.start_date, "dd MMM yyyy")} — {safeFormatISO(plan.end_date, "dd MMM yyyy")}
+                            </span>
+                          )}
                           {(plan.planning_category || 'regular') === 'faculdade' && (
                             <Badge className="bg-warning/20 text-warning border-0 text-[10px] px-1.5 py-0">
                               🎓 {plan.semester || 'Faculdade'}
@@ -1547,23 +1661,65 @@ export default function Planning() {
                     )}
                     
                     {/* Progress Bar */}
-                    <div className="space-y-2 pt-2 border-t border-border/50">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground font-medium">Progresso do período</span>
-                        <span className="font-bold text-primary">{progress}%</span>
-                      </div>
-                      <div className="h-2.5 bg-muted/50 rounded-full overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all duration-500 shadow-sm",
-                            isActive 
-                              ? "bg-gradient-to-r from-primary via-primary to-accent" 
-                              : "bg-gradient-to-r from-muted-foreground/50 to-muted-foreground/30"
+                    {(() => {
+                      const planHours = plan.total_hours || 0;
+                      const start = safeParseISO(plan.start_date);
+                      const elapsed = start ? Math.max(0, differenceInDays(today, start)) + 1 : 0;
+                      const pct = (h?: number | null) =>
+                        planHours > 0 && h ? Math.min(100, ((h * elapsed) / planHours) * 100) : null;
+                      const markers = plan.no_deadline
+                        ? []
+                        : ([
+                            { key: 'min', label: 'Ritmo mínimo', value: pct(plan.min_daily_hours) },
+                            { key: 'ideal', label: 'Ritmo ideal', value: pct(plan.daily_hours) },
+                            { key: 'max', label: 'Ritmo máximo', value: pct(plan.max_daily_hours) },
+                          ] as const).filter((m) => m.value !== null && m.value! > 1 && m.value! < 99);
+
+                      return (
+                        <div className="space-y-2 pt-2 border-t border-border/50">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground font-medium">
+                              {plan.no_deadline ? 'Progresso dos cursos' : 'Progresso do período'}
+                            </span>
+                            <span className="font-bold text-primary">{progress}%</span>
+                          </div>
+                          <div className="relative h-2.5 rounded-full bg-muted/50">
+                            <div className="absolute inset-0 overflow-hidden rounded-full">
+                              <div
+                                className={cn(
+                                  'h-full rounded-full transition-all duration-500',
+                                  isActive || plan.no_deadline
+                                    ? 'bg-gradient-to-r from-primary via-primary to-accent'
+                                    : 'bg-gradient-to-r from-muted-foreground/50 to-muted-foreground/30'
+                                )}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            {markers.map((m) => (
+                              <span
+                                key={m.key}
+                                title={`${m.label}: ${Math.round(m.value!)}%`}
+                                className={cn(
+                                  'absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full',
+                                  m.key === 'ideal' ? 'bg-foreground/70' : 'bg-foreground/30'
+                                )}
+                                style={{ left: `${m.value}%` }}
+                              />
+                            ))}
+                          </div>
+                          {markers.length > 0 && (
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <span className="h-2.5 w-0.5 rounded-full bg-foreground/30" /> mín/máx
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="h-2.5 w-0.5 rounded-full bg-foreground/70" /> ideal
+                              </span>
+                            </div>
                           )}
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
                   );

@@ -313,7 +313,7 @@ export function PaceIndicatorCard({
                     className={cn('h-full rounded-full', meta.bar)}
                     initial={{ width: 0 }}
                     animate={{ width: `${barPct}%` }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
                   />
                 </div>
               </TooltipTrigger>

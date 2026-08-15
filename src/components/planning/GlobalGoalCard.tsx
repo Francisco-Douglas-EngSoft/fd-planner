@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchCompletedHours } from '@/lib/studyHours';
+import { computePlanningTotals } from '@/lib/planningTotals';
+import { useGlobalGoal } from '@/hooks/useGlobalGoal';
 import { useAuth } from '@/contexts/AuthContext';
 import { addDays, format, differenceInCalendarDays, parseISO, isValid } from 'date-fns';
+
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,10 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Target, CalendarClock, Flag, TrendingUp, RefreshCw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Target, CalendarClock, Flag, TrendingUp, CloudOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const STORAGE_KEY = 'planning:global-goal';
 
 const WEEK_DAYS = [
   { id: 1, label: 'Seg' },
@@ -24,32 +26,6 @@ const WEEK_DAYS = [
   { id: 0, label: 'Dom' },
 ];
 
-interface GoalConfig {
-  hoursPerDay: number;
-  days: number[];
-  startDate: string; // yyyy-MM-dd
-}
-
-const defaultConfig = (): GoalConfig => ({
-  hoursPerDay: 4,
-  days: [1, 2, 3, 4, 5, 6],
-  startDate: format(new Date(), 'yyyy-MM-dd'),
-});
-
-function loadConfig(): GoalConfig {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultConfig();
-    const parsed = JSON.parse(raw) as Partial<GoalConfig>;
-    return {
-      hoursPerDay: Number(parsed.hoursPerDay) > 0 ? Number(parsed.hoursPerDay) : 4,
-      days: Array.isArray(parsed.days) && parsed.days.length > 0 ? parsed.days : [1, 2, 3, 4, 5, 6],
-      startDate: parsed.startDate || format(new Date(), 'yyyy-MM-dd'),
-    };
-  } catch {
-    return defaultConfig();
-  }
-}
 
 interface PlanLike {
   total_hours?: number | null;
@@ -95,44 +71,37 @@ export function projectCompletion(
 }
 
 export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
-  const [config, setConfig] = useState<GoalConfig>(loadConfig);
+  const { config, setConfig, loading: goalLoading, savedAt, syncError } = useGlobalGoal();
   const [realCompletedHours, setRealCompletedHours] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const [hoursLoading, setHoursLoading] = useState(true);
   const { user } = useAuth();
+  const loading = goalLoading || hoursLoading;
 
   useEffect(() => {
-    if (user) {
-      setLoading(true);
-      fetchCompletedHours(user.id)
-        .then(h => setRealCompletedHours(h.byCourse))
-        .catch(console.error)
-        .finally(() => setLoading(false));
-    }
+    if (!user) return;
+    let cancelled = false;
+    setHoursLoading(true);
+
+    fetchCompletedHours(user.id)
+      .then((h) => {
+        if (!cancelled) setRealCompletedHours(h.byCourse);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setHoursLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  }, [config]);
 
-  const { totalHours, completedHours } = useMemo(() => {
-    // Horas totais = soma dos planos; horas concluídas = por curso (sem duplicar
-    // cursos que aparecem em mais de um planejamento).
-    const total = plans.reduce((sum, p) => sum + (p.total_hours || 0), 0);
-    const seen = new Set<string>();
-    let completed = 0;
-    for (const plan of plans) {
-      for (const pc of plan.study_plan_courses ?? []) {
-        const id = pc.course_id || pc.courses?.id;
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-        completed += (realCompletedHours[id] ?? pc.courses?.completed_hours) || 0;
-      }
-    }
-    return { totalHours: total, completedHours: Math.min(completed, total || completed) };
-  }, [plans]);
+  const { totalHours, completedHours, remainingHours, progress } = useMemo(
+    () => computePlanningTotals(plans, realCompletedHours),
+    [plans, realCompletedHours],
+  );
 
-  const remainingHours = Math.max(0, totalHours - completedHours);
-  const progress = totalHours > 0 ? Math.min(100, (completedHours / totalHours) * 100) : 0;
 
   const parsedStart = parseISO(config.startDate);
   const startDate = isValid(parsedStart) ? parsedStart : new Date();
@@ -151,22 +120,52 @@ export function GlobalGoalCard({ plans }: { plans: PlanLike[] }) {
       return { ...prev, days: days.length > 0 ? days : prev.days };
     });
 
+  if (loading) {
+    return (
+      <Card className="tint-card mt-4 elevation-flat" style={{ ['--tint' as string]: 'var(--tint-violet)' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-lg" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-xl" />
+            ))}
+          </div>
+          <Skeleton className="h-2 w-full rounded-full" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="tint-card mt-4 relative overflow-hidden" style={{ ['--tint' as string]: 'var(--tint-violet)' }}>
-      {loading && (
-        <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      )}
+    <Card className="tint-card mt-4 relative overflow-hidden elevation-flat" style={{ ['--tint' as string]: 'var(--tint-violet)' }}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <span className="tint-icon inline-flex items-center justify-center rounded-lg p-1.5">
             <Target className="h-4 w-4" />
           </span>
           Meta de conclusão de todos os planejamentos
+          {syncError ? (
+            <Badge variant="outline" className="ml-auto gap-1 rounded-full text-[10px] font-normal text-destructive">
+              <CloudOff className="h-3 w-3" /> Salvo apenas neste dispositivo
+            </Badge>
+          ) : savedAt ? (
+            <Badge variant="outline" className="ml-auto rounded-full text-[10px] font-normal">
+              Salvo automaticamente às {format(savedAt, 'HH:mm')}
+            </Badge>
+          ) : null}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Defina quantas horas estudará por dia e veja automaticamente quando concluirá tudo.
+          Defina quantas horas estudará por dia e veja automaticamente quando concluirá tudo. Suas alterações são salvas sozinhas e sincronizadas entre dispositivos.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">

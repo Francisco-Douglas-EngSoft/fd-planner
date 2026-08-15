@@ -1,3 +1,4 @@
+import { EmptyState } from '@/components/ui/empty-state';
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, BookOpen, Clock, Star, MoreVertical, Trash2, Edit, FolderOpen, X, Download, Upload, CheckSquare, Square, CheckCircle, CalendarIcon, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -715,24 +716,25 @@ export default function Courses() {
             {/* Courses by Category */}
             <div className={activeTab === 'completed' && completedCourses.length > 0 ? '' : 'mt-6'}>
               {filteredCourses.length === 0 ? (
-                <div className="text-center py-12">
-                  <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-base sm:text-lg font-medium mb-2">
-                    {activeTab === 'active' ? 'Nenhum curso em andamento' : 'Nenhum curso concluído'}
-                  </h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {activeTab === 'active' 
-                      ? (courses.length === 0 ? 'Comece criando seu primeiro curso!' : 'Tente ajustar os filtros de busca.')
-                      : 'Cursos concluídos aparecerão aqui.'}
-                  </p>
-                  {activeTab === 'active' && courses.length === 0 && (
-                    <Button onClick={handleNewCourse} className="w-full sm:w-auto">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Primeiro Curso
-                    </Button>
-                  )}
-                </div>
+                <EmptyState
+                  icon={BookOpen}
+                  title={activeTab === 'active' ? 'Nenhum curso em andamento' : 'Nenhum curso concluído'}
+                  description={
+                    activeTab === 'active'
+                      ? courses.length === 0
+                        ? 'Crie seu primeiro curso, adicione os módulos e acompanhe as horas concluídas por aqui.'
+                        : 'Nenhum curso corresponde aos filtros atuais. Ajuste a busca ou limpe os filtros.'
+                      : 'Assim que você concluir um curso, ele aparecerá nesta aba com o histórico completo.'
+                  }
+                  actionLabel={
+                    activeTab === 'active' && courses.length === 0 ? 'Criar primeiro curso' : undefined
+                  }
+                  onAction={
+                    activeTab === 'active' && courses.length === 0 ? handleNewCourse : undefined
+                  }
+                />
               ) : selectedCategory ? (
+
                 // Show filtered courses in a grid
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

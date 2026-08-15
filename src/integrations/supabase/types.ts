@@ -1179,6 +1179,36 @@ export type Database = {
           },
         ]
       }
+      planning_global_goals: {
+        Row: {
+          created_at: string
+          hours_per_day: number
+          id: string
+          start_date: string
+          study_days: number[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hours_per_day?: number
+          id?: string
+          start_date?: string
+          study_days?: number[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hours_per_day?: number
+          id?: string
+          start_date?: string
+          study_days?: number[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -2009,6 +2039,7 @@ export type Database = {
           max_daily_hours: number | null
           min_daily_hours: number | null
           name: string
+          no_deadline: boolean
           planning_category: string | null
           planning_type: string
           semester: string | null
@@ -2032,6 +2063,7 @@ export type Database = {
           max_daily_hours?: number | null
           min_daily_hours?: number | null
           name: string
+          no_deadline?: boolean
           planning_category?: string | null
           planning_type?: string
           semester?: string | null
@@ -2055,6 +2087,7 @@ export type Database = {
           max_daily_hours?: number | null
           min_daily_hours?: number | null
           name?: string
+          no_deadline?: boolean
           planning_category?: string | null
           planning_type?: string
           semester?: string | null

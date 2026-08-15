@@ -38,6 +38,7 @@ import { FocusStreak } from '@/components/focus/FocusStreak';
 import { TimerCompletionEffect } from '@/components/focus/TimerCompletionEffect';
 import { BreakTransitionCard } from '@/components/focus/BreakTransitionCard';
 import { FocusGoalsPanel } from '@/components/focus/FocusGoalsPanel';
+import { DailyGoalCard } from '@/components/focus/DailyGoalCard';
 import { DailyAgenda } from '@/components/focus/DailyAgenda';
 import { MotivationalQuote } from '@/components/focus/MotivationalQuote';
 import { PaceIndicatorCard } from '@/components/focus/PaceIndicatorCard';
@@ -990,7 +991,7 @@ export default function Focus() {
     <motion.div 
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+      transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="min-h-screen bg-background pb-6"
     >
       {/* Break Transition Card */}
@@ -1102,9 +1103,9 @@ export default function Focus() {
               initial={{ opacity: 0.7 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0.7 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              transition={{ duration: 0.28, ease: 'easeInOut' }}
               className={cn(
-                "relative p-8 md:p-12 transition-colors duration-500",
+                "relative p-8 md:p-12 transition-colors duration-300",
                 mode === 'work' && "bg-gradient-to-br from-primary via-primary/90 to-primary/80",
                 mode === 'break' && "bg-gradient-to-br from-accent via-accent/90 to-accent/80",
                 mode === 'longBreak' && "bg-gradient-to-br from-success via-success/90 to-success/80"
@@ -1195,7 +1196,7 @@ export default function Focus() {
                       </div>
                       <div className="mt-2 w-48 h-1.5 bg-white/20 rounded-full overflow-hidden mx-auto">
                         <div
-                          className="h-full bg-white/90 rounded-full transition-all duration-500"
+                          className="h-full bg-white/90 rounded-full transition-all duration-300"
                           style={{ width: `${dailyProgressInfo.progressPercent}%` }}
                         />
                       </div>
@@ -1796,7 +1797,7 @@ export default function Focus() {
                           </div>
                           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-700"
+                              className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-300"
                               style={{ width: `${Math.min(100, (sessions / targetCycles) * 100)}%` }}
                             />
                           </div>
@@ -1810,7 +1811,9 @@ export default function Focus() {
 
             {/* ─── Aba HOJE: agenda + metas + histórico ─── */}
             <TabsContent value="hoje" className="mt-3 space-y-3">
+              <DailyGoalCard plans={studyPlans as any} refreshKey={focusRefreshKey} />
               <DailyAgenda onStartSession={handleStartFromAgenda} refreshKey={focusRefreshKey} />
+
               <div className="hidden sm:block">
                 <FocusGoalsPanel activeStudyPlan={studyPlans.find(p => p.id === selectedPlan)} />
               </div>

@@ -211,7 +211,7 @@ export function FocusMode({
     <div 
       ref={containerRef}
       className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-center transition-colors duration-700",
+        "fixed inset-0 z-50 flex flex-col items-center justify-center transition-colors duration-300",
         mode === 'work' 
           ? "bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900" 
           : "bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900"

@@ -593,6 +593,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       setDescription(editPlan.description || '');
       setStartDate(editPlan.start_date);
       setEndDate(editPlan.end_date);
+      setNoDeadline(Boolean((editPlan as { no_deadline?: boolean }).no_deadline));
       setDailyHours(String(editPlan.daily_hours || 1.5));
       setMinDailyHours(String(editPlan.min_daily_hours || 0.5));
       setMaxDailyHours(String(editPlan.max_daily_hours || 8));
@@ -1477,7 +1478,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     }
 
     const daysDiff = differenceInDays(end, start);
-    if (daysDiff < 1) {
+    if (!noDeadline && daysDiff < 1) {
       toast({
         title: 'Período muito curto',
         description: 'O planejamento deve ter pelo menos 1 dia.',
@@ -1486,7 +1487,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       return;
     }
     
-    if (daysDiff > 3650) {
+    if (!noDeadline && daysDiff > 3650) {
       toast({
         title: 'Período muito longo',
         description: 'O planejamento não pode exceder 10 anos.',
@@ -1504,6 +1505,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         description: description || null,
         start_date: validatedStartDate,
         end_date: validatedEndDate,
+        no_deadline: noDeadline,
         daily_hours: Number.parseFloat(dailyHours) || 2,
         min_daily_hours: Number.parseFloat(minDailyHours) || 0.5,
         max_daily_hours: Number.parseFloat(maxDailyHours) || 8,
@@ -2601,7 +2603,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
             )}
 
             {/* Summary Info */}
-            {((planningType === 'course' && selectedCourses.length > 0) || (planningType === 'module' && selectedModules.length > 0)) && startDate && endDate && studyDays.length > 0 && (
+            {((planningType === 'course' && selectedCourses.length > 0) || (planningType === 'module' && selectedModules.length > 0)) && (noDeadline || (startDate && endDate)) && studyDays.length > 0 && (
               <div className="text-xs text-muted-foreground border rounded-lg p-3 bg-muted/20 space-y-1">
                 <p>• <strong>{totalStudyDays}</strong> dias de estudo no período</p>
                 <p>• <strong>{totalAvailableHours.toFixed(1)}h</strong> total disponível</p>
@@ -2618,7 +2620,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={isLoading || !name.trim() || !startDate || !endDate}
+            disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
           >
             {isLoading ? 'Salvando...' : editPlan ? 'Salvar Alterações' : 'Criar Planejamento'}
           </Button>
