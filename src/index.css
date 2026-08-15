@@ -1283,10 +1283,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SCOPED SQUARE OVERRIDE — square shells only, keep Radix internals
+   SOFT CORNERS — raio discreto e uniforme (Slate & Platinum)
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --radius: 0px !important;
+  --radius: 5px !important;
 }
 .card,
 [class*="card-"],
@@ -1305,7 +1305,6 @@ section,
 article,
 dialog,
 .badge,
-img,
 table,
 .rounded,
 .rounded-sm,
@@ -1313,9 +1312,15 @@ table,
 .rounded-lg,
 .rounded-xl,
 .rounded-2xl,
-.rounded-3xl,
-.rounded-full {
-  border-radius: 0 !important;
+.rounded-3xl {
+  border-radius: 5px !important;
+}
+
+/* Elementos que devem permanecer circulares */
+.rounded-full,
+[role="progressbar"],
+.rounded-full * {
+  border-radius: 9999px !important;
 }
 
 /* ============ PDF.js Text Layer (necessário para seleção de texto no Reader) ============ */
