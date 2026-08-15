@@ -122,26 +122,26 @@ const LandingPage = () => {
             className="md:col-span-4 md:row-span-3 bg-[#a7c4dc] -[2rem] p-8 flex flex-col justify-between items-start group overflow-hidden relative"
           >
             <div className="absolute top-0 right-0 p-4 opacity-20 transform group-hover:scale-110 transition-transform">
-              <Layers className="h-28 w-28 text-white" strokeWidth={1} />
+              <Layers className="h-28 w-28 text-[#101317]" strokeWidth={1} />
             </div>
             <div className="relative z-10">
-              <h2 className="font-display text-3xl font-bold mb-4 leading-tight">
+              <h2 className="font-display text-3xl font-bold mb-4 leading-tight text-[#101317]">
                 Pronto para a evolução?
               </h2>
-              <p className="text-black/70 mb-8">
+              <p className="text-[#101317]/70 mb-8">
                 Crie sua conta ou entre no modo visitante e explore todos os módulos.
               </p>
             </div>
             <div className="w-full flex flex-col gap-3 relative z-10">
               <Link to="/auth" className="w-full">
-                <Button className="w-full py-4 h-auto bg-white text-[#101317] hover:bg-sky-50 font-bold  shadow-lg shadow-black/10">
+                <Button className="w-full py-4 h-auto bg-[#101317] text-[#cfd8e3] hover:bg-[#1c2128] font-bold shadow-lg shadow-black/20">
                   Começar Agora
                 </Button>
               </Link>
               <Link to="/auth" className="w-full">
                 <Button
                   variant="outline"
-                  className="w-full py-4 h-auto bg-[#1c2128]/20 hover:bg-white/10 text-white border-white/10 font-medium "
+                  className="w-full py-4 h-auto bg-transparent hover:bg-[#101317]/10 text-[#101317] border-[#101317]/25 font-medium"
                 >
                   Entrar na Conta
                 </Button>
