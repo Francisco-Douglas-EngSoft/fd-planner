@@ -115,26 +115,27 @@
   ═══════════════════════════════════════════════════════════════ */
   :root,
   .light-crystal {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 0%;
-    
+    /* SLATE & PLATINUM (claro) */
+    --background: 213 24% 97%;
+    --foreground: 216 24% 12%;
+
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-    
+    --card-foreground: 216 24% 12%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    
-    --primary: 234 85% 58%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 234 90% 68%;
-    
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 15% 25%;
-    
-    --muted: 220 10% 96%;
-    --muted-foreground: 220 10% 45%;
-    
-    --accent: 199 89% 48%;
+    --popover-foreground: 216 24% 12%;
+
+    --primary: 216 24% 20%;
+    --primary-foreground: 213 30% 97%;
+    --primary-glow: 205 45% 60%;
+
+    --secondary: 213 20% 93%;
+    --secondary-foreground: 216 22% 22%;
+
+    --muted: 213 18% 94%;
+    --muted-foreground: 213 14% 42%;
+
+    --accent: 205 52% 48%;
     --accent-foreground: 0 0% 100%;
     
     --success: 152 69% 41%;
@@ -146,36 +147,36 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 234 85% 58%;
+    --border: 213 18% 88%;
+    --input: 213 18% 88%;
+    --ring: 205 52% 48%;
     
-    --radius: 0.75rem;
+    --radius: 0.3125rem;
     
     /* Sidebar - Modern clean style */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 15% 30%;
-    --sidebar-primary: 234 85% 58%;
+    --sidebar-foreground: 216 18% 30%;
+    --sidebar-primary: 216 24% 20%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 220 15% 15%;
-    --sidebar-border: 220 13% 92%;
-    --sidebar-ring: 234 85% 58%;
-    
-    --chart-1: 234 85% 58%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 152 69% 41%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 72% 51%;
+    --sidebar-accent: 213 20% 94%;
+    --sidebar-accent-foreground: 216 24% 14%;
+    --sidebar-border: 213 18% 90%;
+    --sidebar-ring: 205 52% 48%;
+
+    --chart-1: 205 52% 48%;
+    --chart-2: 216 24% 30%;
+    --chart-3: 213 18% 58%;
+    --chart-4: 192 42% 50%;
+    --chart-5: 216 12% 72%;
     
     --glass-bg: rgba(255 255 255 / 0.85);
     --glass-border: rgba(255 255 255 / 0.6);
     --glass-shadow: 0 8px 32px rgba(0 0 0 / 0.06);
     
-    --gradient-primary: linear-gradient(135deg, hsl(234 85% 58%), hsl(256 75% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(199 89% 48%), hsl(180 85% 45%));
-    --gradient-hero: linear-gradient(180deg, hsl(0 0% 98%) 0%, hsl(220 14% 96%) 100%);
-    --gradient-mesh: radial-gradient(at 0% 0%, hsl(234 85% 58% / 0.08) 0px, transparent 50%), radial-gradient(at 100% 0%, hsl(199 89% 48% / 0.06) 0px, transparent 50%), radial-gradient(at 100% 100%, hsl(256 75% 60% / 0.04) 0px, transparent 50%);
+    --gradient-primary: linear-gradient(135deg, hsl(216 24% 20%), hsl(213 20% 38%));
+    --gradient-accent: linear-gradient(135deg, hsl(205 52% 48%), hsl(192 42% 50%));
+    --gradient-hero: linear-gradient(180deg, hsl(213 24% 97%) 0%, hsl(213 20% 93%) 100%);
+    --gradient-mesh: radial-gradient(at 0% 0%, hsl(205 52% 48% / 0.08) 0px, transparent 50%), radial-gradient(at 100% 0%, hsl(216 24% 20% / 0.05) 0px, transparent 50%), radial-gradient(at 100% 100%, hsl(213 18% 58% / 0.05) 0px, transparent 50%);
     --gradient-glass: linear-gradient(135deg, rgba(255 255 255 / 0.95), rgba(255 255 255 / 0.8));
     --gradient-card: linear-gradient(180deg, rgba(255 255 255 / 1), rgba(255 255 255 / 0.9));
     
@@ -184,10 +185,10 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.03);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.06), 0 8px 10px -6px rgb(0 0 0 / 0.03);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.12);
-    --shadow-glow: 0 0 40px -10px hsl(234 85% 58% / 0.25);
+    --shadow-glow: 0 0 40px -10px hsl(205 52% 48% / 0.22);
     --shadow-glass: 0 4px 24px rgba(0 0 0 / 0.04), inset 0 0 0 1px rgba(255 255 255 / 0.6);
     --shadow-card: 0 1px 3px rgba(0 0 0 / 0.05), 0 1px 2px rgba(0 0 0 / 0.03);
-    --shadow-colored: 0 10px 30px -10px hsl(234 85% 58% / 0.2);
+    --shadow-colored: 0 10px 30px -10px hsl(216 24% 20% / 0.18);
   }
 
   /* ═══════════════════════════════════════════════════════════════
