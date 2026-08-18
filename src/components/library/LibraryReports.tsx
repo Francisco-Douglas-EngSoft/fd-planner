@@ -527,7 +527,6 @@ export function LibraryReports({ books }: Props) {
 
   const monthBooksDone = monthly[monthly.length - 1]?.livros ?? 0;
   const totalMinutes = sessions.reduce((a, s) => a + (s.duration_minutes ?? 0), 0);
-  const totalPages = sessions.reduce((a, s) => a + (s.pages_read ?? 0), 0);
 
   return (
     <div className="space-y-5 sm:space-y-6">
