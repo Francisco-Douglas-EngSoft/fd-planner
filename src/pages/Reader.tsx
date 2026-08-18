@@ -149,7 +149,14 @@ export default function Reader() {
           return;
         }
         setBook(b);
-        setPage(b.last_read_page && b.last_read_page > 0 ? b.last_read_page : 1);
+        const initialPage = b.last_read_page && b.last_read_page > 0 ? b.last_read_page : 1;
+        setPage(initialPage);
+        sessionRef.current = {
+          bookId: b.id,
+          start: Date.now(),
+          startPage: initialPage,
+          maxPage: initialPage,
+        };
         const url = await libraryService.getSignedUrl(b.file_path, 3600);
         setSignedUrl(url);
       } catch (err) {
