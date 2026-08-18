@@ -597,7 +597,13 @@ export function LibraryReports({ books }: Props) {
             <PlanStat label="Páginas restantes" value={plan.remainingPages.toLocaleString("pt-BR")} />
             <PlanStat
               label="Ritmo necessário"
-              value={`${plan.requiredPerDay.toLocaleString("pt-BR")} pág./dia`}
+              value={
+                plan.remainingPages === 0
+                  ? "Concluído"
+                  : plan.remainingDays > 0
+                    ? `${plan.requiredPerDay.toLocaleString("pt-BR")} pág./dia`
+                    : `${plan.requiredPerDay.toLocaleString("pt-BR")} pág. em atraso`
+              }
             />
           </div>
 
