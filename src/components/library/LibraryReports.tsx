@@ -311,7 +311,11 @@ export function LibraryReports({ books }: Props) {
       const tp = b.total_pages ?? 0;
       if (tp > 0) {
         total += tp;
-        read += Math.min(Math.max(b.last_read_page ?? 0, 0), tp);
+        // Livro concluído conta a obra inteira, mesmo sem página registrada.
+        read +=
+          b.status === "completed"
+            ? tp
+            : Math.min(Math.max(b.last_read_page ?? 0, 0), tp);
       } else {
         missing += 1;
       }
@@ -325,20 +329,22 @@ export function LibraryReports({ books }: Props) {
     const end = new Date(`${planEnd}T12:00:00`);
     const valid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end >= start;
     const dayMs = 86400000;
-    const totalDays = valid ? Math.floor((end.getTime() - start.getTime()) / dayMs) + 1 : 0;
+    const startDay = new Date(start).setHours(0, 0, 0, 0);
+    const endDay = new Date(end).setHours(0, 0, 0, 0);
+    const todayDay = new Date(today).setHours(0, 0, 0, 0);
+    const totalDays = valid ? Math.round((endDay - startDay) / dayMs) + 1 : 0;
+    // Dias decorridos: 0 antes do início, limitado ao total após o prazo.
     const elapsedDays = valid
-      ? Math.max(0, Math.min(totalDays, Math.floor((today.getTime() - start.getTime()) / dayMs) + 1))
+      ? Math.max(0, Math.min(totalDays, Math.round((todayDay - startDay) / dayMs) + 1))
       : 0;
-    const remainingDays = Math.max(0, totalDays - elapsedDays);
-    const pagesInPlan = valid ? sumRange(start, today > end ? end : today).pages : 0;
-    const remainingPages = Math.max(0, library.total - Math.max(library.read, 0));
-    const requiredPerDay = remainingDays > 0 ? Math.ceil(remainingPages / remainingDays) : remainingPages;
+    // Dias restantes incluem o dia de hoje enquanto o plano estiver em curso.
+    const remainingDays = valid ? Math.max(0, totalDays - Math.max(0, elapsedDays - 1)) : 0;
+    const pagesInPlan = valid && todayDay >= startDay ? sumRange(start, today > end ? end : today).pages : 0;
+    const remainingPages = Math.max(0, library.total - library.read);
+    const requiredPerDay =
+      remainingPages === 0 ? 0 : remainingDays > 0 ? Math.ceil(remainingPages / remainingDays) : remainingPages;
     const expectedPages = totalDays > 0 ? Math.round((library.total * elapsedDays) / totalDays) : 0;
     const pct = library.total ? Math.min(100, Math.round((library.read / library.total) * 100)) : 0;
-    const paceFinish =
-      dailyPages > 0 && remainingPages > 0
-        ? addDays(today, Math.ceil(remainingPages / dailyPages))
-        : today;
     return {
       valid,
       start,
@@ -351,13 +357,21 @@ export function LibraryReports({ books }: Props) {
       requiredPerDay,
       expectedPages,
       pct,
-      paceFinish,
       onPace: library.read >= expectedPages,
     };
-  }, [planStart, planEnd, library, byDay, dailyPages]);
+  }, [planStart, planEnd, library, byDay]);
 
   /* meta diária efetiva: manual ou derivada do total da biblioteca */
   const effectiveDailyPages = basedOnLibrary && plan.requiredPerDay > 0 ? plan.requiredPerDay : dailyPages;
+
+  /* previsão de conclusão usando a meta diária realmente aplicada */
+  const paceFinish = useMemo(
+    () =>
+      effectiveDailyPages > 0 && plan.remainingPages > 0
+        ? addDays(new Date(), Math.ceil(plan.remainingPages / effectiveDailyPages))
+        : null,
+    [effectiveDailyPages, plan.remainingPages],
+  );
 
   /* ── metas por período ── */
   const periods = useMemo(() => {
