@@ -88,6 +88,13 @@ export default function Reader() {
   const suppressScrollResetRef = useRef(false);
   const lastPageRef = useRef<number | null>(null);
   const pendingTopRef = useRef(false);
+  // Sessão de leitura: início, página inicial e página máxima atingida (para pages_read)
+  const sessionRef = useRef<{ bookId: string | null; start: number; startPage: number; maxPage: number }>({
+    bookId: null,
+    start: Date.now(),
+    startPage: 1,
+    maxPage: 1,
+  });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
