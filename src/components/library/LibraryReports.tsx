@@ -533,13 +533,13 @@ export function LibraryReports({ books }: Props) {
     <div className="space-y-5 sm:space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3">
-        <Kpi icon={BookOpen} label="Páginas (12 meses)" value={totalPages.toLocaleString("pt-BR")} />
+        <Kpi icon={BookOpen} label="Páginas lidas" value={library.read.toLocaleString("pt-BR")} />
         <Kpi
           icon={Layers}
           label="Total da biblioteca"
           value={library.total.toLocaleString("pt-BR")}
         />
-        <Kpi icon={Clock} label="Horas de leitura" value={(totalMinutes / 60).toFixed(1)} />
+        <Kpi icon={Clock} label="Horas de leitura (12m)" value={(totalMinutes / 60).toFixed(1)} />
         <Kpi icon={Flame} label="Sequência" value={`${streak} dia${streak === 1 ? "" : "s"}`} />
         <Kpi
           icon={Target}
