@@ -88,6 +88,13 @@ export default function Reader() {
   const suppressScrollResetRef = useRef(false);
   const lastPageRef = useRef<number | null>(null);
   const pendingTopRef = useRef(false);
+  // Sessão de leitura: início, página inicial e página máxima atingida (para pages_read)
+  const sessionRef = useRef<{ bookId: string | null; start: number; startPage: number; maxPage: number }>({
+    bookId: null,
+    start: Date.now(),
+    startPage: 1,
+    maxPage: 1,
+  });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectionPopover, setSelectionPopover] = useState<
@@ -142,7 +149,14 @@ export default function Reader() {
           return;
         }
         setBook(b);
-        setPage(b.last_read_page && b.last_read_page > 0 ? b.last_read_page : 1);
+        const initialPage = b.last_read_page && b.last_read_page > 0 ? b.last_read_page : 1;
+        setPage(initialPage);
+        sessionRef.current = {
+          bookId: b.id,
+          start: Date.now(),
+          startPage: initialPage,
+          maxPage: initialPage,
+        };
         const url = await libraryService.getSignedUrl(b.file_path, 3600);
         setSignedUrl(url);
       } catch (err) {
@@ -511,14 +525,28 @@ export default function Reader() {
 
   // ---------------- Sessão de leitura → XP ----------------
   useEffect(() => {
+    if (!book) return;
+    if (sessionRef.current.bookId === book.id) {
+      sessionRef.current.maxPage = Math.max(sessionRef.current.maxPage, page);
+    }
+  }, [book, page]);
+
+  useEffect(() => {
     return () => {
       if (!book || !user) return;
+      const s = sessionRef.current;
+      const startedAt = s.bookId === book.id ? s.start : sessionStart.getTime();
       const end = new Date();
-      const minutes = Math.max(1, Math.round((end.getTime() - sessionStart.getTime()) / 60000));
-      if (minutes < 1) return;
+      const elapsedMinutes = (end.getTime() - startedAt) / 60000;
+      // Ignora aberturas relâmpago (< 1 min) para não poluir os relatórios.
+      if (elapsedMinutes < 1) return;
+      const minutes = Math.round(elapsedMinutes);
+      const pagesRead =
+        s.bookId === book.id ? Math.max(0, s.maxPage - s.startPage) : 0;
       const today = end.toISOString().slice(0, 10);
       supabase.from("reading_sessions").insert({
-        user_id: user.id, book_id: book.id, date: today, duration_minutes: minutes,
+        user_id: user.id, book_id: book.id, date: today,
+        duration_minutes: minutes, pages_read: pagesRead,
       }).then(({ error }) => error && console.error(error));
       supabase.from("focus_sessions").insert({
         user_id: user.id, duration_minutes: minutes, session_type: "work",
