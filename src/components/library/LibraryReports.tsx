@@ -650,9 +650,11 @@ export function LibraryReports({ books }: Props) {
               <p className="text-foreground font-medium">
                 {plan.remainingPages === 0
                   ? "Biblioteca concluída"
-                  : plan.paceFinish.toLocaleDateString("pt-BR")}
+                  : paceFinish
+                    ? paceFinish.toLocaleDateString("pt-BR")
+                    : "Defina uma meta diária"}
               </p>
-              <p className="text-muted-foreground">com {dailyPages} pág./dia</p>
+              <p className="text-muted-foreground">com {effectiveDailyPages} pág./dia</p>
             </div>
           </div>
 
