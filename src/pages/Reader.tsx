@@ -525,14 +525,28 @@ export default function Reader() {
 
   // ---------------- Sessão de leitura → XP ----------------
   useEffect(() => {
+    if (!book) return;
+    if (sessionRef.current.bookId === book.id) {
+      sessionRef.current.maxPage = Math.max(sessionRef.current.maxPage, page);
+    }
+  }, [book, page]);
+
+  useEffect(() => {
     return () => {
       if (!book || !user) return;
+      const s = sessionRef.current;
+      const startedAt = s.bookId === book.id ? s.start : sessionStart.getTime();
       const end = new Date();
-      const minutes = Math.max(1, Math.round((end.getTime() - sessionStart.getTime()) / 60000));
-      if (minutes < 1) return;
+      const elapsedMinutes = (end.getTime() - startedAt) / 60000;
+      // Ignora aberturas relâmpago (< 1 min) para não poluir os relatórios.
+      if (elapsedMinutes < 1) return;
+      const minutes = Math.round(elapsedMinutes);
+      const pagesRead =
+        s.bookId === book.id ? Math.max(0, s.maxPage - s.startPage) : 0;
       const today = end.toISOString().slice(0, 10);
       supabase.from("reading_sessions").insert({
-        user_id: user.id, book_id: book.id, date: today, duration_minutes: minutes,
+        user_id: user.id, book_id: book.id, date: today,
+        duration_minutes: minutes, pages_read: pagesRead,
       }).then(({ error }) => error && console.error(error));
       supabase.from("focus_sessions").insert({
         user_id: user.id, duration_minutes: minutes, session_type: "work",
