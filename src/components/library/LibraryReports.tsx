@@ -73,16 +73,8 @@ const PLAN_START_KEY = "fd:library:plan-start";
 const PLAN_END_KEY = "fd:library:plan-end";
 const PLAN_BASED_KEY = "fd:library:plan-based-on-library";
 
-const iso = (d: Date) => {
-  const c = new Date(d);
-  c.setHours(12, 0, 0, 0);
-  return c.toISOString().slice(0, 10);
-};
-const addDays = (d: Date, n: number) => {
-  const c = new Date(d);
-  c.setDate(c.getDate() + n);
-  return c;
-};
+const iso = isoDate;
+
 
 const tooltipStyle = {
   backgroundColor: "hsl(var(--card))",
