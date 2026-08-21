@@ -487,11 +487,11 @@ export function LibraryReports({ books }: Props) {
           <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
             <PlanStat label="Total de páginas" value={library.total.toLocaleString("pt-BR")} />
             <PlanStat label="Páginas lidas" value={library.read.toLocaleString("pt-BR")} />
-            <PlanStat label="Páginas restantes" value={plan.remainingPages.toLocaleString("pt-BR")} />
+            <PlanStat label="Páginas restantes" value={library.remaining.toLocaleString("pt-BR")} />
             <PlanStat
               label="Ritmo necessário"
               value={
-                plan.remainingPages === 0
+                library.remaining === 0
                   ? "Concluído"
                   : plan.remainingDays > 0
                     ? `${plan.requiredPerDay.toLocaleString("pt-BR")} pág./dia`
@@ -504,20 +504,20 @@ export function LibraryReports({ books }: Props) {
             <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
               <span>Progresso da biblioteca</span>
               <span>
-                {library.read.toLocaleString("pt-BR")} / {library.total.toLocaleString("pt-BR")} páginas ({plan.pct}%)
+                {library.read.toLocaleString("pt-BR")} / {library.total.toLocaleString("pt-BR")} páginas ({library.pct}%)
               </span>
             </div>
-            <Progress value={plan.pct} className="h-2" />
+            <Progress value={library.pct} className="h-2" />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-[11px]">
+          <div className="grid gap-3 sm:grid-cols-3 text-[11px]">
             <div className="border border-border bg-card/40 p-3 space-y-1">
               <p className="text-muted-foreground flex items-center gap-1">
-                <CalendarDays className="h-3 w-3" /> Período
+                <CalendarDays className="h-3 w-3" /> Prazo
               </p>
               <p className="text-foreground font-medium">
                 {plan.valid
-                  ? `${plan.start.toLocaleDateString("pt-BR")} → ${plan.end.toLocaleDateString("pt-BR")}`
+                  ? `${new Date(`${planStart}T12:00:00`).toLocaleDateString("pt-BR")} → ${new Date(`${planEnd}T12:00:00`).toLocaleDateString("pt-BR")}`
                   : "Datas inválidas"}
               </p>
               <p className="text-muted-foreground">
@@ -528,33 +528,27 @@ export function LibraryReports({ books }: Props) {
             <div className="border border-border bg-card/40 p-3 space-y-1">
               <p className="text-muted-foreground">Esperado até hoje</p>
               <p className="text-foreground font-medium">
-                {plan.expectedPages.toLocaleString("pt-BR")} páginas
+                {plan.expectedRead.toLocaleString("pt-BR")} páginas
               </p>
               <p className={plan.onPace ? "text-success" : "text-warning"}>
                 {plan.onPace
-                  ? "No ritmo do prazo"
-                  : `Atraso de ${(plan.expectedPages - library.read).toLocaleString("pt-BR")} pág.`}
+                  ? `Adiantado em ${plan.delta.toLocaleString("pt-BR")} pág.`
+                  : `Atraso de ${Math.abs(plan.delta).toLocaleString("pt-BR")} pág.`}
               </p>
-            </div>
-            <div className="border border-border bg-card/40 p-3 space-y-1">
-              <p className="text-muted-foreground">Lido dentro do plano</p>
-              <p className="text-foreground font-medium">
-                {plan.pagesInPlan.toLocaleString("pt-BR")} páginas
-              </p>
-              <p className="text-muted-foreground">registradas em sessões</p>
             </div>
             <div className="border border-border bg-card/40 p-3 space-y-1">
               <p className="text-muted-foreground">Conclusão no ritmo atual</p>
               <p className="text-foreground font-medium">
-                {plan.remainingPages === 0
+                {library.remaining === 0
                   ? "Biblioteca concluída"
-                  : paceFinish
-                    ? paceFinish.toLocaleDateString("pt-BR")
+                  : plan.finishDate
+                    ? plan.finishDate.toLocaleDateString("pt-BR")
                     : "Defina uma meta diária"}
               </p>
               <p className="text-muted-foreground">com {effectiveDailyPages} pág./dia</p>
             </div>
           </div>
+
 
           {library.missing > 0 && (
             <p className="text-[11px] text-warning">
