@@ -303,137 +303,30 @@ export function LibraryReports({ books }: Props) {
   const today = new Date();
 
   /* ── total de páginas de toda a biblioteca ── */
-  const library = useMemo(() => {
-    let total = 0;
-    let read = 0;
-    let missing = 0;
-    for (const b of books) {
-      const tp = b.total_pages ?? 0;
-      if (tp > 0) {
-        total += tp;
-        // Livro concluído conta a obra inteira, mesmo sem página registrada.
-        read +=
-          b.status === "completed"
-            ? tp
-            : Math.min(Math.max(b.last_read_page ?? 0, 0), tp);
-      } else {
-        missing += 1;
-      }
-    }
-    return { total, read, remaining: Math.max(0, total - read), missing, count: books.length };
-  }, [books]);
+  const library = useMemo(() => computeLibraryTotals(books), [books]);
 
   /* ── plano completo: data de início + prazo ── */
-  const plan = useMemo(() => {
-    const start = new Date(`${planStart}T12:00:00`);
-    const end = new Date(`${planEnd}T12:00:00`);
-    const valid = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end >= start;
-    const dayMs = 86400000;
-    const startDay = new Date(start).setHours(0, 0, 0, 0);
-    const endDay = new Date(end).setHours(0, 0, 0, 0);
-    const todayDay = new Date(today).setHours(0, 0, 0, 0);
-    const totalDays = valid ? Math.round((endDay - startDay) / dayMs) + 1 : 0;
-    // Dias decorridos: 0 antes do início, limitado ao total após o prazo.
-    const elapsedDays = valid
-      ? Math.max(0, Math.min(totalDays, Math.round((todayDay - startDay) / dayMs) + 1))
-      : 0;
-    // Dias restantes incluem o dia de hoje enquanto o plano estiver em curso.
-    const remainingDays = valid ? Math.max(0, totalDays - Math.max(0, elapsedDays - 1)) : 0;
-    const pagesInPlan = valid && todayDay >= startDay ? sumRange(start, today > end ? end : today).pages : 0;
-    const remainingPages = Math.max(0, library.total - library.read);
-    const requiredPerDay =
-      remainingPages === 0 ? 0 : remainingDays > 0 ? Math.ceil(remainingPages / remainingDays) : remainingPages;
-    const expectedPages = totalDays > 0 ? Math.round((library.total * elapsedDays) / totalDays) : 0;
-    const pct = library.total ? Math.min(100, Math.round((library.read / library.total) * 100)) : 0;
-    return {
-      valid,
-      start,
-      end,
-      totalDays,
-      elapsedDays,
-      remainingDays,
-      pagesInPlan,
-      remainingPages,
-      requiredPerDay,
-      expectedPages,
-      pct,
-      onPace: library.read >= expectedPages,
-    };
-  }, [planStart, planEnd, library, byDay]);
-
-  /* meta diária efetiva: manual ou derivada do total da biblioteca */
-  const effectiveDailyPages = basedOnLibrary && plan.requiredPerDay > 0 ? plan.requiredPerDay : dailyPages;
-
-  /* previsão de conclusão usando a meta diária realmente aplicada */
-  const paceFinish = useMemo(
+  const plan = useMemo(
     () =>
-      effectiveDailyPages > 0 && plan.remainingPages > 0
-        ? addDays(new Date(), Math.ceil(plan.remainingPages / effectiveDailyPages))
-        : null,
-    [effectiveDailyPages, plan.remainingPages],
+      computeLibraryPlan({
+        totals: library,
+        startISO: planStart,
+        endISO: planEnd,
+        dailyPages,
+        useLibraryPace: basedOnLibrary,
+      }),
+    [library, planStart, planEnd, dailyPages, basedOnLibrary],
   );
 
-  /* ── metas por período ── */
-  const periods = useMemo(() => {
-    const startOfWeek = addDays(today, -((today.getDay() + 6) % 7));
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const bimStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 2) * 2, 1);
-    const semStart = new Date(today.getFullYear(), today.getMonth() < 6 ? 0 : 6, 1);
-    const daysBetween = (a: Date, b: Date) =>
-      Math.floor((b.getTime() - a.getTime()) / 86400000) + 1;
+  /* meta diária efetiva: manual ou derivada do prazo da biblioteca */
+  const effectiveDailyPages = plan.effectiveDailyPages;
 
-    const defs = [
-      { key: "daily", label: "Diária", from: today, to: today, months: 1 / 30 },
-      { key: "weekly", label: "Semanal", from: startOfWeek, to: addDays(startOfWeek, 6), months: 7 / 30 },
-      {
-        key: "monthly",
-        label: "Mensal",
-        from: startOfMonth,
-        to: new Date(today.getFullYear(), today.getMonth() + 1, 0),
-        months: 1,
-      },
-      {
-        key: "bimonthly",
-        label: "Bimestral",
-        from: bimStart,
-        to: new Date(bimStart.getFullYear(), bimStart.getMonth() + 2, 0),
-        months: 2,
-      },
-      {
-        key: "semiannual",
-        label: "Semestral",
-        from: semStart,
-        to: new Date(semStart.getFullYear(), semStart.getMonth() + 6, 0),
-        months: 6,
-      },
-      {
-        key: "annual",
-        label: "Anual",
-        from: new Date(today.getFullYear(), 0, 1),
-        to: new Date(today.getFullYear(), 11, 31),
-        months: 12,
-      },
-    ];
+  /* ── metas por período (meta diária × dias do período) ── */
+  const periods = useMemo(
+    () => computePeriods({ byDay, dailyPages: effectiveDailyPages, dailyMinutes, monthlyBooks }),
+    [byDay, effectiveDailyPages, dailyMinutes, monthlyBooks],
+  );
 
-    return defs.map((d) => {
-      const totalDays = Math.max(1, daysBetween(d.from, d.to));
-      const elapsedDays = Math.max(1, Math.min(totalDays, daysBetween(d.from, today)));
-      const { pages, minutes } = sumRange(d.from, today);
-      const pagesGoal = effectiveDailyPages * totalDays;
-      const minutesGoal = dailyMinutes * totalDays;
-      return {
-        ...d,
-        totalDays,
-        elapsedDays,
-        pages,
-        minutes,
-        pagesGoal,
-        minutesGoal,
-        expectedPages: effectiveDailyPages * elapsedDays,
-        booksGoal: Math.max(1, Math.round(monthlyBooks * d.months)),
-      };
-    });
-  }, [byDay, effectiveDailyPages, dailyMinutes, monthlyBooks]);
 
   /* ── barras: páginas por dia (últimos 30 dias) ── */
   const last30 = useMemo(() => {
