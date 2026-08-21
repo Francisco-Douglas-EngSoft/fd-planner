@@ -33,6 +33,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import type { BookRow } from "@/services/libraryService";
+import {
+  addDays,
+  computeLibraryPlan,
+  computeLibraryTotals,
+  computePeriods,
+  isoDate,
+} from "@/lib/libraryGoals";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
