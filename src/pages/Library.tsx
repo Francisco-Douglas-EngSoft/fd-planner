@@ -69,6 +69,7 @@ export default function Library() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [largeOpen, setLargeOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("recent");
