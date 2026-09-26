@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Clock,
   Layers,
+  HardDrive,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +26,7 @@ import { extractPdfMetadata } from "@/lib/pdfMetadata";
 import { BookCover } from "@/components/library/BookCover";
 import { BookEditDialog, BOOK_STATUSES } from "@/components/library/BookEditDialog";
 import { BookUploadDialog } from "@/components/library/BookUploadDialog";
+import { LargeFilesDialog } from "@/components/library/LargeFilesDialog";
 import { LibraryReports } from "@/components/library/LibraryReports";
 import { ReadingPlanAI } from "@/components/library/ReadingPlanAI";
 import { Button } from "@/components/ui/button";
@@ -221,6 +223,10 @@ export default function Library() {
             {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             <span className="truncate">Sincronizar capas</span>
           </Button>
+          <Button variant="outline" size="sm" className="gap-2 flex-1 md:flex-none" onClick={() => setLargeOpen(true)}>
+            <HardDrive className="h-4 w-4" />
+            <span className="truncate">Arquivos grandes</span>
+          </Button>
           <Button size="sm" className="gap-2 flex-1 md:flex-none" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" />
             Enviar livros
@@ -345,6 +351,10 @@ export default function Library() {
           </Tabs>
         </section>
       </div>
+
+      {user && (
+        <LargeFilesDialog open={largeOpen} onOpenChange={setLargeOpen} userId={user.id} />
+      )}
 
       {user && (
         <BookUploadDialog
