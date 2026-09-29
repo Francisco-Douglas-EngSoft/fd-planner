@@ -474,6 +474,9 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
           .getPublicUrl(fileName);
 
         coverImageUrl = publicUrl;
+        // Remove a capa antiga do Storage ao trocar
+        const oldPath = publicUrlToPath(editCourse?.cover_image_url, 'course-covers');
+        if (oldPath) await supabase.storage.from('course-covers').remove([oldPath]);
       }
 
       const courseId = editCourse?.id;
