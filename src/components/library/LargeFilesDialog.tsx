@@ -38,35 +38,44 @@ export function LargeFilesDialog({ open, onOpenChange, userId }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirm, setConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [mode, setMode] = useState<"large" | "orphan">("orphan");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Arquivos no Storage (inclui arquivos órfãos sem livro cadastrado)
       const files: { name: string; size: number }[] = [];
-      for (let offset = 0; ; offset += 1000) {
-        const { data, error } = await supabase.storage.from("books").list(userId, { limit: 1000, offset });
-        if (error) throw error;
-        (data ?? []).forEach((f) => {
-          const size = Number((f.metadata as any)?.size ?? 0);
-          if (f.id && size > LIMIT) files.push({ name: `${userId}/${f.name}`, size });
-        });
-        if (!data || data.length < 1000) break;
+      for (const folder of [userId, `${userId}/covers`]) {
+        for (let offset = 0; ; offset += 1000) {
+          const { data, error } = await supabase.storage.from("books").list(folder, { limit: 1000, offset });
+          if (error) throw error;
+          (data ?? []).forEach((f) => {
+            if (f.id) files.push({ name: `${folder}/${f.name}`, size: Number((f.metadata as any)?.size ?? 0) });
+          });
+          if (!data || data.length < 1000) break;
+        }
       }
       const { data: books, error } = await supabase
         .from("books").select("id,title,file_path,file_size,cover_path").eq("user_id", userId);
       if (error) throw error;
       const byPath = new Map((books ?? []).map((b) => [b.file_path, b]));
-      const list: LargeItem[] = files.map((f) => {
-        const b = byPath.get(f.name);
-        return { path: f.name, size: f.size, bookId: b?.id ?? null, title: b?.title ?? "Arquivo sem livro cadastrado", coverPath: b?.cover_path ?? null };
-      });
-      // Livros cadastrados acima do limite cujo arquivo não apareceu no Storage
-      (books ?? []).forEach((b) => {
-        if ((b.file_size ?? 0) > LIMIT && !files.some((f) => f.name === b.file_path)) {
-          list.push({ path: b.file_path, size: b.file_size ?? 0, bookId: b.id, title: b.title, coverPath: b.cover_path });
-        }
-      });
+      const covers = new Set((books ?? []).map((b) => b.cover_path).filter(Boolean));
+      let list: LargeItem[];
+      if (mode === "orphan") {
+        list = files
+          .filter((f) => !byPath.has(f.name) && !covers.has(f.name))
+          .map((f) => ({ path: f.name, size: f.size, bookId: null, coverPath: null,
+            title: f.name.includes("/covers/") ? "Capa sem livro cadastrado" : "Arquivo sem livro cadastrado" }));
+      } else {
+        list = files.filter((f) => f.size > LIMIT && !f.name.includes("/covers/")).map((f) => {
+          const b = byPath.get(f.name);
+          return { path: f.name, size: f.size, bookId: b?.id ?? null, title: b?.title ?? "Arquivo sem livro cadastrado", coverPath: b?.cover_path ?? null };
+        });
+        (books ?? []).forEach((b) => {
+          if ((b.file_size ?? 0) > LIMIT && !files.some((f) => f.name === b.file_path)) {
+            list.push({ path: b.file_path, size: b.file_size ?? 0, bookId: b.id, title: b.title, coverPath: b.cover_path });
+          }
+        });
+      }
       list.sort((a, b) => b.size - a.size);
       setItems(list);
       setSelected(new Set(list.map((i) => i.path)));
@@ -75,7 +84,7 @@ export function LargeFilesDialog({ open, onOpenChange, userId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, mode]);
 
   useEffect(() => { if (open) load(); }, [open, load]);
 
@@ -118,14 +127,18 @@ export function LargeFilesDialog({ open, onOpenChange, userId }: Props) {
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><HardDrive className="h-5 w-5" /> Arquivos acima de {LIMIT_MB} MB</DialogTitle>
-            <DialogDescription>Selecione os arquivos para excluir do armazenamento e da biblioteca.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><HardDrive className="h-5 w-5" /> Limpar armazenamento</DialogTitle>
+            <DialogDescription>Arquivos órfãos existem no Supabase mas não têm livro na biblioteca — ocupam espaço sem aparecer no sistema.</DialogDescription>
+            <div className="flex gap-2 pt-2">
+              <Button size="sm" variant={mode === "orphan" ? "default" : "outline"} onClick={() => setMode("orphan")}>Órfãos (todos)</Button>
+              <Button size="sm" variant={mode === "large" ? "default" : "outline"} onClick={() => setMode("large")}>Acima de {LIMIT_MB} MB</Button>
+            </div>
           </DialogHeader>
 
           {loading ? (
             <div className="py-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">Nenhum arquivo acima de {LIMIT_MB} MB. 🎉</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{mode === "orphan" ? "Nenhum arquivo órfão." : `Nenhum arquivo acima de ${LIMIT_MB} MB.`} 🎉</p>
           ) : (
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-xs text-muted-foreground">
