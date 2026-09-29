@@ -1,3 +1,4 @@
+import { listStoragePaths, publicUrlToPath } from "@/lib/storageSync";
 import { EmptyState } from '@/components/ui/empty-state';
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, BookOpen, Clock, Star, MoreVertical, Trash2, Edit, FolderOpen, X, Download, Upload, CheckSquare, Square, CheckCircle, CalendarIcon, RotateCcw } from 'lucide-react';
@@ -281,7 +282,20 @@ export default function Courses() {
         variant: 'destructive',
       });
     } else {
-      setCourses(data || []);
+      let list = data || [];
+      // Sincroniza capas: se o arquivo foi apagado do Storage, limpa a referência no banco.
+      const existing = await listStoragePaths('course-covers', user.id);
+      if (existing) {
+        const broken = list.filter((c: any) => {
+          const p = publicUrlToPath(c.cover_image_url, 'course-covers');
+          return p && p.startsWith(`${user.id}/`) && !existing.has(p);
+        }).map((c) => c.id);
+        if (broken.length) {
+          await supabase.from('courses').update({ cover_image_url: null }).in('id', broken);
+          list = list.map((c: any) => (broken.includes(c.id) ? { ...c, cover_image_url: null } : c));
+        }
+      }
+      setCourses(list);
     }
     setIsLoading(false);
   };
@@ -365,8 +379,11 @@ export default function Courses() {
     await supabase.from('tasks').update({ course_id: null }).eq('course_id', courseId);
     await supabase.from('study_plan_courses').delete().eq('course_id', courseId);
     
+    const { data: courseRow } = await supabase.from('courses').select('cover_image_url').eq('id', courseId).maybeSingle();
     const { error } = await supabase.from('courses').delete().eq('id', courseId);
     if (error) throw error;
+    const coverPath = publicUrlToPath((courseRow as any)?.cover_image_url, 'course-covers');
+    if (coverPath) await supabase.storage.from('course-covers').remove([coverPath]);
   };
 
   const handleDeleteConfirm = async () => {

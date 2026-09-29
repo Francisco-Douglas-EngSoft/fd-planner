@@ -1,3 +1,4 @@
+import { publicUrlToPath } from "@/lib/storageSync";
 import { useState, useEffect } from 'react';
 import { Plus, X, Trash2, GripVertical, ChevronDown, ChevronRight, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -474,6 +475,9 @@ export function CourseFormDialog({ open, onOpenChange, onSuccess, editCourse }: 
           .getPublicUrl(fileName);
 
         coverImageUrl = publicUrl;
+        // Remove a capa antiga do Storage ao trocar
+        const oldPath = publicUrlToPath(editCourse?.cover_image_url, 'course-covers');
+        if (oldPath) await supabase.storage.from('course-covers').remove([oldPath]);
       }
 
       const courseId = editCourse?.id;
