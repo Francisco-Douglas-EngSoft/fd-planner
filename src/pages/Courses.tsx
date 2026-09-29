@@ -1,3 +1,4 @@
+import { listStoragePaths, publicUrlToPath } from "@/lib/storageSync";
 import { EmptyState } from '@/components/ui/empty-state';
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, BookOpen, Clock, Star, MoreVertical, Trash2, Edit, FolderOpen, X, Download, Upload, CheckSquare, Square, CheckCircle, CalendarIcon, RotateCcw } from 'lucide-react';

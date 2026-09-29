@@ -1,3 +1,4 @@
+import { publicUrlToPath } from "@/lib/storageSync";
 import { useState, useEffect } from 'react';
 import { Plus, X, Trash2, GripVertical, ChevronDown, ChevronRight, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
