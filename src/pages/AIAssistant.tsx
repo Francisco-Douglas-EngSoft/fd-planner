@@ -24,7 +24,7 @@ const transport = new DefaultChatTransport({
 
 const SUGGESTIONS = [
   "Resuma o método Pomodoro em tópicos.",
-  "Crie 5 flashcards sobre Direito Constitucional.",
+  "Crie um resumo sobre Direito Constitucional.",
   "Sugira um plano de estudos de 4 semanas para revisão.",
   "Explique repetição espaçada de forma simples.",
 ];
@@ -52,7 +52,7 @@ export default function AIAssistant() {
           Assistente de Estudos
         </h1>
         <p className="text-sm text-muted-foreground">
-          Peça resumos, explicações, planos de estudo e flashcards.
+          Peça resumos, explicações, e planos de estudo.
         </p>
       </div>
 

@@ -39,8 +39,6 @@ const NAV: Result[] = [
   { id: "n-tasks", label: "Tarefas", to: "/tarefas", icon: ListChecks },
   { id: "n-ach", label: "Conquistas", to: "/conquistas", icon: Trophy },
   { id: "n-lib", label: "Biblioteca", to: "/biblioteca", icon: BookOpen },
-  { id: "n-mind", label: "Mapas Mentais", to: "/mapas", icon: Brain },
-  { id: "n-fc", label: "Flashcards", to: "/flashcards", icon: Layers },
   { id: "n-ai", label: "Assistente IA", to: "/assistente", icon: Sparkles },
   { id: "n-set", label: "Configurações", to: "/configuracoes", icon: SettingsIcon },
 ];

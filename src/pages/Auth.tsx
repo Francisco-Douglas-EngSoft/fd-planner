@@ -164,13 +164,12 @@ export default function Auth() {
             .
           </h1>
           <p className="text-gray-400 max-w-md text-lg leading-relaxed">
-            Foco, biblioteca, flashcards, mapas mentais e IA — tudo integrado para desenhar sua rotina de aprendizado.
+            Foco, biblioteca, planejamentos e IA — tudo integrado para desenhar sua rotina de aprendizado.
           </p>
 
           <div className="grid grid-cols-3 gap-3 max-w-md">
             {[
               { k: '12+', v: 'módulos' },
-              { k: 'SM-2', v: 'flashcards' },
               { k: 'IA', v: 'assistente' },
             ].map((s) => (
               <div

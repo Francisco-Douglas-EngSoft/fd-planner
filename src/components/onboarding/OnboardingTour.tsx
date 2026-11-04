@@ -31,7 +31,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: "Busca rápida (Ctrl+K)",
-    body: "Pressione Ctrl+K a qualquer momento para navegar, abrir notas, livros, flashcards e mapas mentais.",
+    body: "Pressione Ctrl+K a qualquer momento para navegar, abrir notas e livros.",
   },
 ];
 

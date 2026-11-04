@@ -30,7 +30,6 @@ const expansionItems = [
     color: "violet",
     items: [
       { title: "Tutor por Disciplina", desc: "IA com contexto dos seus livros", status: "Planejado" },
-      { title: "Auto-Flashcards", desc: "Geração de cards a partir de notas", status: "Planejado" },
       { title: "Sumarização", desc: "Resumos de PDFs e vídeos", status: "Planejado" }
     ]
   },
