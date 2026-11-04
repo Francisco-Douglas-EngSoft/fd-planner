@@ -50,8 +50,6 @@ const navItems = [
   { path: '/notas', label: 'Notas', icon: StickyNote },
   { path: '/biblioteca', label: 'Biblioteca', icon: Library },
   { path: '/marcadores', label: 'Marcadores', icon: Bookmark },
-  { path: '/mapas', label: 'Mapas Mentais', icon: Network },
-  { path: '/flashcards', label: 'Flashcards', icon: Layers },
   { path: '/assistente', label: 'Assistente IA', icon: Sparkles },
   { path: '/antivicio', label: 'AntiVício', icon: Shield },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },

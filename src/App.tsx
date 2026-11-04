@@ -39,10 +39,6 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Library = lazy(() => import("./pages/Library"));
 const Reader = lazy(() => import("./pages/Reader"));
 const Bookmarks = lazy(() => import("./pages/Bookmarks"));
-const MindMaps = lazy(() => import("./pages/MindMaps"));
-const MindMapEditor = lazy(() => import("./pages/MindMapEditor"));
-const Flashcards = lazy(() => import("./pages/Flashcards"));
-const FlashcardStats = lazy(() => import("./pages/FlashcardStats"));
 const AIAssistant = lazy(() => import("./pages/AIAssistant"));
 
 const queryClient = new QueryClient({
@@ -114,10 +110,6 @@ function AppRoutes() {
           <Route path="/biblioteca" element={<Library />} />
           <Route path="/leitor/:id" element={<Reader />} />
           <Route path="/marcadores" element={<Bookmarks />} />
-          <Route path="/mapas" element={<MindMaps />} />
-          <Route path="/mapas/:id" element={<MindMapEditor />} />
-          <Route path="/flashcards" element={<Flashcards />} />
-          <Route path="/flashcards/estatisticas" element={<FlashcardStats />} />
           <Route path="/assistente" element={<AIAssistant />} />
           <Route path="/conquistas" element={<Achievements />} />
           <Route path="/antivicio" element={<AntiVicio />} />

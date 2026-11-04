@@ -36,8 +36,6 @@ const LandingPage = () => {
     { icon: Calendar, title: "Planejamentos", desc: "Cronogramas semanais e blocos de estudo por curso." },
     { icon: CheckSquare, title: "Tarefas", desc: "Prioridades, prazos e lembretes automáticos." },
     { icon: BookOpen, title: "Biblioteca", desc: "Leitor PDF/EPUB com anotações e progresso." },
-    { icon: Brain, title: "Flashcards", desc: "Repetição espaçada SM-2 e geração por IA." },
-    { icon: Network, title: "Mapas Mentais", desc: "Editor visual com nós, arestas e IA." },
     { icon: Sparkles, title: "Assistente IA", desc: "Resumos, dúvidas e geração de material." },
     { icon: Trophy, title: "Conquistas", desc: "XP, níveis e recompensas por período." },
     { icon: Shield, title: "AntiVício", desc: "Controle de impulsos e sequência de dias limpos." },
