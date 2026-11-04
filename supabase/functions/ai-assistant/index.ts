@@ -1,16 +1,16 @@
 import { convertToModelMessages, streamText, type UIMessage } from "npm:ai@5.0.60";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { createAiGatewayProvider } from "../_shared/ai-gateway.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const key = Deno.env.get("LOVABLE_API_KEY");
+    const key = Deno.env.get("AI_GATEWAY_API_KEY");
     if (!key) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+      return new Response(JSON.stringify({ error: "AI_GATEWAY_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const gateway = createLovableAiGatewayProvider(key);
+    const gateway = createAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
     const result = streamText({

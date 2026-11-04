@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
@@ -52,13 +51,12 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      // The service worker is registered ONLY by src/pwa/registerServiceWorker.ts
-      // (guarded against Lovable preview / iframes / dev). Never auto-inject.
+      // O service worker é registrado APENAS por src/pwa/registerServiceWorker.ts
+      // (protegido contra iframes e ambiente dev). Nunca injetar automaticamente.
       injectRegister: null,
-      // Never emit or register a service worker in dev / Lovable preview.
+      // Não emite nem registra service worker em modo dev.
       devOptions: { enabled: false },
       filename: "sw.js",
       includeAssets: [

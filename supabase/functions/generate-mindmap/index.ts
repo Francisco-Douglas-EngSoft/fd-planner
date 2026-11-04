@@ -2,15 +2,15 @@ import { generateText, Output } from "npm:ai@5.0.60";
 import { z } from "npm:zod@3.23.8";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { createAiGatewayProvider } from "../_shared/ai-gateway.ts";
 import { checkRateLimit, clientIpFrom, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const key = Deno.env.get("LOVABLE_API_KEY");
-    if (!key) throw new Error("LOVABLE_API_KEY not configured");
+    const key = Deno.env.get("AI_GATEWAY_API_KEY");
+    if (!key) throw new Error("AI_GATEWAY_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const { topic, content, title } = parsed.data;
-    const gateway = createLovableAiGatewayProvider(key);
+    const gateway = createAiGatewayProvider(key);
 
     const { output } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),

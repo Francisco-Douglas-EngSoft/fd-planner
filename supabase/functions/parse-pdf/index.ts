@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 import { generateText } from "npm:ai@5.0.60";
-import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { createAiGatewayProvider } from "../_shared/ai-gateway.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
     const pdf = await getDocumentProxy(buf);
     const totalPages = Math.min(pdf.numPages, max_pages);
 
-    const key = Deno.env.get("LOVABLE_API_KEY");
-    const gateway = key ? createLovableAiGatewayProvider(key) : null;
+    const key = Deno.env.get("AI_GATEWAY_API_KEY");
+    const gateway = key ? createAiGatewayProvider(key) : null;
 
     const rows: Array<{ user_id: string; pdf_id: string; page_number: number; content: string; summary?: string | null }> = [];
     for (let i = 1; i <= totalPages; i++) {

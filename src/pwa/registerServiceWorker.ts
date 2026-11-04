@@ -1,32 +1,24 @@
 /**
- * Guarded service-worker registration.
+ * Registro do service worker com proteção de contexto.
  *
- * The PWA is registered ONLY from here (vite.config sets injectRegister: null),
- * so there is a single registrar. It must never register in the Lovable editor
- * preview, inside an iframe, or in dev — service workers are browser-held state
- * that can keep serving stale HTML/deleted chunks after code changes.
+ * O PWA é registrado APENAS por aqui (vite.config define injectRegister: null),
+ * garantindo um único registrador. Nunca deve registrar dentro de um iframe
+ * ou em modo de desenvolvimento — service workers são estado persistente no
+ * browser e podem continuar servindo HTML/chunks obsoletos após alterações.
  *
- * The Firebase messaging worker (firebase-messaging-sw.js) is intentionally
- * left untouched: it uses a separate file/scope for background push.
+ * O Firebase messaging worker (firebase-messaging-sw.js) não é afetado:
+ * usa escopo e arquivo separados para push em background.
  */
 
 const APP_SW_URL = "/sw.js";
-const BLOCKED_HOSTS = [
-  "lovableproject.com",
-  "lovableproject-dev.com",
-  "beta.lovable.dev",
-];
-const BLOCKED_HOST_SUFFIXES = [
-  ".lovableproject.com",
-  ".lovableproject-dev.com",
-  ".beta.lovable.dev",
-];
+const BLOCKED_HOSTS: string[] = [];
+const BLOCKED_HOST_SUFFIXES: string[] = [];
 
 function isRefusedContext(): boolean {
   if (!import.meta.env.PROD) return true;
   if (typeof window === "undefined") return true;
 
-  // Inside an iframe (e.g. Lovable preview) — never register.
+  // Dentro de um iframe (ambiente de preview) — nunca registrar.
   try {
     if (window.self !== window.top) return true;
   } catch {
