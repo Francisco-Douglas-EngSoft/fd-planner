@@ -822,12 +822,50 @@ export default function Reader() {
         <div className="grid lg:grid-cols-[1fr_320px] gap-4">
           <EpubReader
             url={signedUrl}
-            initialCfi={null}
-            onLocationChange={(_cfi, pct) => {
-              if (book) libraryService.update(book.id, { last_read_page: pct }).catch(console.error);
+            initialCfi={book?.last_read_cfi ?? null}
+            onLocationChange={(loc: EpubLocation) => {
+              setEpubCfi(loc.cfi);
+              setEpubPct(loc.percentage);
+              if (book) {
+                libraryService.update(book.id, {
+                  last_read_page: loc.percentage,
+                  last_read_cfi: loc.cfi,
+                  last_read_pct: loc.percentage,
+                  status: loc.percentage >= 98 ? "completed" : "reading",
+                } as never).catch(console.error);
+              }
+            }}
+            onAddBookmark={async (cfi: string, chapter: string) => {
+              if (!book || !user) return;
+              const { error } = await supabase.from("bookmarks").insert({
+                user_id: user.id, book_id: book.id, page: epubPct, chapter, text: cfi,
+              });
+              if (error) toast.error("Erro ao criar marcador");
+              else toast.success("Marcador EPUB salvo");
             }}
           />
-          {book && user && <NotesPanel bookId={book.id} userId={user.id} currentPage={null} />}
+          {book && user && (
+            <div className="flex flex-col gap-3">
+              <Tabs value={sidePanel} onValueChange={(v) => setSidePanel(v as typeof sidePanel)}>
+                <TabsList className="grid grid-cols-2">
+                  <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
+                  <TabsTrigger value="notebook" className="text-xs gap-1"><BookMarked className="h-3.5 w-3.5" />Caderno</TabsTrigger>
+                </TabsList>
+                <TabsContent value="notes">
+                  <NotesPanel bookId={book.id} userId={user.id} currentPage={null} />
+                </TabsContent>
+                <TabsContent value="notebook" className="max-h-[70vh] overflow-hidden">
+                  <StudyNotebookPanel
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    currentCfi={epubCfi}
+                    currentPct={epubPct}
+                    bookType="epub"
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
         </div>
       ) : !isPdf ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
@@ -1147,10 +1185,11 @@ export default function Reader() {
           {/* Painel direito com abas */}
           <Card className="p-0 min-w-0 max-h-[60vh] lg:max-h-[85vh] flex flex-col overflow-hidden">
             <Tabs value={sidePanel} onValueChange={(v) => setSidePanel(v as typeof sidePanel)} className="flex flex-col flex-1 min-h-0">
-              <TabsList className="grid grid-cols-3 m-2">
-                <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" />Notas</TabsTrigger>
-                <TabsTrigger value="highlights" className="text-xs gap-1"><ListOrdered className="h-3.5 w-3.5" />Destaques</TabsTrigger>
-                <TabsTrigger value="search" className="text-xs gap-1"><SearchIcon className="h-3.5 w-3.5" />Buscar</TabsTrigger>
+              <TabsList className="grid grid-cols-4 m-2">
+                <TabsTrigger value="notes" className="text-xs gap-1"><StickyNote className="h-3.5 w-3.5" /><span className="hidden sm:inline">Notas</span></TabsTrigger>
+                <TabsTrigger value="highlights" className="text-xs gap-1"><ListOrdered className="h-3.5 w-3.5" /><span className="hidden sm:inline">Destaques</span></TabsTrigger>
+                <TabsTrigger value="search" className="text-xs gap-1"><SearchIcon className="h-3.5 w-3.5" /><span className="hidden sm:inline">Buscar</span></TabsTrigger>
+                <TabsTrigger value="notebook" className="text-xs gap-1"><BookMarked className="h-3.5 w-3.5" /><span className="hidden sm:inline">Caderno</span></TabsTrigger>
               </TabsList>
               <TabsContent value="notes" className="flex-1 overflow-hidden m-0 p-0">
                 {book && user && <NotesPanel bookId={book.id} userId={user.id} currentPage={page} />}
@@ -1212,6 +1251,17 @@ export default function Reader() {
                   onQueryChange={setSearchQuery}
                   onJump={(p, q) => { setSearchQuery(q); setPage(p); }}
                 />
+              </TabsContent>
+              <TabsContent value="notebook" className="flex-1 overflow-hidden m-0 p-3">
+                {book && user && (
+                  <StudyNotebookPanel
+                    bookId={book.id}
+                    bookTitle={book.title}
+                    currentPage={page}
+                    bookType="pdf"
+                    onGoToPage={(p) => setPage(p)}
+                  />
+                )}
               </TabsContent>
             </Tabs>
           </Card>
