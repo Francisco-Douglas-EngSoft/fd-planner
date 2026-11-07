@@ -543,7 +543,7 @@ export default function Reader() {
     };
   }, [book, page]);
 
-  // ---------------- Sessão de leitura → XP ----------------
+  // ---------------- Sessão de leitura → XP (separado PDF/EPUB) ----------------
   useEffect(() => {
     if (!book) return;
     if (sessionRef.current.bookId === book.id) {
@@ -554,26 +554,44 @@ export default function Reader() {
   useEffect(() => {
     return () => {
       if (!book || !user) return;
+      const isEpubBook = book.file_path.toLowerCase().endsWith(".epub");
       const s = sessionRef.current;
       const startedAt = s.bookId === book.id ? s.start : sessionStart.getTime();
       const end = new Date();
       const elapsedMinutes = (end.getTime() - startedAt) / 60000;
-      // Ignora aberturas relâmpago (< 1 min) para não poluir os relatórios.
       if (elapsedMinutes < 1) return;
       const minutes = Math.round(elapsedMinutes);
-      const pagesRead =
-        s.bookId === book.id ? Math.max(0, s.maxPage - s.startPage) : 0;
       const today = end.toISOString().slice(0, 10);
-      supabase.from("reading_sessions").insert({
-        user_id: user.id, book_id: book.id, date: today,
-        duration_minutes: minutes, pages_read: pagesRead,
-      }).then(({ error }) => error && console.error(error));
-      supabase.from("focus_sessions").insert({
-        user_id: user.id, duration_minutes: minutes, session_type: "work",
-        notes: `Leitura: ${book.title}`,
-      }).then(({ error }) => error && console.error(error));
+
+      if (isEpubBook) {
+        const es = epubSessionRef.current;
+        saveReadingSession({
+          user_id: user.id,
+          book_id: book.id,
+          book_type: "epub",
+          date: today,
+          duration_minutes: minutes,
+          start_cfi: es.startCfi,
+          end_cfi: epubCfi,
+          start_pct: es.startPct,
+          end_pct: epubPct,
+        });
+      } else {
+        const pagesRead = s.bookId === book.id ? Math.max(0, s.maxPage - s.startPage) : 0;
+        saveReadingSession({
+          user_id: user.id,
+          book_id: book.id,
+          book_type: "pdf",
+          date: today,
+          duration_minutes: minutes,
+          pages_read: pagesRead,
+          start_page: s.startPage,
+          end_page: s.maxPage,
+        });
+      }
+      saveFocusSession(user.id, minutes, book.title).catch(console.error);
     };
-  }, [book, user, sessionStart]);
+  }, [book, user, sessionStart, epubCfi, epubPct]);
 
   // ---------------- Seleção de texto → popover ----------------
   const handleMouseUp = useCallback(() => {
