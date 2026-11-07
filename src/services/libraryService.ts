@@ -3,9 +3,30 @@ import type { Database } from "@/integrations/supabase/types";
 import { fetchAllPaginated } from "@/lib/supabasePagination";
 import { listStoragePaths } from "@/lib/storageSync";
 
-export type BookRow = Database["public"]["Tables"]["books"]["Row"];
+export type BookRow = Database["public"]["Tables"]["books"]["Row"] & {
+  // Colunas adicionadas via migration manual (não estão nos tipos gerados ainda)
+  last_read_scroll?: number | null;
+  last_read_cfi?: string | null;
+  last_read_pct?: number | null;
+  description?: string | null;
+  isbn?: string | null;
+  publisher?: string | null;
+  published_year?: number | null;
+  tags?: string[] | null;
+  is_offline?: boolean | null;
+};
 export type BookInsert = Database["public"]["Tables"]["books"]["Insert"];
-export type BookUpdate = Database["public"]["Tables"]["books"]["Update"];
+export type BookUpdate = Database["public"]["Tables"]["books"]["Update"] & {
+  last_read_scroll?: number | null;
+  last_read_cfi?: string | null;
+  last_read_pct?: number | null;
+  description?: string | null;
+  isbn?: string | null;
+  publisher?: string | null;
+  published_year?: number | null;
+  tags?: string[] | null;
+  is_offline?: boolean | null;
+};
 
 export const libraryService = {
   async list(userId: string): Promise<BookRow[]> {

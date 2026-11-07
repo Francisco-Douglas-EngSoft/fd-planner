@@ -6,6 +6,7 @@ import {
   ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
   PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
   Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X, ScanLine, Coffee,
+  BookMarked,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,8 +17,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { EpubReader } from "@/components/reader/EpubReader";
+import { EpubReader, type EpubLocation } from "@/components/reader/EpubReader";
 import { NotesPanel } from "@/components/reader/NotesPanel";
+import { StudyNotebookPanel } from "@/components/reader/StudyNotebookPanel";
 import { PageSummarizer } from "@/components/reader/PageSummarizer";
 import { PdfTextLayer } from "@/components/reader/PdfTextLayer";
 import { HighlightsLayer } from "@/components/reader/HighlightsLayer";
@@ -26,6 +28,7 @@ import { PdfOutline } from "@/components/reader/PdfOutline";
 import { PdfSearch } from "@/components/reader/PdfSearch";
 import { SelectionPopover } from "@/components/reader/SelectionPopover";
 import { annotationsService, HIGHLIGHT_COLORS, type Annotation, type RectNorm } from "@/services/annotationsService";
+import { saveReadingSession, saveFocusSession } from "@/services/readingSessionService";
 import { PageInput } from "@/components/reader/PageInput";
 import { clampPage, isPageCountLoading } from "@/lib/pageNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,7 +41,11 @@ import PdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?worker";
 (pdfjsLib as any).GlobalWorkerOptions.workerPort = new PdfWorker();
 
 // Extensão do BookRow para colunas adicionadas via migration manual
-type BookRowExt = BookRow & { last_read_scroll?: number | null };
+type BookRowExt = BookRow & {
+  last_read_scroll?: number | null;
+  last_read_cfi?: string | null;
+  last_read_pct?: number | null;
+};
 
 export default function Reader() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +82,7 @@ export default function Reader() {
 
   const [showThumbs, setShowThumbs] = useState(true);
   const [leftPanel, setLeftPanel] = useState<"outline" | "thumbs">("outline");
-  const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights">("notes");
+  const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights" | "notebook">("notes");
 
   // Fullscreen toolbar / atalhos / navegação de destaques
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -97,7 +104,12 @@ export default function Reader() {
   });
 
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [selectionPopover, setSelectionPopover] = useState<
+  // Progresso EPUB separado do PDF
+  const [epubCfi, setEpubCfi] = useState<string | null>(null);
+  const [epubPct, setEpubPct] = useState<number>(0);
+  const epubSessionRef = useRef<{ start: number; startPct: number; startCfi: string | null }>({
+    start: Date.now(), startPct: 0, startCfi: null,
+  });  const [selectionPopover, setSelectionPopover] = useState<
     | { x: number; y: number; rects: RectNorm[]; text: string }
     | null
   >(null);
@@ -151,6 +163,14 @@ export default function Reader() {
         setBook(b);
         const initialPage = b.last_read_page && b.last_read_page > 0 ? b.last_read_page : 1;
         setPage(initialPage);
+        // Restaura progresso EPUB
+        if (b.last_read_cfi) setEpubCfi(b.last_read_cfi);
+        if (b.last_read_pct) setEpubPct(b.last_read_pct ?? 0);
+        epubSessionRef.current = {
+          start: Date.now(),
+          startPct: b.last_read_pct ?? 0,
+          startCfi: b.last_read_cfi ?? null,
+        };
         sessionRef.current = {
           bookId: b.id,
           start: Date.now(),
