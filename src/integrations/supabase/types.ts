@@ -309,8 +309,6 @@ export type Database = {
           created_at: string
           folder: string | null
           id: string
-          mind_map_id: string | null
-          node_id: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -321,8 +319,6 @@ export type Database = {
           created_at?: string
           folder?: string | null
           id?: string
-          mind_map_id?: string | null
-          node_id?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -333,29 +329,12 @@ export type Database = {
           created_at?: string
           folder?: string | null
           id?: string
-          mind_map_id?: string | null
-          node_id?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "book_notes_mind_map_id_fkey"
-            columns: ["mind_map_id"]
-            isOneToOne: false
-            referencedRelation: "mind_maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "book_notes_node_id_fkey"
-            columns: ["node_id"]
-            isOneToOne: false
-            referencedRelation: "mind_map_nodes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       bookmarks: {
         Row: {
@@ -771,48 +750,6 @@ export type Database = {
         }
         Relationships: []
       }
-      flashcards: {
-        Row: {
-          back: string
-          created_at: string
-          ease_factor: number | null
-          front: string
-          id: string
-          interval_days: number | null
-          next_review: string | null
-          repetitions: number | null
-          topic: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          back: string
-          created_at?: string
-          ease_factor?: number | null
-          front: string
-          id?: string
-          interval_days?: number | null
-          next_review?: string | null
-          repetitions?: number | null
-          topic?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          back?: string
-          created_at?: string
-          ease_factor?: number | null
-          front?: string
-          id?: string
-          interval_days?: number | null
-          next_review?: string | null
-          repetitions?: number | null
-          topic?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       focus_sessions: {
         Row: {
           completed_at: string
@@ -889,93 +826,6 @@ export type Database = {
           resisted?: boolean
           trigger_context?: string | null
           trigger_type?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      mind_map_nodes: {
-        Row: {
-          color: string | null
-          content: string | null
-          created_at: string
-          id: string
-          mind_map_id: string
-          parent_id: string | null
-          title: string
-          updated_at: string
-          user_id: string
-          x: number | null
-          y: number | null
-        }
-        Insert: {
-          color?: string | null
-          content?: string | null
-          created_at?: string
-          id?: string
-          mind_map_id: string
-          parent_id?: string | null
-          title: string
-          updated_at?: string
-          user_id: string
-          x?: number | null
-          y?: number | null
-        }
-        Update: {
-          color?: string | null
-          content?: string | null
-          created_at?: string
-          id?: string
-          mind_map_id?: string
-          parent_id?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-          x?: number | null
-          y?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mind_map_nodes_mind_map_id_fkey"
-            columns: ["mind_map_id"]
-            isOneToOne: false
-            referencedRelation: "mind_maps"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mind_map_nodes_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "mind_map_nodes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mind_maps: {
-        Row: {
-          color: string | null
-          created_at: string
-          description: string | null
-          id: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          color?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          title?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1547,50 +1397,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      review_history: {
-        Row: {
-          ease_factor_after: number | null
-          ease_factor_before: number | null
-          flashcard_id: string
-          id: string
-          interval_after: number | null
-          interval_before: number | null
-          quality: number
-          reviewed_at: string
-          user_id: string
-        }
-        Insert: {
-          ease_factor_after?: number | null
-          ease_factor_before?: number | null
-          flashcard_id: string
-          id?: string
-          interval_after?: number | null
-          interval_before?: number | null
-          quality: number
-          reviewed_at?: string
-          user_id: string
-        }
-        Update: {
-          ease_factor_after?: number | null
-          ease_factor_before?: number | null
-          flashcard_id?: string
-          id?: string
-          interval_after?: number | null
-          interval_before?: number | null
-          quality?: number
-          reviewed_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "review_history_flashcard_id_fkey"
-            columns: ["flashcard_id"]
-            isOneToOne: false
-            referencedRelation: "flashcards"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       revision_schedule: {
         Row: {
