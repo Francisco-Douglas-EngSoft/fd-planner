@@ -25,13 +25,18 @@ function isRefusedContext(): boolean {
     return true;
   }
 
-  const { hostname, search } = window.location;
+  const { search } = window.location;
+  const hostname = window.location.hostname.toLowerCase();
 
   // Manual kill switch: ?sw=off
   if (new URLSearchParams(search).get("sw") === "off") return true;
 
-  if (hostname.startsWith("id-preview--") || hostname.startsWith("preview--")) {
-    return true;
+  const firstLabel = hostname.split(".")[0];
+  const lovableDomain = [".lovable.app", ".gpt-eng.com", ".gptengineer.run"].some((d) => hostname.endsWith(d));
+  if (lovableDomain && /^(?:id-preview|preview)(?:-[a-z0-9]+)?--.+$/.test(firstLabel)) return true;
+  if (lovableDomain && /^project--.+-dev$/.test(firstLabel)) return true;
+  for (const base of ["lovableproject.com", "lovableproject-dev.com", "beta.lovable.dev"]) {
+    if (hostname === base || hostname.endsWith(`.${base}`)) return true;
   }
   if (BLOCKED_HOSTS.includes(hostname)) return true;
   if (BLOCKED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix))) {

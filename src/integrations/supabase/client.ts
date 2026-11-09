@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
+import { createTimeoutFetch } from '@/lib/fetchWithTimeout';
 
 const SUPABASE_URL = "https://yyytevxnkoqywhxlybyd.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5eXRldnhua29xeXdoeGx5YnlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2OTk3ODEsImV4cCI6MjA5MDI3NTc4MX0.5R2yMGRsCfBBqVRLB6g8Dyi-OZkspgFUoRR6ggAMggk";
@@ -13,5 +14,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: { fetch: createTimeoutFetch() },
 });

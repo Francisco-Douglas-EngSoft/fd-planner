@@ -52,6 +52,7 @@
     "@sentry/react": "^10.66.0",
     "@supabase/supabase-js": "^2.112.3",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-query-persist-client": "5",
     "@tiptap/core": "^3.28.0",
     "@tiptap/extension-code-block-lowlight": "^3.28.0",
     "@tiptap/extension-color": "^3.28.0",

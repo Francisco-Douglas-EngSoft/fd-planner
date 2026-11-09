@@ -8,6 +8,7 @@ import {
   Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X, ScanLine, Coffee,
   BookMarked,
 } from "lucide-react";
+import { getOfflineBookUrl } from "@/lib/offlineBooks";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { libraryService, type BookRow } from "@/services/libraryService";
@@ -177,7 +178,9 @@ export default function Reader() {
           startPage: initialPage,
           maxPage: initialPage,
         };
-        const url = await libraryService.getSignedUrl(b.file_path, 3600);
+        // Livro guardado no aparelho abre sem internet.
+        const localUrl = await getOfflineBookUrl(b.id);
+        const url = localUrl ?? (await libraryService.getSignedUrl(b.file_path, 3600));
         setSignedUrl(url);
       } catch (err) {
         console.error(err);
