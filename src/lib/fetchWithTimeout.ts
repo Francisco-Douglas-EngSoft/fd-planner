@@ -7,10 +7,10 @@
 export const READ_TIMEOUT_MS = 12_000;
 
 export function createTimeoutFetch(
-  baseFetch: typeof fetch = (...a) => fetch(...a),
+  baseFetch: typeof fetch = (input, init) => fetch(input, init),
   timeoutMs = READ_TIMEOUT_MS,
 ): typeof fetch {
-  return (input, init = {}) => {
+  return (input: RequestInfo | URL, init: RequestInit = {}) => {
     const method = (init.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const isRead = method === "GET" || method === "HEAD";
