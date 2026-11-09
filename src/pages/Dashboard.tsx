@@ -65,7 +65,7 @@ export default function Dashboard() {
       fetchStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isReadOnly]);
+  }, [user?.id, isReadOnly]);
 
   const fetchStats = async () => {
     if (!user) return;

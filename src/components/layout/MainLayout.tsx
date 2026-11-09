@@ -11,7 +11,7 @@ import { useDeviceType } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageSwipeNavigation } from '@/hooks/usePageSwipeNavigation';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
-import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
 import { Badge } from '@/components/ui/badge';
 import { WifiOff, RefreshCw, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,7 +36,7 @@ export function MainLayout() {
   usePageSwipeNavigation({ enabled: isMobile });
   
   // Offline sync status
-  const { isOnline, pendingActions } = useOfflineSync();
+  const { isOnline, pending: pendingActions } = useSyncStatus();
   
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
@@ -85,9 +85,9 @@ export function MainLayout() {
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-[200] bg-warning/90 text-warning-foreground py-1 px-4 flex items-center justify-center gap-2 text-sm">
           <WifiOff className="h-4 w-4" />
-          <span>Você está offline. Suas ações serão sincronizadas quando a conexão voltar.</span>
+          <span>Você está offline — alterações serão sincronizadas</span>
           {pendingActions > 0 && (
-            <Badge variant="secondary" className="bg-white/20 text-white">
+            <Badge variant="secondary" className="bg-background/20 text-warning-foreground">
               {pendingActions} pendente{pendingActions !== 1 ? 's' : ''}
             </Badge>
           )}

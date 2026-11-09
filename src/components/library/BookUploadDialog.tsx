@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { checkUploadFit, formatBytes, STORAGE_BUDGET_BYTES } from "@/lib/libraryStorage";
 
 const MAX_MB = 50;
 const ACCEPTED = ["pdf", "epub"];
@@ -53,11 +54,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
+  /** Espaço já usado no Storage (bytes), para avisar da meta de 800 MB. */
+  usedBytes: number;
   categories: string[];
   onCreate: (payload: Omit<BookInsert, "user_id">) => Promise<unknown>;
 }
 
-export function BookUploadDialog({ open, onOpenChange, userId, categories, onCreate }: Props) {
+export function BookUploadDialog({ open, onOpenChange, userId, usedBytes, categories, onCreate }: Props) {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [category, setCategory] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -137,6 +140,10 @@ export function BookUploadDialog({ open, onOpenChange, userId, categories, onCre
       toast.error("Selecione ao menos um arquivo");
       return;
     }
+    if (fit.blocked) {
+      toast.error("Esse envio passaria do limite de 1 GB do Supabase. Remova livros ou arquivos antes.");
+      return;
+    }
     setRunning(true);
     let ok = 0;
     let fail = 0;
@@ -184,7 +191,11 @@ export function BookUploadDialog({ open, onOpenChange, userId, categories, onCre
     }
   }
 
-  const totalReady = items.filter((i) => i.status !== "done").length;
+  const pendingItems = items.filter((i) => i.status !== "done");
+  const totalReady = pendingItems.length;
+  // Arquivos na fila + capas já extraídas.
+  const incomingBytes = pendingItems.reduce((s, i) => s + i.file.size + (i.coverBlob?.size ?? 0), 0);
+  const fit = checkUploadFit(usedBytes, incomingBytes);
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? onOpenChange(true) : close())}>
@@ -310,11 +321,33 @@ export function BookUploadDialog({ open, onOpenChange, userId, categories, onCre
           )}
         </div>
 
+        {incomingBytes > 0 && (
+          <div
+            className={cn(
+              "border p-3 text-xs space-y-1",
+              fit.blocked ? "border-destructive/50 bg-destructive/10" : fit.warn ? "border-warning/50 bg-warning/10" : "border-border bg-muted/30",
+            )}
+            role={fit.warn ? "alert" : undefined}
+          >
+            <p className="tabular-nums">
+              Este envio: <strong>{formatBytes(incomingBytes)}</strong> · depois dele:{" "}
+              <strong>{formatBytes(fit.after)}</strong> de {formatBytes(STORAGE_BUDGET_BYTES)}
+            </p>
+            {fit.blocked ? (
+              <p className="text-destructive font-medium">Passa do limite real de 1 GB — o Supabase recusaria. Libere espaço antes.</p>
+            ) : fit.warn ? (
+              <p className="text-warning font-medium">Atenção: você vai passar da sua meta de 800 MB. Ainda dá para enviar.</p>
+            ) : (
+              <p className="text-muted-foreground">Dentro da sua meta. Restarão {formatBytes(STORAGE_BUDGET_BYTES - fit.after)}.</p>
+            )}
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={close} disabled={running}>
             Cancelar
           </Button>
-          <Button onClick={startUpload} disabled={running || totalReady === 0} className="gap-2">
+          <Button onClick={startUpload} disabled={running || totalReady === 0 || fit.blocked} className="gap-2">
             {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Enviar {totalReady > 0 ? `(${totalReady})` : ""}
           </Button>

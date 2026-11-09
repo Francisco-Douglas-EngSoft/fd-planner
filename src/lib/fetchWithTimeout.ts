@@ -4,13 +4,15 @@
  * os dados guardados no aparelho em vez de ficar carregando para sempre.
  * Uploads e escritas não recebem limite (arquivos grandes demoram).
  */
-export const READ_TIMEOUT_MS = 12_000;
+export const READ_TIMEOUT_MS = 10_000;
+
+type FetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export function createTimeoutFetch(
-  baseFetch: typeof fetch = (input, init) => fetch(input, init),
+  baseFetch: FetchFn = (input, init) => fetch(input, init),
   timeoutMs = READ_TIMEOUT_MS,
-): typeof fetch {
-  return (input: RequestInfo | URL, init: RequestInit = {}) => {
+): FetchFn {
+  return (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
     const method = (init.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const isRead = method === "GET" || method === "HEAD";

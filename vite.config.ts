@@ -148,63 +148,28 @@ export default defineConfig(({ mode }) => ({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        // SPA fallback for client-side routing, but never intercept the OAuth
-        // callback or Supabase API paths.
-        navigateFallback: "index.html",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /\/[^/?]+\.[^/?]+$/],
+        // Navegação (HTML) sempre tenta a rede primeiro; sem internet usa a última
+        // página guardada ou o index.html pré-carregado. Nunca intercepta /~oauth.
+        navigateFallback: null,
         // Precache critical assets
         additionalManifestEntries: [
           { url: '/favicon.png', revision: null },
           { url: '/icon-192.png', revision: null },
           { url: '/icon-512.png', revision: null },
         ],
+        // Dados do Supabase NÃO passam pelo service worker: o app guarda as
+        // respostas por usuário e controla a fila de envio (src/lib/offline).
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            urlPattern: ({ request, url }) =>
+              request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
             handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
-          {
-            // Offline queue: retry mutations to Supabase REST/RPC quando voltar a rede.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
-            handler: "NetworkOnly",
-            method: "POST",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: {
-                  maxRetentionTime: 24 * 60, // minutos (24h)
-                },
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
-            handler: "NetworkOnly",
-            method: "PATCH",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/(rest|functions)\/.*/i,
-            handler: "NetworkOnly",
-            method: "DELETE",
-            options: {
-              backgroundSync: {
-                name: "supabase-mutations-queue",
-                options: { maxRetentionTime: 24 * 60 },
-              },
+              cacheName: "app-pages",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 30 },
+              // Sem rede e sem cópia da página: abre o index.html pré-carregado.
+              precacheFallback: { fallbackURL: "/index.html" },
             },
           },
           {
@@ -229,17 +194,6 @@ export default defineConfig(({ mode }) => ({
               },
               cacheableResponse: {
                 statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
             },
           },

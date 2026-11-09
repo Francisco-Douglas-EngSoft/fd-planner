@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { STORAGE_USAGE_KEY } from "@/hooks/useStorageUsage";
 import { libraryService, type BookRow, type BookInsert, type BookUpdate } from "@/services/libraryService";
 
 export function useBooks() {
@@ -11,7 +12,6 @@ export function useBooks() {
     queryFn: () => (user ? libraryService.list(user.id) : Promise.resolve([] as BookRow[])),
     enabled: !!user,
     staleTime: 30 * 1000,
-    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
 
@@ -20,7 +20,10 @@ export function useBooks() {
       if (!user) throw new Error("Sem sessão");
       return libraryService.create({ ...payload, user_id: user.id });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["books", user?.id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["books", user?.id] });
+      qc.invalidateQueries({ queryKey: [STORAGE_USAGE_KEY] });
+    },
   });
 
   const update = useMutation({
@@ -30,7 +33,10 @@ export function useBooks() {
 
   const remove = useMutation({
     mutationFn: (id: string) => libraryService.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["books", user?.id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["books", user?.id] });
+      qc.invalidateQueries({ queryKey: [STORAGE_USAGE_KEY] });
+    },
   });
 
   return { ...query, create, update, remove };

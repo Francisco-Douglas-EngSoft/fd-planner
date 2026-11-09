@@ -40,6 +40,10 @@ function saveQueue(q: ReadingSessionPayload[]) {
   } catch { /* storage full — silently ignore */ }
 }
 
+export function getPendingReadingCount(): number {
+  return loadQueue().length;
+}
+
 /** Persiste a sessão. Se offline, enfileira para reenvio posterior. */
 export async function saveReadingSession(payload: ReadingSessionPayload): Promise<void> {
   try {

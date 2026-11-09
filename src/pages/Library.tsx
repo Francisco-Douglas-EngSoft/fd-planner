@@ -22,6 +22,9 @@ import { BatchActionsBar } from "@/components/library/BatchActionsBar";
 import { StorageManager } from "@/components/library/StorageManager";
 import { LibraryReports } from "@/components/library/LibraryReports";
 import { ReadingPlanAI } from "@/components/library/ReadingPlanAI";
+import { StorageMeter } from "@/components/library/StorageMeter";
+import { useStorageUsage } from "@/hooks/useStorageUsage";
+import { formatBytes } from "@/lib/libraryStorage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,7 +56,7 @@ function statusLabel(status?: string | null) {
   return BOOK_STATUSES.find((s) => s.value === status)?.label ?? "Para ler";
 }
 
-type SortKey = "recent" | "title" | "author" | "progress";
+type SortKey = "recent" | "title" | "author" | "progress" | "size";
 type StatusFilter = "all" | "to-read" | "reading" | "completed" | "abandoned";
 
 export default function Library() {
@@ -61,6 +64,8 @@ export default function Library() {
   const { user } = useAuth();
   const { data: books = [], isLoading, isError, error, refetch, create, update, remove } = useBooks();
   const { data: collections = [], addBook: addToCollection } = useCollections();
+  const storage = useStorageUsage(books);
+  const sizeOf = (id: string) => storage.perBook.get(id)?.total ?? 0;
 
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -138,10 +143,11 @@ export default function Library() {
       if (sort === "title") return a.title.localeCompare(b.title, "pt-BR");
       if (sort === "author") return (a.author ?? "").localeCompare(b.author ?? "", "pt-BR");
       if (sort === "progress") return progressOf(b) - progressOf(a);
+      if (sort === "size") return (storage.perBook.get(b.id)?.total ?? 0) - (storage.perBook.get(a.id)?.total ?? 0);
       return (b.updated_at ?? "").localeCompare(a.updated_at ?? "");
     });
     return list;
-  }, [books, query, activeCategory, activeCollection, collectionBookIds, statusFilter, fileTypeFilter, sort]);
+  }, [books, query, activeCategory, activeCollection, collectionBookIds, statusFilter, fileTypeFilter, sort, storage.perBook]);
 
   const reading = filtered.filter((b) => b.status === "reading" || ((b.last_read_page ?? 0) > 0 && b.status !== "completed"));
   const completed = filtered.filter((b) => b.status === "completed");
@@ -257,6 +263,7 @@ export default function Library() {
     onRetry: () => refetch(),
     page,
     onPageChange: setPage,
+    sizeOf,
   };
 
   const hasActiveFilters = statusFilter !== "all" || fileTypeFilter !== "all" || activeCollection !== null;
@@ -299,6 +306,14 @@ export default function Library() {
         <StatTile icon={CheckCircle2} label="Concluídos" value={String(stats.completed)} />
       </div>
 
+      {/* Espaço usado: meta de 800 MB (limite real 1 GB) */}
+      <StorageMeter
+        total={storage.total}
+        byBucket={storage.byBucket}
+        estimated={storage.estimated}
+        onOpenDetails={() => setStorageOpen(true)}
+      />
+
       {/* "Continuar lendo" */}
       {continueLast.length > 0 && (
         <div className="space-y-2">
@@ -319,7 +334,7 @@ export default function Library() {
                   className="flex items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/40 transition-colors min-w-[220px] max-w-[260px] shrink-0 text-left"
                 >
                   <div className="w-10 shrink-0">
-                    <BookCover path={b.cover_path} title={b.title} />
+                    <BookCover path={b.cover_path} title={b.title} bookId={b.id} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{b.title}</p>
@@ -345,7 +360,12 @@ export default function Library() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <StorageManager userId={user.id} onRefreshBooks={() => refetch()} />
+          <StorageManager
+            userId={user.id}
+            books={books}
+            onRefreshBooks={() => { refetch(); storage.refetch(); }}
+            onOpenBook={(b) => setDetailBook(b)}
+          />
         </div>
       )}
 
@@ -468,6 +488,7 @@ export default function Library() {
                   <SelectItem value="title">Título (A-Z)</SelectItem>
                   <SelectItem value="author">Autor (A-Z)</SelectItem>
                   <SelectItem value="progress">Maior progresso</SelectItem>
+                  <SelectItem value="size">Maior tamanho</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -531,6 +552,7 @@ export default function Library() {
           open={uploadOpen}
           onOpenChange={setUploadOpen}
           userId={user.id}
+          usedBytes={storage.total}
           categories={categoryNames}
           onCreate={(payload) => create.mutateAsync(payload)}
         />
@@ -546,6 +568,7 @@ export default function Library() {
 
       <BookDetailDialog
         book={detailBook}
+        size={detailBook ? storage.perBook.get(detailBook.id) : undefined}
         open={!!detailBook}
         onOpenChange={(o) => !o && setDetailBook(null)}
         onRead={(id) => navigate(`/leitor/${id}`)}
@@ -622,6 +645,7 @@ function BookGrid({
   onRetry,
   page,
   onPageChange,
+  sizeOf,
 }: {
   books: BookRow[];
   isLoading: boolean;
@@ -637,6 +661,7 @@ function BookGrid({
   onRetry?: () => void;
   page: number;
   onPageChange: (page: number) => void;
+  sizeOf: (id: string) => number;
 }) {
   if (isLoading) return <LoadingState message="Carregando biblioteca..." />;
   if (isError) return <ErrorState title="Erro ao carregar a biblioteca" error={error} onRetry={onRetry} />;
@@ -694,12 +719,13 @@ function BookGrid({
                     : <Square className="h-4 w-4" />}
                 </button>
                 <div className="w-10 sm:w-12 shrink-0">
-                  <BookCover path={b.cover_path} title={b.title} />
+                  <BookCover path={b.cover_path} title={b.title} bookId={b.id} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate text-sm sm:text-base">{b.title}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {b.author || "Autor desconhecido"} · {statusLabel(b.status)}
+                    {sizeOf(b.id) > 0 && <> · <span className="tabular-nums">{formatBytes(sizeOf(b.id))}</span></>}
                   </p>
                   <div className="flex items-center gap-2 mt-1 min-w-0">
                     {b.category && (
@@ -750,7 +776,7 @@ function BookGrid({
               )}
             >
               <div className="relative">
-                <BookCover path={b.cover_path} title={b.title} />
+                <BookCover path={b.cover_path} title={b.title} bookId={b.id} />
                 {/* Checkbox de seleção */}
                 <button
                   type="button"
@@ -766,8 +792,9 @@ function BookGrid({
                     ? <CheckSquare2 className="h-4 w-4 text-primary" />
                     : <Square className="h-4 w-4 text-muted-foreground" />}
                 </button>
-                <Badge variant="secondary" className="absolute top-2 right-2 uppercase text-[10px]">
-                  {inferFileType(b.file_path)}
+                <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] tabular-nums">
+                  <span className="uppercase">{inferFileType(b.file_path)}</span>
+                  {sizeOf(b.id) > 0 && <span className="ml-1 font-normal">· {formatBytes(sizeOf(b.id))}</span>}
                 </Badge>
                 {b.category && (
                   <Badge className="absolute bottom-2 left-2 text-[10px] max-w-[80%] truncate">

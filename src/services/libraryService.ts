@@ -28,6 +28,8 @@ export type BookUpdate = Database["public"]["Tables"]["books"]["Update"] & {
   is_offline?: boolean | null;
 };
 
+const signedUrlCache = new Map<string, { url: string; expires: number }>();
+
 export const libraryService = {
   async list(userId: string): Promise<BookRow[]> {
     // Busca paginada (500 por bloco) para não esbarrar no limite de 1000 linhas.
@@ -134,9 +136,18 @@ export const libraryService = {
     return path;
   },
 
+  /**
+   * Reaproveita o mesmo link enquanto ele vale por mais 5 min: assim o navegador
+   * usa o arquivo que já baixou (abrir de novo fica instantâneo e gasta menos banda).
+   */
   async getSignedUrl(path: string, expiresIn = 3600): Promise<string> {
-    const { data, error } = await supabase.storage.from("books").createSignedUrl(path, expiresIn);
+    const cached = signedUrlCache.get(path);
+    const now = Date.now();
+    if (cached && cached.expires - now > 5 * 60 * 1000) return cached.url;
+    const ttl = Math.max(expiresIn, 3600);
+    const { data, error } = await supabase.storage.from("books").createSignedUrl(path, ttl);
     if (error) throw error;
+    signedUrlCache.set(path, { url: data.signedUrl, expires: now + ttl * 1000 });
     return data.signedUrl;
   },
 

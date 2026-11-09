@@ -1,5 +1,8 @@
+// Deve ser o primeiro import: liga a camada offline antes do cliente do Supabase existir.
+import "./lib/offline/bootstrap";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
+import { installAutoSync } from "./lib/offline/syncAll";
 import "./index.css";
 import { initializeBranding } from "./hooks/useBranding";
 import { initializeCustomTheme } from "./hooks/useCustomTheme";
@@ -30,6 +33,9 @@ initializeBranding();
 // Install offline-first queue for focus sessions: replays any pending
 // sessions saved locally when the network was down or the tab closed.
 installFocusQueueAutoFlush();
+
+// Envia a fila de alterações feitas sem internet quando a conexão voltar.
+installAutoSync();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

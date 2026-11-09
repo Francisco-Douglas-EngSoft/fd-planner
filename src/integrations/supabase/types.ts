@@ -2468,6 +2468,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_storage_objects: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          created_at: string
+          name: string
+          size: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

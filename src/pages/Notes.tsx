@@ -69,7 +69,6 @@ export default function Notes() {
     queryKey: ['study_notes', user?.id],
     enabled: !!user,
     staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
     queryFn: async () =>
       (await fetchAllPaginated<Note>(
         () =>

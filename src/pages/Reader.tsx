@@ -3,9 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Bookmark, Loader2, Sparkles,
-  ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download, Moon, Sun,
+  ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCw, Download,
   PanelLeft, Search as SearchIcon, StickyNote, ListOrdered, Trash2,
-  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X, ScanLine, Coffee,
+  Highlighter, ChevronUp, ChevronDown, GripVertical, Keyboard, X, ScanLine,
   BookMarked,
 } from "lucide-react";
 import { getOfflineBookUrl } from "@/lib/offlineBooks";
@@ -33,6 +33,9 @@ import { saveReadingSession, saveFocusSession } from "@/services/readingSessionS
 import { PageInput } from "@/components/reader/PageInput";
 import { clampPage, isPageCountLoading } from "@/lib/pageNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AppearancePopover } from "@/components/reader/AppearancePopover";
+import { PdfScrollView } from "@/components/reader/PdfScrollView";
+import { pageFilter, useReaderAppearance } from "@/components/reader/readerAppearance";
 
 // pdfjs worker
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,10 +79,13 @@ export default function Reader() {
   const [zoom, setZoom] = useState(1);
   const [fitWidth, setFitWidth] = useState(true);
   const [fitPage, setFitPage] = useState(false);
-  const [sepia, setSepia] = useState(false);
   const [rotation, setRotation] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [invertColors, setInvertColors] = useState(false);
+  const [nativeFs, setNativeFs] = useState(false);
+  // iPhone/iPad não têm tela cheia de verdade: usamos uma tela cheia "simulada".
+  const [pseudoFs, setPseudoFs] = useState(false);
+  const isFullscreen = nativeFs || pseudoFs;
+  const [appearance, setAppearance] = useReaderAppearance();
+  const [loadPct, setLoadPct] = useState<number | null>(null);
 
   const [showThumbs, setShowThumbs] = useState(true);
   const [leftPanel, setLeftPanel] = useState<"outline" | "thumbs">("outline");
@@ -184,7 +190,11 @@ export default function Reader() {
         setSignedUrl(url);
       } catch (err) {
         console.error(err);
-        toast.error("Erro ao carregar livro");
+        toast.error(
+          navigator.onLine === false
+            ? "Sem internet: este livro não foi baixado para leitura offline"
+            : "Erro ao carregar livro",
+        );
       } finally {
         setLoading(false);
       }
@@ -209,7 +219,18 @@ export default function Reader() {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const doc = await (pdfjsLib as any).getDocument({ url: signedUrl }).promise;
+        setLoadPct(null);
+        // Carrega só os trechos necessários (abre a 1ª página sem baixar o arquivo inteiro).
+        const task = (pdfjsLib as any).getDocument({
+          url: signedUrl,
+          rangeChunkSize: 256 * 1024,
+          disableAutoFetch: true,
+          disableStream: false,
+        });
+        task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+          if (!cancelled && total) setLoadPct(Math.min(100, Math.round((loaded / total) * 100)));
+        };
+        const doc = await task.promise;
         if (cancelled) { try { doc?.destroy?.(); } catch { /* noop */ } return; }
         loaded = doc;
         setPdf(doc);
@@ -328,12 +349,23 @@ export default function Reader() {
   const toggleFullscreen = useCallback(async () => {
     const el = viewerRef.current;
     if (!el) return;
-    if (!document.fullscreenElement) await el.requestFullscreen?.().catch(() => {});
-    else await document.exitFullscreen?.().catch(() => {});
-  }, []);
+    if (pseudoFs) { setPseudoFs(false); return; }
+    if (document.fullscreenElement) { await document.exitFullscreen?.().catch(() => {}); return; }
+    if (el.requestFullscreen && document.fullscreenEnabled !== false) {
+      try { await el.requestFullscreen(); return; } catch { /* usa a simulada */ }
+    }
+    setPseudoFs(true);
+  }, [pseudoFs]);
 
   useEffect(() => {
-    const onFs = () => setIsFullscreen(!!document.fullscreenElement);
+    if (!pseudoFs) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPseudoFs(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pseudoFs]);
+
+  useEffect(() => {
+    const onFs = () => setNativeFs(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
@@ -406,10 +438,8 @@ export default function Reader() {
         if (typeof saved.zoom === "number") setZoom(saved.zoom);
         if (typeof saved.fitWidth === "boolean") setFitWidth(saved.fitWidth);
         if (typeof saved.fitPage === "boolean") setFitPage(saved.fitPage);
-        if (typeof saved.sepia === "boolean") setSepia(saved.sepia);
         if (typeof saved.rotation === "number") setRotation(saved.rotation);
-        if (typeof saved.invertColors === "boolean") setInvertColors(saved.invertColors);
-        if (saved.fullscreen) {
+        if (saved.fullscreen && document.fullscreenEnabled !== false) {
           setTimeout(() => {
             viewerRef.current?.requestFullscreen?.().catch(() => {
               toast.info("Clique na página para retomar a tela cheia", { duration: 4000 });
@@ -430,10 +460,10 @@ export default function Reader() {
     try {
       localStorage.setItem(
         `reader:${book.id}:prefs`,
-        JSON.stringify({ zoom, fitWidth, fitPage, sepia, rotation, invertColors, fullscreen: isFullscreen }),
+        JSON.stringify({ zoom, fitWidth, fitPage, rotation, fullscreen: nativeFs }),
       );
     } catch { /* noop */ }
-  }, [book, zoom, fitWidth, fitPage, sepia, rotation, invertColors, isFullscreen]);
+  }, [book, zoom, fitWidth, fitPage, rotation, nativeFs]);
 
   // Colapsa toolbar em mobile ao entrar em fullscreen
   useEffect(() => {
@@ -723,6 +753,44 @@ export default function Reader() {
     else toast.success("Marcador salvo");
   }
 
+  // ---------------- Gestos no celular: deslizar e tocar nas bordas ----------------
+  const touchRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const goPrevPage = useCallback(() => setPage((p) => Math.max(1, p - 1)), []);
+  const goNextPage = useCallback(
+    () => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1)),
+    [totalPages],
+  );
+  const onPageTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) { touchRef.current = null; return; }
+    const t = e.touches[0];
+    touchRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  }, []);
+  const onPageTouchEnd = useCallback((e: React.TouchEvent) => {
+    const start = touchRef.current;
+    touchRef.current = null;
+    if (!start || rendering) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return; // selecionando texto
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.t;
+    const el = pageContainerRef.current;
+    const canPanX = el ? el.scrollWidth > el.clientWidth + 4 : false;
+    if (!canPanX && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && dt < 700) {
+      if (dx < 0) goNextPage(); else goPrevPage();
+      return;
+    }
+    if (isMobile && el && Math.abs(dx) < 10 && Math.abs(dy) < 10 && dt < 300) {
+      if ((e.target as HTMLElement).closest("button, a, input, textarea")) return;
+      const rect = el.getBoundingClientRect();
+      const rel = (t.clientX - rect.left) / rect.width;
+      if (rel < 0.22) goPrevPage();
+      else if (rel > 0.78) goNextPage();
+      else if (isFullscreen) setToolbarCollapsed((v) => !v);
+    }
+  }, [rendering, goNextPage, goPrevPage, isMobile, isFullscreen]);
+
   // ---------------- Render ----------------
   if (loading) {
     return (
@@ -898,7 +966,7 @@ export default function Reader() {
           )}
 
           {/* Viewer */}
-          <div ref={viewerRef} className={`min-w-0 bg-background ${isFullscreen ? `h-screen w-screen flex ${isMobile ? "flex-col" : "flex-row"} p-2 sm:p-3 gap-2 sm:gap-3` : "space-y-3"}`}>
+          <div ref={viewerRef} className={`min-w-0 bg-background ${pseudoFs ? "fixed inset-0 z-[100]" : ""} ${isFullscreen ? `h-[100dvh] w-screen flex ${isMobile ? "flex-col" : "flex-row"} p-2 sm:p-3 gap-2 sm:gap-3` : "space-y-3"}`}>
             {isFullscreen && showThumbs && (
               <div className={isMobile ? "w-full shrink-0 h-[35vh] min-h-0" : "w-[250px] shrink-0 h-full min-h-0"}>{renderLeftPanel(true)}</div>
             )}
@@ -936,7 +1004,7 @@ export default function Reader() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => setToolbarCollapsed((v) => !v)}
                   title={toolbarCollapsed ? "Expandir" : "Recolher"}
                 >
@@ -946,7 +1014,7 @@ export default function Reader() {
               {!(isFullscreen && toolbarCollapsed) && (
               <>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.max(0.4, z - 0.1)); }} title="Diminuir (-)">
                   <ZoomOut className="h-4 w-4" />
                 </Button>
                 <button
@@ -959,18 +1027,18 @@ export default function Reader() {
                 <Button
                   variant={fitPage ? "default" : "ghost"}
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => { setFitWidth(false); setFitPage((v) => !v); setZoom(1); }}
                   title="Ajustar à página inteira (9)"
                 >
                   <ScanLine className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={() => { setFitWidth(false); setFitPage(false); setZoom((z) => Math.min(4, z + 0.1)); }} title="Aumentar (+)">
                   <ZoomIn className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering} title="Anterior">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || rendering} title="Anterior">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-xs tabular-nums px-1 text-muted-foreground min-w-[60px] text-center">
@@ -982,13 +1050,13 @@ export default function Reader() {
                     <>{page} / {totalPages}</>
                   )}
                 </span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)} title="Próxima">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={() => setPage((p) => (totalPages ? Math.min(totalPages, p + 1) : p + 1))} disabled={rendering || (totalPages > 0 && page >= totalPages)} title="Próxima">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-1 border-l border-border/60 pl-1 ml-1">
                 <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
+                  variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => goToAnnotation(-1)}
                   disabled={!sortedAnnotations.length}
                   title="Destaque anterior (Shift+N)"
@@ -999,7 +1067,7 @@ export default function Reader() {
                   {sortedAnnotations.length ? `${highlightNavIndex + 1}/${sortedAnnotations.length}` : "—"}
                 </span>
                 <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
+                  variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => goToAnnotation(1)}
                   disabled={!sortedAnnotations.length}
                   title="Próximo destaque (N)"
@@ -1008,43 +1076,32 @@ export default function Reader() {
                 </Button>
               </div>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRotation((r) => (r + 90) % 360)} title="Girar">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={() => setRotation((r) => (r + 90) % 360)} title="Girar">
                   <RotateCw className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setInvertColors((v) => !v)} title="Modo noturno da página">
-                  {invertColors ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant={sepia ? "default" : "ghost"}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setSepia((v) => !v)}
-                  title="Modo sépia (leitura confortável)"
-                >
-                  <Coffee className="h-4 w-4" />
-                </Button>
+                <AppearancePopover value={appearance} onChange={setAppearance} />
                 {signedUrl && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="Baixar">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" asChild title="Baixar">
                     <a href={signedUrl} target="_blank" rel="noreferrer" download>
                       <Download className="h-4 w-4" />
                     </a>
                   </Button>
                 )}
                 <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
+                  variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => setShowShortcuts((v) => !v)}
                   title="Atalhos de teclado (?)"
                 >
                   <Keyboard className="h-4 w-4" />
                 </Button>
                 <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
+                  variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8"
                   onClick={() => setShowThumbs((v) => !v)}
                   title={showThumbs ? "Ocultar sumário" : "Mostrar sumário"}
                 >
                   <PanelLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-8 sm:w-8" onClick={toggleFullscreen} title="Tela cheia (F)">
                   {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </Button>
               </div>
@@ -1093,10 +1150,32 @@ export default function Reader() {
             )}
 
             <div className={isFullscreen ? "flex-1 min-h-0" : ""}>
+              {appearance.continuous && pdf ? (
+                <PdfScrollView
+                  pdf={pdf}
+                  totalPages={totalPages}
+                  page={page}
+                  onPageChange={setPage}
+                  zoom={zoom}
+                  fitWidth={fitWidth || fitPage}
+                  rotation={rotation}
+                  filter={pageFilter(appearance)}
+                  annotations={annotations}
+                  className={`px-2 sm:px-4 bg-muted/30 border border-border ${isFullscreen ? "h-full" : "h-[calc(100dvh-210px)] sm:h-[80vh]"}`}
+                />
+              ) : (
               <Card
                 ref={pageContainerRef}
-                className={`p-2 sm:p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[65vh] sm:max-h-[80vh]"}`}
+                onTouchStart={onPageTouchStart}
+                onTouchEnd={onPageTouchEnd}
+                className={`p-2 sm:p-4 overflow-auto flex justify-center bg-muted/30 relative ${isFullscreen ? "h-full max-h-full" : "max-h-[calc(100dvh-210px)] sm:max-h-[80vh]"}`}
               >
+                {!pdf && isPdfPath && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Abrindo livro{loadPct != null && loadPct < 100 ? `… ${loadPct}%` : "…"}</span>
+                  </div>
+                )}
                 {rendering && (
                   <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/80 backdrop-blur px-2 py-1 text-xs text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin" /> Renderizando…
@@ -1108,12 +1187,7 @@ export default function Reader() {
                   style={{
                     width: currentViewport?.width ? `${currentViewport.width}px` : undefined,
                     height: currentViewport?.height ? `${currentViewport.height}px` : undefined,
-                    filter: [
-                      invertColors ? "invert(1) hue-rotate(180deg)" : "",
-                      sepia ? "sepia(0.45) saturate(0.9) contrast(0.96) brightness(0.98)" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ") || undefined,
+                    filter: pageFilter(appearance),
                     transition: "filter 200ms",
                   }}
                   onMouseUp={handleMouseUp}
@@ -1153,6 +1227,7 @@ export default function Reader() {
                   )}
                 </div>
               </Card>
+              )}
             </div>
 
             {/* Navegação (oculta em tela cheia — usa a da toolbar) */}

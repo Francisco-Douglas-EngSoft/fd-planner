@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { clearOfflineUser, getOfflineUser, saveOfflineUser } from '@/lib/offline/offlineUser';
+import { clearOfflineReadCache } from '@/lib/offline/install';
 
 interface AuthContextType {
   user: User | null;
@@ -18,21 +20,46 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Mantém o mesmo objeto quando nada mudou, evitando recarregar as telas a cada renovação do token. */
+function sameUser(a: User | null, b: User | null): boolean {
+  if (!a || !b) return a === b;
+  return a.id === b.id && a.updated_at === b.updated_at && a.email === b.email;
+}
+
+function isNetworkAuthError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const e = error as { name?: string; status?: number };
+  return e.name === 'AuthRetryableFetchError' || e.status === 0 || (typeof e.status === 'number' && e.status >= 500);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isGuest, setIsGuest] = useState(() => {
     return sessionStorage.getItem('fdplanner_guest_mode') === 'true';
   });
 
+  const setUser = (next: User | null) => setUserState((prev) => (sameUser(prev, next) ? prev : next));
+
   useEffect(() => {
+    const applySession = (s: Session | null) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) saveOfflineUser(s.user);
+      setLoading(false);
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        if (event === 'SIGNED_OUT') {
+          clearOfflineUser();
+          void clearOfflineReadCache();
+        }
+        // Sem internet a renovação do token falha: quem decide é o getSession abaixo.
+        if (event === 'INITIAL_SESSION' && !session && getOfflineUser()) return;
+        applySession(session);
         // Exit guest mode if user logs in
         if (session?.user) {
           setIsGuest(false);
@@ -42,9 +69,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      const cached = getOfflineUser();
+      const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      if (!session && cached && (offline || isNetworkAuthError(error))) {
+        // Já entrou antes neste aparelho: abre direto, sem depender do servidor de login.
+        setSession(null);
+        setUser(cached);
+        setLoading(false);
+        return;
+      }
+      applySession(session);
+    }).catch(() => {
+      const cached = getOfflineUser();
+      setUser(cached);
       setLoading(false);
     });
 
@@ -87,7 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     exitGuestMode();
+    clearOfflineUser();
+    void clearOfflineReadCache();
     await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
   };
 
   const resetPassword = async (email: string) => {

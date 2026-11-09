@@ -13,6 +13,8 @@ import { collectionsService } from "@/services/collectionsService";
 import type { BookRow } from "@/services/libraryService";
 import { BOOK_STATUSES } from "./BookEditDialog";
 import { BookCover } from "./BookCover";
+import { OfflineBookToggle } from "./OfflineBookToggle";
+import { formatBytes, type BookSize } from "@/lib/libraryStorage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -38,9 +40,11 @@ interface Props {
   onRead: (id: string) => void;
   onEdit: (book: BookRow) => void;
   onRemove: (id: string) => void;
+  /** Tamanho no Storage (arquivo + capa). */
+  size?: BookSize;
 }
 
-export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onRemove }: Props) {
+export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onRemove, size }: Props) {
   const { user } = useAuth();
   const { data: collections = [], addBook, removeBook } = useCollections();
   const [bookCollections, setBookCollections] = useState<string[]>([]);
@@ -60,7 +64,12 @@ export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onR
 
   const statusLabel = BOOK_STATUSES.find((s) => s.value === (book.status ?? "to-read"))?.label ?? "Para ler";
   const fileType = book.file_path.toLowerCase().endsWith(".epub") ? "EPUB" : "PDF";
-  const sizeMB = book.file_size ? (book.file_size / 1024 / 1024).toFixed(1) : null;
+  const totalSize = size?.total || book.file_size || 0;
+  const sizeLabel = totalSize
+    ? size?.cover
+      ? `${formatBytes(totalSize)} (livro ${formatBytes(size.file)} + capa ${formatBytes(size.cover)})`
+      : formatBytes(totalSize)
+    : null;
 
   const availableToAdd = collections.filter((c) => !bookCollections.includes(c.id));
 
@@ -96,7 +105,7 @@ export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onR
         <div className="flex gap-4">
           {/* Capa */}
           <div className="w-24 sm:w-32 shrink-0">
-            <BookCover path={book.cover_path} title={book.title} />
+            <BookCover path={book.cover_path} title={book.title} bookId={book.id} />
           </div>
 
           {/* Info principal */}
@@ -121,9 +130,9 @@ export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onR
                   <Tag className="h-3 w-3 mr-1" />{book.category}
                 </Badge>
               )}
-              {sizeMB && (
-                <Badge variant="outline" className="text-xs">
-                  {sizeMB} MB
+              {sizeLabel && (
+                <Badge variant="outline" className="text-xs tabular-nums">
+                  {sizeLabel}
                 </Badge>
               )}
             </div>
@@ -214,6 +223,7 @@ export function BookDetailDialog({ book, open, onOpenChange, onRead, onEdit, onR
           <Button className="flex-1 sm:flex-none gap-2" onClick={() => { onRead(book.id); onOpenChange(false); }}>
             <BookOpen className="h-4 w-4" /> Ler agora
           </Button>
+          <OfflineBookToggle book={book} />
           <Button variant="outline" className="flex-1 sm:flex-none gap-2" onClick={() => { onEdit(book); onOpenChange(false); }}>
             Editar metadados
           </Button>

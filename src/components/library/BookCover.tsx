@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import { libraryService } from "@/services/libraryService";
+import { getOfflineCoverUrl } from "@/lib/offlineBooks";
 
 interface BookCoverProps {
   path?: string | null;
   title: string;
+  /** Quando informado, usa a capa guardada no aparelho (livro offline). */
+  bookId?: string;
   className?: string;
 }
 
 // Cache simples em memória para URLs assinadas de capas.
 const cache = new Map<string, { url: string; expires: number }>();
 
-export function BookCover({ path, title, className }: BookCoverProps) {
+export function BookCover({ path, title, bookId, className }: BookCoverProps) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,11 +29,15 @@ export function BookCover({ path, title, className }: BookCoverProps) {
       return;
     }
     setLoading(true);
-    libraryService
-      .getSignedUrl(path, 3600)
-      .then((signed) => {
-        cache.set(path, { url: signed, expires: now + 3600 * 1000 });
-        if (alive) setUrl(signed);
+    (async () => {
+      const local = bookId ? await getOfflineCoverUrl(bookId) : null;
+      if (local) return local;
+      const signed = await libraryService.getSignedUrl(path, 3600);
+      cache.set(path, { url: signed, expires: now + 3600 * 1000 });
+      return signed;
+    })()
+      .then((u) => {
+        if (alive) setUrl(u);
       })
       .catch(() => {
         if (alive) setUrl(null);
@@ -41,7 +48,7 @@ export function BookCover({ path, title, className }: BookCoverProps) {
     return () => {
       alive = false;
     };
-  }, [path]);
+  }, [path, bookId]);
 
   return (
     <div
@@ -56,6 +63,7 @@ export function BookCover({ path, title, className }: BookCoverProps) {
           alt={`Capa de ${title}`}
           loading="lazy"
           className="h-full w-full object-cover"
+          onError={() => setUrl(null)}
         />
       ) : loading ? (
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
