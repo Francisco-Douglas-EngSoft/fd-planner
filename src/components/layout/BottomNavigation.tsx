@@ -21,7 +21,7 @@ import {
   X,
   Search,
 } from 'lucide-react';
-import { Library, Bookmark, Network, Layers, Sparkles } from 'lucide-react';
+import { Library, Bookmark, Network, Layers, Sparkles, CalendarCheck2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Sheet,
@@ -46,6 +46,7 @@ const primaryNavItems = [
 
 const secondaryNavItems = [
   { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
+  { path: '/rotina', label: 'Rotina', icon: CalendarCheck2 },
   { path: '/notas', label: 'Notas', icon: StickyNote },
   { path: '/biblioteca', label: 'Biblioteca', icon: Library },
   { path: '/marcadores', label: 'Marcadores', icon: Bookmark },

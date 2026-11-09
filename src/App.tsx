@@ -42,6 +42,7 @@ const Library = lazy(() => import("./pages/Library"));
 const Reader = lazy(() => import("./pages/Reader"));
 const Bookmarks = lazy(() => import("./pages/Bookmarks"));
 const AIAssistant = lazy(() => import("./pages/AIAssistant"));
+const Rotina = lazy(() => import("./rotina/RotinaPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +110,7 @@ function AppRoutes() {
           <Route path="/cursos" element={<Courses />} />
           <Route path="/foco" element={<Focus />} />
           <Route path="/tarefas" element={<Tasks />} />
+          <Route path="/rotina" element={<Rotina />} />
           <Route path="/relatorios" element={<Reports />} />
           <Route path="/notas" element={<Notes />} />
           <Route path="/biblioteca" element={<Library />} />

@@ -6,3 +6,4 @@
 - Storage usage comes from the `get_my_storage_objects()` RPC (SECURITY INVOKER, so storage RLS limits it to the caller's own folder) and the budget/limit rules live in `src/lib/libraryStorage.ts` — why: one call counts every bucket, including covers in subfolders that `storage.list()` misses.
 - PDF/EPUB reading preferences are global per device (`reader:appearance:v1`, `epub:prefs:v2`), not per book or per signed URL — why: signed URLs change on every open, so URL-keyed prefs never persisted.
 - Sync conflicts are last-write-wins by `updated_at`; losing local versions are kept in the IndexedDB `conflicts` store — why: nothing the user typed is silently lost.
+- The Rotina Diária module is self-contained in `src/rotina/` (pure rules in `calculos.ts`, data access in `api.ts`) with `rotina_`-prefixed tables; other files only register its route/menu — why: it can be removed without touching the rest of the system (see `docs/rotina.md`).

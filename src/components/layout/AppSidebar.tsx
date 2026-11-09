@@ -24,7 +24,8 @@ import {
   Bookmark,
   Network,
   Layers,
-  Sparkles
+  Sparkles,
+  CalendarCheck2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ const navItems = [
   { path: '/cursos', label: 'Cursos', icon: BookOpen },
   { path: '/foco', label: 'Foco', icon: Target },
   { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
+  { path: '/rotina', label: 'Rotina', icon: CalendarCheck2 },
   { path: '/notas', label: 'Notas', icon: StickyNote },
   { path: '/biblioteca', label: 'Biblioteca', icon: Library },
   { path: '/marcadores', label: 'Marcadores', icon: Bookmark },

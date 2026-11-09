@@ -1571,6 +1571,139 @@ export type Database = {
         }
         Relationships: []
       }
+      rotina_categorias: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rotina_conclusoes: {
+        Row: {
+          concluida_em: string
+          data: string
+          id: string
+          tarefa_id: string
+          user_id: string
+        }
+        Insert: {
+          concluida_em?: string
+          data: string
+          id?: string
+          tarefa_id: string
+          user_id: string
+        }
+        Update: {
+          concluida_em?: string
+          data?: string
+          id?: string
+          tarefa_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotina_conclusoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "rotina_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotina_config: {
+        Row: {
+          created_at: string
+          inicializado_em: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          inicializado_em?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          inicializado_em?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rotina_tarefas: {
+        Row: {
+          ativa: boolean
+          categoria_id: string | null
+          created_at: string
+          dias_semana: number[]
+          duracao_min: number | null
+          hora: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          dias_semana?: number[]
+          duracao_min?: number | null
+          hora: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ativa?: boolean
+          categoria_id?: string | null
+          created_at?: string
+          dias_semana?: number[]
+          duracao_min?: number | null
+          hora?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotina_tarefas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "rotina_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_notifications: {
         Row: {
           body: string
@@ -2484,6 +2617,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      rotina_inicializar: { Args: never; Returns: boolean }
       unlock_achievement: {
         Args: { _achievement_id: string }
         Returns: {

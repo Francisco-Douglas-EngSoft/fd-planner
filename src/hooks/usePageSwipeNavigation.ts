@@ -9,6 +9,7 @@ const pageOrder = [
   '/foco',
   '/cursos',
   '/tarefas',
+  '/rotina',
   '/notas',
   '/antivicio',
   '/relatorios',
