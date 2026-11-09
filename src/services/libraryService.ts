@@ -97,7 +97,7 @@ export const libraryService = {
   },
 
   async update(id: string, patch: BookUpdate): Promise<void> {
-    const { error } = await supabase.from("books").update(patch).eq("id", id);
+    const { error } = await supabase.from("books").update(patch as never).eq("id", id);
     if (error) throw error;
   },
 

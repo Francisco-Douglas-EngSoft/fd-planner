@@ -1,7 +1,9 @@
 /**
  * Serviço do caderno unificado de estudo (notas de leitura + IA).
  */
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as typedSupabase } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = typedSupabase as any;
 
 export type NoteKind = "note" | "summary" | "flashcard" | "question";
 

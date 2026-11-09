@@ -84,7 +84,7 @@ export function EpubReader({ url, initialCfi, theme: externalTheme, onLocationCh
   const applyTheme = useCallback((r: Rendition, t: "light" | "dark" | "sepia", fs: number) => {
     try {
       Object.entries(THEMES).forEach(([name, styles]) => {
-        try { r.themes.unregister(name); } catch { /* noop */ }
+        try { (r.themes as unknown as { unregister?: (n: string) => void }).unregister?.(name); } catch { /* noop */ }
         r.themes.register(name, styles);
       });
       r.themes.select(t);
