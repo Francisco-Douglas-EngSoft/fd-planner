@@ -191,7 +191,9 @@ export type Database = {
           created_at: string
           highlight: string | null
           id: string
+          kind: string | null
           page: number
+          rects: Json | null
           text: string | null
           user_id: string
         }
@@ -201,7 +203,9 @@ export type Database = {
           created_at?: string
           highlight?: string | null
           id?: string
+          kind?: string | null
           page: number
+          rects?: Json | null
           text?: string | null
           user_id: string
         }
@@ -211,7 +215,9 @@ export type Database = {
           created_at?: string
           highlight?: string | null
           id?: string
+          kind?: string | null
           page?: number
+          rects?: Json | null
           text?: string | null
           user_id?: string
         }
@@ -380,11 +386,20 @@ export type Database = {
           category: string | null
           cover_path: string | null
           created_at: string
+          description: string | null
           file_path: string
           file_size: number | null
           id: string
+          is_offline: boolean | null
+          isbn: string | null
+          last_read_cfi: string | null
           last_read_page: number | null
+          last_read_pct: number | null
+          last_read_scroll: number | null
+          published_year: number | null
+          publisher: string | null
           status: string | null
+          tags: string[] | null
           title: string
           total_pages: number | null
           updated_at: string
@@ -395,11 +410,20 @@ export type Database = {
           category?: string | null
           cover_path?: string | null
           created_at?: string
+          description?: string | null
           file_path: string
           file_size?: number | null
           id?: string
+          is_offline?: boolean | null
+          isbn?: string | null
+          last_read_cfi?: string | null
           last_read_page?: number | null
+          last_read_pct?: number | null
+          last_read_scroll?: number | null
+          published_year?: number | null
+          publisher?: string | null
           status?: string | null
+          tags?: string[] | null
           title: string
           total_pages?: number | null
           updated_at?: string
@@ -410,11 +434,20 @@ export type Database = {
           category?: string | null
           cover_path?: string | null
           created_at?: string
+          description?: string | null
           file_path?: string
           file_size?: number | null
           id?: string
+          is_offline?: boolean | null
+          isbn?: string | null
+          last_read_cfi?: string | null
           last_read_page?: number | null
+          last_read_pct?: number | null
+          last_read_scroll?: number | null
+          published_year?: number | null
+          publisher?: string | null
           status?: string | null
+          tags?: string[] | null
           title?: string
           total_pages?: number | null
           updated_at?: string
@@ -984,6 +1017,7 @@ export type Database = {
       }
       pdf_pages: {
         Row: {
+          book_id: string | null
           content: string
           created_at: string
           id: string
@@ -996,6 +1030,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          book_id?: string | null
           content: string
           created_at?: string
           id?: string
@@ -1008,6 +1043,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          book_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -1020,6 +1056,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pdf_pages_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pdf_pages_pdf_id_fkey"
             columns: ["pdf_id"]
@@ -1294,29 +1337,44 @@ export type Database = {
       reading_sessions: {
         Row: {
           book_id: string
+          book_type: string | null
           created_at: string
           date: string
           duration_minutes: number | null
+          end_cfi: string | null
+          end_pct: number | null
           id: string
           pages_read: number | null
+          start_cfi: string | null
+          start_pct: number | null
           user_id: string
         }
         Insert: {
           book_id: string
+          book_type?: string | null
           created_at?: string
           date?: string
           duration_minutes?: number | null
+          end_cfi?: string | null
+          end_pct?: number | null
           id?: string
           pages_read?: number | null
+          start_cfi?: string | null
+          start_pct?: number | null
           user_id: string
         }
         Update: {
           book_id?: string
+          book_type?: string | null
           created_at?: string
           date?: string
           duration_minutes?: number | null
+          end_cfi?: string | null
+          end_pct?: number | null
           id?: string
           pages_read?: number | null
+          start_cfi?: string | null
+          start_pct?: number | null
           user_id?: string
         }
         Relationships: [
@@ -1554,6 +1612,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      study_notebook: {
+        Row: {
+          ai_generated: boolean | null
+          annotation_ids: string[] | null
+          book_id: string | null
+          content: string | null
+          created_at: string
+          id: string
+          kind: string | null
+          source_cfi: string | null
+          source_page: number | null
+          source_pct: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          annotation_ids?: string[] | null
+          book_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          source_cfi?: string | null
+          source_page?: number | null
+          source_pct?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          annotation_ids?: string[] | null
+          book_id?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          kind?: string | null
+          source_cfi?: string | null
+          source_page?: number | null
+          source_pct?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_notebook_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       study_notes: {
         Row: {
