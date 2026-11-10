@@ -42,6 +42,8 @@ const tarefa = (id: string, nome: string, hora: string): RotinaTarefa => ({
   ativa: true,
   ordem: 0,
   created_at: '2020-01-01T00:00:00',
+  lembrete_ativo: false,
+  lembrete_min_antes: 0,
 });
 
 describe('Rotina: marcar e desmarcar uma tarefa', () => {

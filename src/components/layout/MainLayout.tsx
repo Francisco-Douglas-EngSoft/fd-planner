@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import { AppSidebar } from './AppSidebar';
 import { BottomNavigation } from './BottomNavigation';
 import { GuestModeBanner } from './GuestModeBanner';
@@ -19,6 +18,16 @@ import { Logo } from '@/components/ui/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { CommandPalette } from '@/components/CommandPalette';
+import { installLinkPreload, preloadCommonRoutes } from '@/lib/routePreload';
+
+/** Mostrado só na área da página enquanto o código dela chega (o menu continua na tela). */
+function ContentLoader() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Carregando">
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+    </div>
+  );
+}
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -52,6 +61,16 @@ export function MainLayout() {
   // Espaçamento superior combinado: banner offline + banner convidado + header do tablet
   const topPad =
     (showGuestBanner ? 40 : 0) + (!isOnline ? 32 : 0) + (isTablet ? 56 : 0);
+
+  // Baixa as telas mais usadas em segundo plano e a do link apontado antes do clique.
+  useEffect(() => {
+    const pararLinks = installLinkPreload();
+    const pararFila = preloadCommonRoutes();
+    return () => {
+      pararLinks();
+      pararFila();
+    };
+  }, []);
 
   // Fecha a gaveta ao trocar de rota (tablet)
   useEffect(() => {
@@ -160,11 +179,12 @@ export function MainLayout() {
         style={{ paddingTop: topPad || undefined }}
       >
         <div className="container mx-auto px-4 py-3 sm:p-6 lg:p-8 safe-area-x">
-          <AnimatePresence mode="wait">
-            <PageTransition key={location.pathname}>
+          {/* Sem esperar a animação de saída: a nova página começa a montar na hora. */}
+          <PageTransition key={location.pathname}>
+            <Suspense fallback={<ContentLoader />}>
               <Outlet />
-            </PageTransition>
-          </AnimatePresence>
+            </Suspense>
+          </PageTransition>
         </div>
       </main>
 

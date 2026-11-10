@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, memo, Suspense } from 'react';
 import { Play, Pause, RotateCcw, Plus, Coffee, Brain, Settings, Target, Clock, BookOpen, Zap, TrendingUp, Timer, Sparkles, Square, CheckCircle2, Volume2, VolumeX, Calendar, GraduationCap, Filter, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ import { TimerSettingsDialog } from '@/components/focus/TimerSettingsDialog';
 import { DigitalClock } from '@/components/focus/DigitalClock';
 import { FocusImpulseButton } from '@/components/antivicio/FocusImpulseButton';
 import { TodaySessionsHistory } from '@/components/focus/TodaySessionsHistory';
-import { FocusStreak } from '@/components/focus/FocusStreak';
+import { FocusStreak as FocusStreakBase } from '@/components/focus/FocusStreak';
 import { TimerCompletionEffect } from '@/components/focus/TimerCompletionEffect';
 import { BreakTransitionCard } from '@/components/focus/BreakTransitionCard';
 import { FocusGoalsPanel } from '@/components/focus/FocusGoalsPanel';
@@ -42,8 +42,8 @@ import { DailyGoalCard } from '@/components/focus/DailyGoalCard';
 import { DailyAgenda } from '@/components/focus/DailyAgenda';
 import { MotivationalQuote } from '@/components/focus/MotivationalQuote';
 import { PaceIndicatorCard } from '@/components/focus/PaceIndicatorCard';
-import { FocusEvolutionChart } from '@/components/focus/FocusEvolutionChart';
-import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
+import { LazyOnView } from '@/components/ui/LazyOnView';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatSecondsToHMS, formatMinutesToHMS, formatHoursToHMS } from '@/lib/timeUtils';
@@ -97,6 +97,19 @@ interface StudyPlanCourse {
     category?: string | null;
   };
 }
+
+// Gráficos (biblioteca pesada) só são baixados quando aparecem na tela.
+const FocusEvolutionChart = lazy(() =>
+  import('@/components/focus/FocusEvolutionChart').then((m) => ({ default: memo(m.FocusEvolutionChart) })),
+);
+const AdvancedAnalytics = lazy(() =>
+  import('@/components/analytics/AdvancedAnalytics').then((m) => ({ default: memo(m.AdvancedAnalytics) })),
+);
+// O cronômetro redesenha a página a cada segundo; estes blocos não precisam acompanhar.
+const FocusStreak = memo(FocusStreakBase);
+const HIDE_WITH_COURSE: Array<'distribution'> = ['distribution'];
+const HIDE_NONE: Array<'distribution'> = [];
+const ChartFallback = () => <Skeleton className="h-[280px] w-full rounded-2xl" />;
 
 const dayIdMap: Record<number, string> = {
   0: 'sunday',
@@ -346,8 +359,9 @@ export default function Focus() {
   const focusRefreshKey = useRealtimeFocusSessions(user?.id);
 
   // Refaz fetches sempre que houver atividade em focus_sessions/courses
+  // (a primeira carga já é feita pelos efeitos acima; aqui só as atualizações).
   useEffect(() => {
-    if (!user) return;
+    if (!user || focusRefreshKey === 0) return;
     fetchTodayStudiedTime();
     fetchWeekStudiedTime();
     fetchCourses();
@@ -372,17 +386,33 @@ export default function Focus() {
   const fetchStudyPlans = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from('study_plans')
-      .select(`
-        *,
-        study_plan_courses (
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Planos e sessões de hoje em paralelo (antes era uma busca depois da outra).
+    const [plansRes, todaySessionsRes] = await Promise.all([
+      supabase
+        .from('study_plans')
+        .select(`
           *,
-          courses (id, name, total_hours, completed_hours, category)
-        )
-      `)
-      .eq('user_id', user.id)
-      .order('start_date', { ascending: false });
+          study_plan_courses (
+            *,
+            courses (id, name, total_hours, completed_hours, category)
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('start_date', { ascending: false }),
+      supabase
+        .from('focus_sessions')
+        .select('course_id, duration_minutes')
+        .eq('user_id', user.id)
+        .gte('completed_at', startOfDay.toISOString())
+        .lte('completed_at', endOfDay.toISOString()),
+    ]);
+    const { data, error } = plansRes;
+    const todaySessions = todaySessionsRes.data;
     
     if (error) {
       console.error('Error fetching study plans:', error);
@@ -396,19 +426,7 @@ export default function Focus() {
       const today = new Date().toISOString().split('T')[0];
       const todayDayId = dayIdMap[new Date().getDay()];
       
-      // Buscar sessões de foco de hoje para calcular progresso
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      
-      const { data: todaySessions } = await supabase
-        .from('focus_sessions')
-        .select('course_id, duration_minutes')
-        .eq('user_id', user.id)
-        .gte('completed_at', startOfDay.toISOString())
-        .lte('completed_at', endOfDay.toISOString());
-      
+
       // Criar mapa de minutos estudados por curso hoje
       const studiedMinutesByCourse: Record<string, number> = {};
       if (todaySessions) {
@@ -988,12 +1006,7 @@ export default function Focus() {
   }, [isRunning, selectedCourse, setSelectedCourse, setCustomTime, toggleTimer]);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="min-h-screen bg-background pb-6"
-    >
+    <div className="min-h-screen bg-background pb-6">
       {/* Break Transition Card */}
       <BreakTransitionCard
         isVisible={showBreakTransition}
@@ -1361,15 +1374,23 @@ export default function Focus() {
           </div>
 
           {/* ─── Evolution Chart ─── */}
-          <FocusEvolutionChart refreshKey={focusRefreshKey} />
+          <LazyOnView>
+            <Suspense fallback={<ChartFallback />}>
+              <FocusEvolutionChart refreshKey={focusRefreshKey} />
+            </Suspense>
+          </LazyOnView>
 
           {/* ─── Análises avançadas ─── */}
-          <AdvancedAnalytics
-            courseId={selectedCourse || undefined}
-            hide={selectedCourse ? ['distribution'] : []}
-            title="Análises avançadas"
-            description={selectedCourse ? 'Filtrado pelo curso selecionado' : 'Padrões de foco dos últimos 90 dias'}
-          />
+          <LazyOnView minHeight={360}>
+            <Suspense fallback={<ChartFallback />}>
+              <AdvancedAnalytics
+                courseId={selectedCourse || undefined}
+                hide={selectedCourse ? HIDE_WITH_COURSE : HIDE_NONE}
+                title="Análises avançadas"
+                description={selectedCourse ? 'Filtrado pelo curso selecionado' : 'Padrões de foco dos últimos 90 dias'}
+              />
+            </Suspense>
+          </LazyOnView>
         </div>
 
         {/* ─── Sidebar ─── */}
@@ -2008,6 +2029,6 @@ export default function Focus() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </motion.div>
+    </div>
   );
 }

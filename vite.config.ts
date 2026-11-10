@@ -144,6 +144,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,jpeg,jpg}"],
+        // Só trata o toque nos avisos dos lembretes (não guarda dados).
+        importScripts: ["/sw-avisos.js"],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true,

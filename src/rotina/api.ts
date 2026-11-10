@@ -34,6 +34,13 @@ export const tarefaSchema = z.object({
     .min(1, 'Escolha pelo menos um dia da semana.')
     .transform((d) => [...new Set(d)].sort()),
   ativa: z.boolean().optional(),
+  lembrete_ativo: z.boolean().optional(),
+  lembrete_min_antes: z
+    .number({ invalid_type_error: 'Antecedência inválida.' })
+    .int('Use minutos inteiros.')
+    .min(0, 'A antecedência não pode ser negativa.')
+    .max(240, 'O aviso pode vir no máximo 4 horas antes.')
+    .optional(),
 });
 
 export const categoriaSchema = z.object({
@@ -65,11 +72,20 @@ type TarefaRow = {
   ativa: boolean;
   ordem: number;
   created_at: string;
+  lembrete_ativo: boolean | null;
+  lembrete_min_antes: number | null;
 };
 
-const mapTarefa = (r: TarefaRow): RotinaTarefa => ({ ...r, hora: normalizarHora(r.hora), dias_semana: r.dias_semana ?? [] });
+const mapTarefa = (r: TarefaRow): RotinaTarefa => ({
+  ...r,
+  hora: normalizarHora(r.hora),
+  dias_semana: r.dias_semana ?? [],
+  lembrete_ativo: Boolean(r.lembrete_ativo),
+  lembrete_min_antes: r.lembrete_min_antes ?? 0,
+});
 
-const CAMPOS_TAREFA = 'id, categoria_id, nome, hora, duracao_min, dias_semana, ativa, ordem, created_at';
+const CAMPOS_TAREFA =
+  'id, categoria_id, nome, hora, duracao_min, dias_semana, ativa, ordem, created_at, lembrete_ativo, lembrete_min_antes';
 
 // ───────────── Inicialização (rotina padrão no primeiro acesso) ─────────────
 

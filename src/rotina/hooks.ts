@@ -37,6 +37,8 @@ export function useRotina(userId: string | undefined) {
 
   const baseKey: QueryKey = ['rotina', userId, 'base'];
   const concKey: QueryKey = ['rotina', userId, 'conclusoes', desde, hoje];
+  /** Lista usada pelos lembretes (ver components/LembretesRotina). */
+  const lembKey: QueryKey = ['rotina', userId, 'lembretes'];
 
   const base = useQuery({
     queryKey: baseKey,
@@ -140,7 +142,10 @@ export function useRotina(userId: string | undefined) {
       toast({ title: 'Tarefa adicionada' });
     },
     onError: erro('Não foi possível adicionar a tarefa'),
-    onSettled: () => qc.invalidateQueries({ queryKey: baseKey }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: baseKey });
+      qc.invalidateQueries({ queryKey: lembKey });
+    },
   });
 
   const atualizarTarefa = useOtimista<{ id: string; patch: AtualizacaoTarefa }, Base>(
@@ -148,6 +153,7 @@ export function useRotina(userId: string | undefined) {
     (v) => api.atualizarTarefa(v.id, v.patch),
     (b, v) => ({ ...b, tarefas: b.tarefas.map((t) => (t.id === v.id ? { ...t, ...v.patch } : t)) }),
     'Não foi possível salvar a tarefa',
+    [lembKey],
   );
 
   const removerTarefa = useOtimista<{ id: string }, Base>(
@@ -155,7 +161,7 @@ export function useRotina(userId: string | undefined) {
     (v) => api.removerTarefa(v.id),
     (b, v) => ({ ...b, tarefas: b.tarefas.filter((t) => t.id !== v.id) }),
     'Não foi possível remover a tarefa',
-    [concKey],
+    [concKey, lembKey],
   );
 
   // ── Categorias ──

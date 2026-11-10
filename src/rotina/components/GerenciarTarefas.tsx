@@ -25,6 +25,7 @@ import { ordenarPorHora } from '../calculos';
 import { DIAS_SEMANA_LETRA, DIAS_SEMANA_NOME } from '../datas';
 import { tarefaSchema } from '../api';
 import { GerenciarCategorias } from './GerenciarCategorias';
+import { BotaoLembrete, CartaoLembretes } from './Lembretes';
 
 const SEM_CATEGORIA = 'sem-categoria';
 const TODOS_OS_DIAS = [0, 1, 2, 3, 4, 5, 6];
@@ -134,7 +135,7 @@ function LinhaTarefa({ tarefa, categorias, rotina }: LinhaProps) {
     <li
       className={cn(
         'grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-2 rounded-xl border bg-card p-3',
-        'md:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_9.5rem_auto_auto_auto] md:rounded-none md:border-0 md:border-b md:bg-transparent md:px-2 md:py-1.5',
+        'md:grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_9.5rem_auto_auto_auto_auto] md:rounded-none md:border-0 md:border-b md:bg-transparent md:px-2 md:py-1.5',
         !tarefa.ativa && 'opacity-60',
       )}
     >
@@ -204,6 +205,8 @@ function LinhaTarefa({ tarefa, categorias, rotina }: LinhaProps) {
           {tarefa.ativa ? 'Ativa' : 'Arquivada'}
         </Label>
       </div>
+      <div className="flex items-center justify-end gap-1 md:contents">
+      <BotaoLembrete tarefa={tarefa} rotina={rotina} />
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="ghost" size="icon" className="h-11 w-11 justify-self-end text-muted-foreground hover:text-destructive md:h-9 md:w-9" aria-label={`Remover ${tarefa.nome}`}>
@@ -228,6 +231,7 @@ function LinhaTarefa({ tarefa, categorias, rotina }: LinhaProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </li>
   );
 }
@@ -312,6 +316,7 @@ export function GerenciarTarefas({ rotina }: { rotina: RotinaEstado }) {
 
   return (
     <div className="space-y-4">
+      <CartaoLembretes rotina={rotina} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-3">
           <CardTitle className="text-base">Tarefas da rotina</CardTitle>
@@ -321,7 +326,7 @@ export function GerenciarTarefas({ rotina }: { rotina: RotinaEstado }) {
           <NovaTarefa rotina={rotina} />
 
           <div
-            className="hidden grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_9.5rem_auto_auto_auto] gap-2 border-b px-2 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid"
+            className="hidden grid-cols-[6.5rem_minmax(0,1fr)_4.5rem_9.5rem_auto_auto_auto_auto] gap-2 border-b px-2 pb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid"
             aria-hidden
           >
             <span>Horário</span>
@@ -330,6 +335,7 @@ export function GerenciarTarefas({ rotina }: { rotina: RotinaEstado }) {
             <span>Categoria</span>
             <span className="w-[13.75rem]">Dias</span>
             <span>Ativa</span>
+            <span className="w-9">Aviso</span>
             <span className="w-9" />
           </div>
           {ativas.length === 0 ? (

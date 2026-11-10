@@ -24,6 +24,8 @@ const tarefa = (id: string, hora: string, extra: Partial<RotinaTarefa> = {}): Ro
   ativa: true,
   ordem: 0,
   created_at: '2026-01-01T12:00:00',
+  lembrete_ativo: false,
+  lembrete_min_antes: 0,
   ...extra,
 });
 

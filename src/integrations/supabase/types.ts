@@ -1663,6 +1663,8 @@ export type Database = {
           duracao_min: number | null
           hora: string
           id: string
+          lembrete_ativo: boolean
+          lembrete_min_antes: number
           nome: string
           ordem: number
           updated_at: string
@@ -1676,6 +1678,8 @@ export type Database = {
           duracao_min?: number | null
           hora: string
           id?: string
+          lembrete_ativo?: boolean
+          lembrete_min_antes?: number
           nome: string
           ordem?: number
           updated_at?: string
@@ -1689,6 +1693,8 @@ export type Database = {
           duracao_min?: number | null
           hora?: string
           id?: string
+          lembrete_ativo?: boolean
+          lembrete_min_antes?: number
           nome?: string
           ordem?: number
           updated_at?: string

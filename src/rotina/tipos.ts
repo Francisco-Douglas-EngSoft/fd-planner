@@ -22,6 +22,10 @@ export interface RotinaTarefa {
   ativa: boolean;
   ordem: number;
   created_at: string;
+  /** Avisar a pessoa no horário da tarefa (só nos dias em que ela se repete). */
+  lembrete_ativo: boolean;
+  /** Minutos de antecedência do aviso (0 = na hora). */
+  lembrete_min_antes: number;
 }
 
 export interface RotinaConclusao {
@@ -47,6 +51,8 @@ export interface NovaTarefaInput {
   categoria_id: string | null;
   dias_semana: number[];
   ativa?: boolean;
+  lembrete_ativo?: boolean;
+  lembrete_min_antes?: number;
 }
 
 export type AtualizacaoTarefa = Partial<NovaTarefaInput>;

@@ -15,34 +15,36 @@ import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FcmForegroundListener } from "@/components/notifications/FcmForegroundListener";
 import { lazy, Suspense } from "react";
+import { telas } from "@/lib/routePreload";
 
 // Eager: rota inicial e auth (críticas)
 import Auth from "./pages/Auth";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
-// Lazy: rotas pesadas e secundárias (code-split por rota)
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Courses = lazy(() => import("./pages/Courses"));
-const Focus = lazy(() => import("./pages/Focus"));
-const Tasks = lazy(() => import("./pages/Tasks"));
-const Planning = lazy(() => import("./pages/Planning"));
-const Reports = lazy(() => import("./pages/Reports"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Achievements = lazy(() => import("./pages/Achievements"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const AntiVicio = lazy(() => import("./pages/AntiVicio"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Notes = lazy(() => import("./pages/Notes"));
-const Redes = lazy(() => import("./pages/Redes"));
-const Install = lazy(() => import("./pages/Install"));
-const Admin = lazy(() => import("./pages/Admin"));
-const Library = lazy(() => import("./pages/Library"));
-const Reader = lazy(() => import("./pages/Reader"));
-const Bookmarks = lazy(() => import("./pages/Bookmarks"));
-const AIAssistant = lazy(() => import("./pages/AIAssistant"));
-const Rotina = lazy(() => import("./rotina/RotinaPage"));
+// Lazy: rotas pesadas e secundárias (code-split por rota; ver src/lib/routePreload.ts)
+const Dashboard = lazy(telas['/dashboard']);
+const Courses = lazy(telas['/cursos']);
+const Focus = lazy(telas['/foco']);
+const Tasks = lazy(telas['/tarefas']);
+const Planning = lazy(telas['/planejamentos']);
+const Reports = lazy(telas['/relatorios']);
+const Settings = lazy(telas['/configuracoes']);
+const Achievements = lazy(telas['/conquistas']);
+const Profile = lazy(telas['/perfil']);
+const Onboarding = lazy(telas['/onboarding']);
+const AntiVicio = lazy(telas['/antivicio']);
+const PrivacyPolicy = lazy(telas['/privacidade']);
+const Notes = lazy(telas['/notas']);
+const Redes = lazy(telas['/redes']);
+const Install = lazy(telas['/install']);
+const Admin = lazy(telas['/admin']);
+const Library = lazy(telas['/biblioteca']);
+const Reader = lazy(telas['/leitor']);
+const Bookmarks = lazy(telas['/marcadores']);
+const AIAssistant = lazy(telas['/assistente']);
+const Rotina = lazy(telas['/rotina']);
+const LembretesRotina = lazy(() => import('./rotina/components/LembretesRotina'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,6 +97,16 @@ function AuthenticatedInstallPrompt() {
   return <InstallPrompt />;
 }
 
+function AuthenticatedRotinaReminders() {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <Suspense fallback={null}>
+      <LembretesRotina />
+    </Suspense>
+  );
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -141,6 +153,7 @@ function AppContent() {
         <CookieConsentBanner />
         <OfflineIndicator />
         <FcmForegroundListener />
+        <AuthenticatedRotinaReminders />
       </BrowserRouter>
     </>
   );

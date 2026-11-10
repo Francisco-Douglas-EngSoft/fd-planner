@@ -39,3 +39,11 @@ DROP TABLE IF EXISTS public.rotina_tarefas;
 DROP TABLE IF EXISTS public.rotina_categorias;
 DROP TABLE IF EXISTS public.rotina_config;
 ```
+
+## Lembretes
+
+- Cada tarefa tem `lembrete_ativo` e `lembrete_min_antes` (0–240 min) em `rotina_tarefas`.
+- Regras puras em `src/rotina/lembretes.ts` (só avisa em tarefa ativa, com lembrete ligado e no dia da semana marcado; não repete; aviso atrasado até 10 min).
+- `components/LembretesRotina.tsx` roda em qualquer tela enquanto o app está aberto; `components/Lembretes.tsx` tem o sino de cada tarefa e o cartão de resumo.
+- `public/sw-avisos.js` (carregado pelo service worker) abre a Rotina ao tocar no aviso.
+- Para remover: apague esses arquivos, o `<AuthenticatedRotinaReminders />` em `src/App.tsx` e o `importScripts` em `vite.config.ts`.
