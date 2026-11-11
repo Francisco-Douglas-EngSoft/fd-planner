@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/utils';
-import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2, TrendingUp, TrendingDown, Check, ArrowLeft, ArrowRight, Settings2, ListChecks, LayoutGrid } from 'lucide-react';
 import { differenceInDays, parseISO, addDays, format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -40,6 +40,30 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { AutoGenerateFacultyPlanButton } from './AutoGenerateFacultyPlanButton';
 import type { Faculty, GeneratedPlan } from '@/lib/facultyPlanGenerator';
+import { ModuleWeeklyPlanner } from './ModuleWeeklyPlanner';
+import { cn } from '@/lib/utils';
+import {
+  buildModuleSchedule,
+  decodeLaneDays,
+  encodeLaneDays,
+  type LaneSetting,
+  type ModulePlanMode,
+  type ScheduleModule,
+  type TimeSlotId,
+} from '@/lib/moduleSchedule';
+
+const STEPS = [
+  { id: 0, label: 'Básico', icon: Settings2 },
+  { id: 1, label: 'Conteúdo', icon: ListChecks },
+  { id: 2, label: 'Agenda', icon: CalendarDays },
+  { id: 3, label: 'Grade e revisão', icon: LayoutGrid },
+] as const;
+
+const DAY_PRESETS = [
+  { label: 'Seg–Sex', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] },
+  { label: 'Todos', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
+  { label: 'Fim de semana', days: ['saturday', 'sunday'] },
+];
 
 // ✅ Função para validar e formatar data
 const validateAndFormatDate = (dateString: string | null | undefined): string | null => {
@@ -567,6 +591,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [moduleSettings, setModuleSettings] = useState<Record<string, ModuleSettings>>({});
   const [modulesInOtherPlans, setModulesInOtherPlans] = useState<Set<string>>(new Set());
+  const [moduleMode, setModuleMode] = useState<ModulePlanMode>('weekly');
+  const [laneSettings, setLaneSettings] = useState<Record<string, LaneSetting>>({});
+  const [step, setStep] = useState(0);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -588,6 +615,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   }, [user, open]);
 
   useEffect(() => {
+    if (open) setStep(0);
     if (editPlan && open) {
       setName(editPlan.name);
       setDescription(editPlan.description || '');
@@ -689,11 +717,24 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const fetchPlanModules = async (planId: string) => {
     const { data, error } = await supabase
       .from('study_plan_modules')
-      .select('module_id, allocated_hours, sequence_order, custom_daily_hours, weekly_goal_hours')
+      .select('module_id, course_id, allocated_hours, sequence_order, custom_daily_hours, weekly_goal_hours, day_id, daily_hours, time_slot')
       .eq('study_plan_id', planId);
 
     if (!error && data) {
-      setSelectedModules(data.map(pm => pm.module_id));
+      setSelectedModules(data.map(pm => pm.module_id).filter(Boolean) as string[]);
+      // Grade semanal: dias/tempo/período salvos por módulo (iguais em todo o curso).
+      const hasDays = data.some(pm => pm.day_id);
+      setModuleMode(hasDays ? 'weekly' : 'sequence');
+      const lanes: Record<string, LaneSetting> = {};
+      data.forEach(pm => {
+        if (!pm.course_id || lanes[pm.course_id]) return;
+        lanes[pm.course_id] = {
+          days: hasDays ? decodeLaneDays(pm.day_id) : undefined,
+          sessionHours: pm.daily_hours ? Number(pm.daily_hours) : null,
+          timeSlot: (pm.time_slot as TimeSlotId | null) || null,
+        };
+      });
+      setLaneSettings(lanes);
       
       const settings: Record<string, ModuleSettings> = {};
       data.forEach((pm, index) => {
@@ -848,6 +889,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     setHoursPerDiscipline('');
     setSelectedModules([]);
     setModuleSettings({});
+    setModuleMode('weekly');
+    setLaneSettings({});
+    setStep(0);
     setColor('');
     setStudyTimes([]);
     setNewStartTime('19:00');
@@ -1198,8 +1242,50 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   // Calculate total available hours
   const totalAvailableHours = totalStudyDays * (Number.parseFloat(dailyHours) || 0);
 
+  // Grade semanal (Por Módulo): módulos selecionados na ordem de execução
+  const scheduleModules = useMemo((): ScheduleModule[] => {
+    return orderedSelectedModules
+      .map((id, index) => {
+        const m = modules.find(x => x.id === id);
+        if (!m) return null;
+        return { id: m.id, name: m.name, courseId: m.course_id, courseName: m.course_name, hours: m.hours, order: index + 1 };
+      })
+      .filter(Boolean) as ScheduleModule[];
+  }, [orderedSelectedModules, modules]);
+
+  const scheduleStartDate = useMemo(() => {
+    const d = startDate ? parseISO(startDate) : null;
+    return !noDeadline && d && isValid(d) ? d : new Date();
+  }, [startDate, noDeadline]);
+
+  const moduleScheduleResult = useMemo(() => {
+    if (planningType !== 'module' || scheduleModules.length === 0) return null;
+    return buildModuleSchedule(scheduleModules, {
+      startDate: scheduleStartDate,
+      studyDays,
+      dailyHours: Number.parseFloat(dailyHours) || 0,
+      mode: moduleMode,
+      lanes: laneSettings,
+    });
+  }, [planningType, scheduleModules, scheduleStartDate, studyDays, dailyHours, moduleMode, laneSettings]);
+
+  // Cursos (da grade semanal) que ficaram sem nenhum dia
+  const lanesWithoutDays = useMemo(() => {
+    if (planningType !== 'module' || moduleMode !== 'weekly') return [] as string[];
+    const names = new Map<string, string>();
+    scheduleModules.forEach(m => {
+      const d = laneSettings[m.courseId]?.days;
+      const days = d === undefined ? studyDays : d.filter(x => studyDays.includes(x));
+      if (days.length === 0) names.set(m.courseId, m.courseName);
+    });
+    return Array.from(names.values());
+  }, [planningType, moduleMode, scheduleModules, laneSettings, studyDays]);
+
   // Calculate estimated completion date based on total course hours and daily study hours
   const estimatedCompletionDate = useMemo(() => {
+    if (planningType === 'module') {
+      return moduleScheduleResult?.finishDate ? parseISO(moduleScheduleResult.finishDate) : null;
+    }
     if (!startDate || studyDays.length === 0 || totalCourseHours === 0) return null;
     
     const daily = Number.parseFloat(dailyHours) || 0;
@@ -1244,7 +1330,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     }
     
     return currentDate;
-  }, [startDate, studyDays, totalCourseHours, dailyHours]);
+  }, [startDate, studyDays, totalCourseHours, dailyHours, planningType, moduleScheduleResult]);
 
   // Calculate hours per course (proportional distribution for the entire period)
   const hoursPerCourse = useMemo(() => {
@@ -1496,6 +1582,16 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       return;
     }
 
+    if (lanesWithoutDays.length > 0) {
+      toast({
+        title: 'Grade semanal incompleta',
+        description: `Escolha ao menos um dia para: ${lanesWithoutDays.join(', ')}.`,
+        variant: 'destructive',
+      });
+      setStep(3);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -1590,15 +1686,26 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         const moduleAssociations = orderedSelectedModules.map((moduleId, index) => {
           const module = modules.find(m => m.id === moduleId);
           const settings = moduleSettings[moduleId] || { sequence_order: index + 1 };
+          const lane = module ? laneSettings[module.course_id] : undefined;
+          const laneDays = lane?.days === undefined ? studyDays : lane.days.filter(d => studyDays.includes(d));
+          const projection = moduleScheduleResult?.projections[moduleId];
           return {
             study_plan_id: planId,
             module_id: moduleId,
             course_id: module?.course_id,
+            module_name: module?.name || 'Módulo',
+            module_hours: module?.hours || 0,
             allocated_hours: module?.hours || 0,
-            sequence_order: settings.sequence_order || index + 1,
+            sequence_order: index + 1,
             is_completed: false,
             custom_daily_hours: settings.custom_daily_hours || null,
-            weekly_goal_hours: settings.weekly_goal_hours || 0
+            weekly_goal_hours: settings.weekly_goal_hours || 0,
+            // Grade semanal: dias da trilha do curso ("monday,wednesday"); vazio = em sequência
+            day_id: moduleMode === 'weekly' ? encodeLaneDays(laneDays) : null,
+            daily_hours: moduleMode === 'weekly' ? (lane?.sessionHours || null) : null,
+            time_slot: moduleMode === 'weekly' ? (lane?.timeSlot || null) : null,
+            planned_start_date: projection?.start || null,
+            planned_end_date: projection?.end || null,
           };
         });
 
@@ -1667,12 +1774,48 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>{editPlan ? 'Editar Planejamento' : 'Novo Planejamento'}</DialogTitle>
           <DialogDescription>
-            {editPlan ? 'Atualize as informações do planejamento' : 'Crie um novo plano de estudos com cursos selecionados'}
+            {editPlan ? 'Atualize as informações do planejamento' : 'Monte seu plano em 4 etapas: o básico, o conteúdo, a agenda e a grade da semana.'}
           </DialogDescription>
         </DialogHeader>
 
+        <nav aria-label="Etapas do planejamento" className="flex-shrink-0">
+          <ol className="grid grid-cols-4 gap-1.5">
+            {STEPS.map(st => {
+              const done = st.id < step;
+              const current = st.id === step;
+              const label = st.id === 3 ? (planningType === 'module' ? 'Grade semanal' : 'Revisão') : st.label;
+              return (
+                <li key={st.id}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(st.id)}
+                    aria-current={current ? 'step' : undefined}
+                    className={cn(
+                      'w-full flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors',
+                      current ? 'border-primary bg-primary/10' : done ? 'border-primary/30 hover:bg-muted/50' : 'border-border hover:bg-muted/50'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'h-6 w-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-bold',
+                        current ? 'bg-primary text-primary-foreground' : done ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {done ? <Check className="h-3.5 w-3.5" /> : st.id + 1}
+                    </span>
+                    <span className={cn('text-xs font-medium truncate hidden sm:block', current ? 'text-foreground' : 'text-muted-foreground')}>
+                      {label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
         <ScrollArea className="flex-1 overflow-y-auto pr-4">
           <div className="space-y-6 pb-4">
+            {step === 0 && (<>
             <div className="space-y-2">
               <Label htmlFor="name">Nome do Planejamento *</Label>
               <Input
@@ -1910,6 +2053,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
               />
             </div>
 
+            </>)}
+
+            {step === 2 && (<>
             {/* No Deadline Toggle */}
             <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-muted/30">
               <Checkbox
@@ -1966,8 +2112,8 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">
-                        {selectedCourses.length === 0 
-                          ? 'Selecione cursos' 
+                        {(planningType === 'module' ? selectedModules.length : selectedCourses.length) === 0 
+                          ? (planningType === 'module' ? 'Selecione módulos' : 'Selecione cursos') 
                           : !startDate 
                             ? 'Defina a data de início'
                             : 'Calculando...'}
@@ -2120,7 +2266,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
               </div>
 
               {/* Auto-adjust button */}
-              {startDate && endDate && selectedCourses.length > 0 && totalCourseHours > 0 && (
+              {startDate && endDate && (planningType === 'module' ? selectedModules.length : selectedCourses.length) > 0 && totalCourseHours > 0 && (
                 <Button
                   type="button"
                   variant="outline"
@@ -2180,24 +2326,49 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
 
 
             <div className="space-y-3">
-              <Label>Dias de Estudo</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {daysOfWeek.map(day => (
-                  <div key={day.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={day.id}
-                      checked={studyDays.includes(day.id)}
-                      onCheckedChange={() => toggleDay(day.id)}
-                    />
-                    <label
-                      htmlFor={day.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Label>Dias de Estudo</Label>
+                <div className="flex gap-1.5">
+                  {DAY_PRESETS.map(p => (
+                    <Button
+                      key={p.label}
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setStudyDays(p.days)}
                     >
-                      {day.label}
-                    </label>
-                  </div>
-                ))}
+                      {p.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {daysOfWeek.map(day => {
+                  const on = studyDays.includes(day.id);
+                  return (
+                    <button
+                      key={day.id}
+                      type="button"
+                      onClick={() => toggleDay(day.id)}
+                      aria-pressed={on}
+                      title={day.label}
+                      className={cn(
+                        'h-11 rounded-lg border text-sm font-semibold transition-colors',
+                        on
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground hover:border-primary/50'
+                      )}
+                    >
+                      {day.abbrev}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {studyDays.length} dia{studyDays.length === 1 ? '' : 's'} por semana
+                {studyDays.length === 0 && ' — escolha pelo menos um dia'}
+              </p>
             </div>
 
             <div className="space-y-3">
@@ -2270,6 +2441,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
               )}
             </div>
 
+            </>)}
+
+            {step === 1 && (<>
             {/* Course/Module Selection based on planning type */}
             {planningType === 'course' ? (
               <div className="space-y-4">
@@ -2493,6 +2667,32 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
               </div>
             )}
 
+            </>)}
+
+            {step === 3 && (<>
+            {planningType === 'module' && (
+              selectedModules.length === 0 ? (
+                <StepHint text="Selecione os módulos na etapa Conteúdo para montar a grade da semana." onGo={() => setStep(1)} />
+              ) : studyDays.length === 0 ? (
+                <StepHint text="Escolha os dias de estudo na etapa Agenda." onGo={() => setStep(2)} />
+              ) : (
+                <ModuleWeeklyPlanner
+                  modules={scheduleModules}
+                  mode={moduleMode}
+                  onModeChange={setModuleMode}
+                  lanes={laneSettings}
+                  onLanesChange={setLaneSettings}
+                  studyDays={studyDays}
+                  dailyHours={Number.parseFloat(dailyHours) || 0}
+                  startDate={scheduleStartDate}
+                  deadline={noDeadline ? null : (endDate || null)}
+                />
+              )
+            )}
+            {planningType === 'course' && selectedCourses.length === 0 && (
+              <StepHint text="Selecione os cursos na etapa Conteúdo para ver a distribuição." onGo={() => setStep(1)} />
+            )}
+
             {/* Smart Course Schedule Distribution */}
             {courseSchedules.length > 0 && studyDays.length > 0 && (
               <div className="space-y-3 border rounded-lg p-4 bg-gradient-to-br from-primary/5 to-accent/5">
@@ -2611,21 +2811,68 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                 <p>• Tempo mínimo por sessão: <strong>00:30:00</strong></p>
               </div>
             )}
+            </>)}
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end gap-3 pt-4 border-t flex-shrink-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex items-center gap-2 pt-4 border-t flex-shrink-0">
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
-          >
-            {isLoading ? 'Salvando...' : editPlan ? 'Salvar Alterações' : 'Criar Planejamento'}
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            {step > 0 && (
+              <Button type="button" variant="outline" className="gap-1.5" onClick={() => setStep(step - 1)}>
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Voltar</span>
+              </Button>
+            )}
+            {editPlan && step < STEPS.length - 1 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSubmit}
+                disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
+              >
+                {isLoading ? 'Salvando...' : 'Salvar'}
+              </Button>
+            )}
+            {step < STEPS.length - 1 ? (
+              <Button
+                type="button"
+                className="gap-1.5"
+                onClick={() => {
+                  if (step === 0 && !name.trim()) {
+                    toast({ title: 'Dê um nome ao planejamento', variant: 'destructive' });
+                    return;
+                  }
+                  setStep(step + 1);
+                }}
+              >
+                Próximo
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmit}
+                disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
+              >
+                {isLoading ? 'Salvando...' : editPlan ? 'Salvar Alterações' : 'Criar Planejamento'}
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StepHint({ text, onGo }: { text: string; onGo: () => void }) {
+  return (
+    <div className="rounded-xl border border-dashed p-6 text-center space-y-3">
+      <p className="text-sm text-muted-foreground">{text}</p>
+      <Button type="button" variant="outline" size="sm" onClick={onGo}>
+        Ir para a etapa
+      </Button>
+    </div>
   );
 }

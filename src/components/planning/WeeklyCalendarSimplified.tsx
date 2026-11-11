@@ -37,6 +37,8 @@ const formatMinutes = (minutes: number): string => {
 
 export interface CourseSchedule {
   courseName: string;
+  /** Linha secundária (ex.: curso do módulo). */
+  detail?: string;
   dailyMinutes: number;
   color?: string;
   courseId?: string;
@@ -214,9 +216,13 @@ export function WeeklyCalendarSimplified({
                                 )}
                               >
                                 {/* Course Name */}
-                                <p className="font-semibold text-sm truncate mb-1">
+                                <p className="font-semibold text-sm truncate">
                                   {course.courseName}
                                 </p>
+                                {course.detail && (
+                                  <p className="text-[11px] opacity-80 truncate">{course.detail}</p>
+                                )}
+                                <div className="mb-1" />
                                 
                                 {/* Duration */}
                                 <div className="flex items-center gap-1 text-xs opacity-90 mb-1.5">
@@ -244,6 +250,7 @@ export function WeeklyCalendarSimplified({
                             <TooltipContent side="top" className="max-w-[200px]">
                               <div className="space-y-1">
                                 <p className="font-bold">{course.courseName}</p>
+                                {course.detail && <p className="text-xs text-muted-foreground">{course.detail}</p>}
                                 <p className="text-xs text-muted-foreground">
                                   Tempo diário: {formatMinutes(course.dailyMinutes)}
                                 </p>

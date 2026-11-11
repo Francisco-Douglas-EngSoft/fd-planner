@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, MoreVertical, Edit, Trash2, LayoutGrid, CalendarDays, CalendarCheck, GraduationCap, Filter, GripVertical, Rocket } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, BookOpen, MoreVertical, Edit, Trash2, LayoutGrid, CalendarDays, CalendarCheck, GraduationCap, Filter, GripVertical, Rocket, Layers } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -50,6 +50,9 @@ import { GlobalGoalCard } from '@/components/planning/GlobalGoalCard';
 import { LoadingState, ErrorState } from '@/components/ui/QueryState';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CardSkeletonGrid } from '@/components/ui/card-skeleton';
+import { buildModuleSchedule, type ModuleScheduleResult } from '@/lib/moduleSchedule';
+import { PLAN_MODULES_SELECT, isModulePlan, planToScheduleInput, type PlanModuleRow } from '@/lib/modulePlanAdapter';
+import { enrichPlanModules } from '@/lib/modulePlanData';
 
 const daysOfWeekFull = [
   { id: 'sunday', label: 'Domingo', abbrev: 'Dom' },
@@ -182,6 +185,8 @@ interface StudyPlan {
   academic_period_end?: string | null;
   hours_per_discipline?: number | null;
   color?: string | null;
+  planning_type?: string | null;
+  study_plan_modules?: PlanModuleRow[];
 }
 
 function SortablePlanCard({ id, children }: { id: string; children: (handleProps: { listeners: any; attributes: any; isDragging: boolean }) => React.ReactNode }) {
@@ -271,7 +276,8 @@ export default function Planning() {
           sequence_order,
           is_completed,
           courses (name, total_hours, completed_hours)
-        )
+        ),
+        ${PLAN_MODULES_SELECT}
       `)
       .eq('user_id', user.id)
       .order('start_date', { ascending: true });
@@ -301,6 +307,12 @@ export default function Planning() {
         }));
       } catch {
         // Mantém os dados do banco caso o cálculo detalhado falhe.
+      }
+      // Planos "Por Módulo": completa nome do curso e conclusão real de cada módulo.
+      try {
+        normalized = await enrichPlanModules(normalized as any[]);
+      } catch {
+        // Sem os nomes, a grade ainda funciona com os dados salvos no plano.
       }
       setPlans(normalized);
     }
@@ -372,6 +384,10 @@ export default function Planning() {
     const end = safeParseISO(plan.end_date);
 
     // Planos sem prazo não têm progresso de período: usamos os cursos concluídos.
+    if (plan.no_deadline && isModulePlan(plan)) {
+      const mods = plan.study_plan_modules ?? [];
+      return Math.round((mods.filter((m) => m.is_completed).length / mods.length) * 100);
+    }
     if (plan.no_deadline) {
       const courses = plan.study_plan_courses ?? [];
       if (courses.length === 0) return 0;
@@ -410,8 +426,31 @@ export default function Planning() {
     return { totalPlannedHours: hours, totalUniqueCourses: seen.size };
   }, [plans]);
 
+  // Planos "Por Módulo": projeção da grade semanal a partir do início desta semana.
+  const moduleSimulations = useMemo(() => {
+    const from = startOfWeek(new Date(), { weekStartsOn: 0 });
+    const out: Record<string, { result: ModuleScheduleResult; names: Record<string, { module: string; course: string; courseIndex: number }> }> = {};
+    for (const plan of plans) {
+      if (!isModulePlan(plan)) continue;
+      const input = planToScheduleInput(plan, from);
+      if (!input) continue;
+      const courseOrder: string[] = [];
+      const names: Record<string, { module: string; course: string; courseIndex: number }> = {};
+      input.modules.forEach((m) => {
+        if (!courseOrder.includes(m.courseId)) courseOrder.push(m.courseId);
+        names[m.id] = { module: m.name, course: m.courseName, courseIndex: courseOrder.indexOf(m.courseId) };
+      });
+      out[plan.id] = { result: buildModuleSchedule(input.modules, input.options), names };
+    }
+    return out;
+  }, [plans]);
+
   // Calculate estimated completion date for a plan
   const calculateEstimatedCompletion = (plan: StudyPlan): Date | null => {
+    if (isModulePlan(plan)) {
+      const finish = moduleSimulations[plan.id]?.result.finishDate;
+      return finish ? parseISO(finish) : null;
+    }
     if (!plan.start_date || !plan.study_days || plan.study_days.length === 0) return null;
     
     const totalHours = plan.total_hours || 0;
@@ -667,13 +706,61 @@ export default function Planning() {
       });
     });
 
+    // Planos "Por Módulo": usa a grade semanal projetada (dia a dia).
+    const weekKeys = weekDates.map((d) => format(d, 'yyyy-MM-dd'));
+    for (const plan of plans) {
+      const sim = moduleSimulations[plan.id];
+      if (!sim) continue;
+      const planEnd = safeParseISO(plan.end_date);
+      for (const day of sim.result.days) {
+        const idx = weekKeys.indexOf(day.date);
+        if (idx === -1) continue;
+        if (!plan.no_deadline && planEnd && weekDates[idx] > planEnd) continue;
+        const dayId = daysOfWeekFull[idx].id;
+        for (const item of day.items) {
+          const n = sim.names[item.moduleId];
+          const row = plan.study_plan_modules?.find((r) => (r.module_id || r.id) === item.moduleId);
+          schedule[dayId].push({
+            courseName: n?.module || 'Módulo',
+            detail: n?.course,
+            dailyMinutes: item.minutes,
+            color: colors[(n?.courseIndex ?? 0) % colors.length],
+            isFixed: false,
+            sequenceOrder: (n?.courseIndex ?? 0) + 1,
+            isCurrentInSequence: true,
+            courseId: item.moduleId,
+            completedHours: 0,
+            totalHours: Number(row?.module_hours ?? row?.allocated_hours ?? 0) || 0,
+          });
+        }
+      }
+    }
+
     // Sort courses within each day by sequence order
     Object.keys(schedule).forEach(dayId => {
       schedule[dayId].sort((a, b) => a.sequenceOrder - b.sequenceOrder);
     });
 
     return schedule;
-  }, [plans, weekDates]);
+  }, [plans, weekDates, moduleSimulations]);
+
+  // Módulos programados para hoje (planos "Por Módulo")
+  const todayModuleItems = useMemo(() => {
+    const key = format(new Date(), 'yyyy-MM-dd');
+    const items: { courseName: string; detail?: string; dailyMinutes: number }[] = [];
+    for (const plan of plans) {
+      const sim = moduleSimulations[plan.id];
+      if (!sim) continue;
+      const end = safeParseISO(plan.end_date);
+      if (!plan.no_deadline && end && new Date() > addDays(end, 1)) continue;
+      const day = sim.result.days.find((d) => d.date === key);
+      day?.items.forEach((it) => {
+        const n = sim.names[it.moduleId];
+        items.push({ courseName: n?.module || 'Módulo', detail: n?.course, dailyMinutes: it.minutes });
+      });
+    }
+    return items;
+  }, [plans, moduleSimulations]);
 
   const handleCourseDrop = async (courseId: string, fromDay: string, toDay: string) => {
     // Find the study_plan_course that matches this courseId
@@ -969,7 +1056,7 @@ export default function Planning() {
       </div>
 
       {/* Today's Study Card */}
-      <TodayStudyCard plans={plans} />
+      <TodayStudyCard plans={plans} extraItems={todayModuleItems} />
 
       {/* Calendar Component - Weekly or Monthly */}
       {plans.length > 0 && viewMode === 'weekly' && (
@@ -1166,7 +1253,9 @@ export default function Planning() {
                               <div className="min-w-0 flex-1">
                                 <p className="font-bold truncate group-hover/plan:text-primary transition-colors">{plan.name}</p>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  {plan.study_plan_courses?.length || 0} curso(s) • {formatHoursHMS(plan.daily_hours || 1.5)}/dia
+                                  {isModulePlan(plan)
+                                    ? `${plan.study_plan_modules!.length} módulo(s)`
+                                    : `${plan.study_plan_courses?.length || 0} curso(s)`} • {formatHoursHMS(plan.daily_hours || 1.5)}/dia
                                 </p>
                               </div>
                               <ChevronRight className="h-4 w-4 text-muted-foreground group-hover/plan:text-primary group-hover/plan:translate-x-0.5 transition-all" />
@@ -1514,6 +1603,18 @@ export default function Planning() {
                           {Math.round(plan.total_hours)}h total
                         </div>
                       )}
+                      {isModulePlan(plan) && (
+                        <div className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
+                          <Layers className="h-3.5 w-3.5" />
+                          {plan.study_plan_modules!.filter((m) => m.is_completed).length}/{plan.study_plan_modules!.length} módulos
+                        </div>
+                      )}
+                      {isModulePlan(plan) && (
+                        <div className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-primary/20 text-primary font-medium">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {plan.study_plan_modules!.some((m) => m.day_id) ? 'Grade semanal' : 'Em sequência'}
+                        </div>
+                      )}
                       {plan.study_plan_courses && plan.study_plan_courses.length > 0 && (
                         <div className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-muted text-muted-foreground font-medium">
                           {plan.study_plan_courses.length} curso{plan.study_plan_courses.length === 1 ? '' : 's'}
@@ -1576,6 +1677,38 @@ export default function Planning() {
                       </div>
                     )}
                     
+                    {/* Módulos incluídos (planos Por Módulo): próximo módulo em destaque */}
+                    {isModulePlan(plan) && (() => {
+                      const rows = [...plan.study_plan_modules!].sort((a, b) => (a.sequence_order ?? 0) - (b.sequence_order ?? 0));
+                      const pending = rows.filter((r) => !r.is_completed);
+                      const next = pending[0];
+                      return (
+                        <div className="space-y-2">
+                          {next && (
+                            <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Próximo módulo</p>
+                              <p className="text-sm font-medium truncate">{next.module_name || 'Módulo'}</p>
+                              {next.course_name && <p className="text-[11px] text-muted-foreground truncate">{next.course_name}</p>}
+                            </div>
+                          )}
+                          {pending.length > 1 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {pending.slice(1, 4).map((r) => (
+                                <Badge key={r.id} className="text-[11px] py-1 px-2 bg-muted text-foreground border-0 truncate max-w-[140px] rounded-lg font-medium">
+                                  {r.module_name || 'Módulo'}
+                                </Badge>
+                              ))}
+                              {pending.length > 4 && (
+                                <Badge variant="outline" className="text-[11px] py-1 px-2 rounded-lg">
+                                  +{pending.length - 4} mais
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Horários de estudo configurados */}
                     {(() => {
                       const planBlocks = timeBlocks.filter((b) => b.study_plan_id === plan.id);

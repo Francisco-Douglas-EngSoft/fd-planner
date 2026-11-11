@@ -36,6 +36,9 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { LayoutGrid } from 'lucide-react';
+import { ModuleScheduleView } from './ModuleScheduleView';
+import { isModulePlan, planToScheduleInput, type PlanModuleRow } from '@/lib/modulePlanAdapter';
 
 interface StudyPlanCourse {
   id?: string;
@@ -62,6 +65,9 @@ interface StudyPlan {
   created_at: string;
   effective_start_date?: string | null;
   study_plan_courses?: StudyPlanCourse[];
+  planning_type?: string | null;
+  no_deadline?: boolean | null;
+  study_plan_modules?: PlanModuleRow[];
 }
 
 interface PlanDetailsDialogProps {
@@ -974,8 +980,14 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
             <p className="text-sm text-muted-foreground animate-pulse">Sincronizando horas reais...</p>
           </div>
         ) : (
-          <Tabs defaultValue="overview" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <Tabs key={plan.id} defaultValue={isModulePlan(plan) ? 'grade' : 'overview'} className="mt-4">
+          <TabsList className={`grid w-full ${isModulePlan(plan) ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {isModulePlan(plan) && (
+              <TabsTrigger value="grade" className="flex items-center gap-2 text-xs">
+                <LayoutGrid className="h-4 w-4" />
+                Grade semanal
+              </TabsTrigger>
+            )}
             <TabsTrigger value="overview" className="flex items-center gap-2 text-xs">
               <BookOpen className="h-4 w-4" />
               Visão Geral
@@ -1347,6 +1359,26 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
               </div>
             )}
           </TabsContent>
+
+          {isModulePlan(plan) && (() => {
+            const input = planToScheduleInput(plan, new Date());
+            if (!input) return null;
+            return (
+              <TabsContent value="grade" className="py-4 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  {input.mode === 'weekly'
+                    ? 'Cada curso é estudado nos dias escolhidos; os módulos seguem em ordem.'
+                    : 'Um módulo por vez, na ordem de execução.'}{' '}
+                  Projeção a partir de hoje com o que falta estudar.
+                </p>
+                <ModuleScheduleView
+                  modules={input.modules}
+                  options={input.options}
+                  deadline={plan.no_deadline ? null : plan.end_date}
+                />
+              </TabsContent>
+            );
+          })()}
 
           <TabsContent value="academic" className="py-4">
             <AcademicCalendar

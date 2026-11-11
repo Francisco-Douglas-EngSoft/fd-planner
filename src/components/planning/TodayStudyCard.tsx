@@ -33,6 +33,8 @@ interface StudyPlan {
 
 interface TodayStudyCardProps {
   plans: StudyPlan[];
+  /** Itens já calculados fora (ex.: módulos da grade semanal). */
+  extraItems?: { courseName: string; detail?: string; dailyMinutes: number }[];
 }
 
 const daysOfWeekMap: Record<number, string> = {
@@ -60,13 +62,13 @@ const colors = [
   'bg-violet-500',
 ];
 
-export function TodayStudyCard({ plans }: TodayStudyCardProps) {
+export function TodayStudyCard({ plans, extraItems = [] }: TodayStudyCardProps) {
   const today = new Date();
   const todayDayId = daysOfWeekMap[today.getDay()];
   const todayStr = today.toISOString().split('T')[0];
 
   const todayCourses = useMemo(() => {
-    const courses: { courseName: string; dailyMinutes: number; color: string; isFixed: boolean }[] = [];
+    const courses: { courseName: string; detail?: string; dailyMinutes: number; color: string; isFixed: boolean }[] = [];
 
     // Get plans that are active today
     const activePlans = plans.filter(plan => {
@@ -141,8 +143,12 @@ export function TodayStudyCard({ plans }: TodayStudyCardProps) {
       });
     });
 
+    extraItems.forEach((it, idx) => {
+      courses.push({ ...it, color: colors[(courses.length + idx) % colors.length], isFixed: false });
+    });
+
     return courses;
-  }, [plans, todayDayId, todayStr]);
+  }, [plans, todayDayId, todayStr, extraItems]);
 
   const totalMinutesToday = todayCourses.reduce((sum, c) => sum + c.dailyMinutes, 0);
 
@@ -194,6 +200,7 @@ export function TodayStudyCard({ plans }: TodayStudyCardProps) {
                   <BookOpen className="h-5 w-5" />
                   <div>
                     <p className="font-semibold text-sm">{course.courseName}</p>
+                    {course.detail && <p className="text-[11px] opacity-80">{course.detail}</p>}
                     {course.isFixed && (
                       <span className="text-[10px] opacity-80">📌 Fixo</span>
                     )}

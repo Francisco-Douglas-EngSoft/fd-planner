@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, memo, Suspense } from 'react';
-import { Play, Pause, RotateCcw, Plus, Coffee, Brain, Settings, Target, Clock, BookOpen, Zap, TrendingUp, Timer, Sparkles, Square, CheckCircle2, Volume2, VolumeX, Calendar, GraduationCap, Filter, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Pause, RotateCcw, Plus, Coffee, Brain, Settings, Target, Clock, BookOpen, Zap, TrendingUp, Timer, Sparkles, Square, CheckCircle2, Volume2, VolumeX, Calendar, GraduationCap, Filter, Check, ChevronDown, ChevronUp, Layers, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +40,7 @@ import { BreakTransitionCard } from '@/components/focus/BreakTransitionCard';
 import { FocusGoalsPanel } from '@/components/focus/FocusGoalsPanel';
 import { DailyGoalCard } from '@/components/focus/DailyGoalCard';
 import { DailyAgenda } from '@/components/focus/DailyAgenda';
+import { ModuleFocusAgenda, type StartModuleSessionArgs } from '@/components/focus/ModuleFocusAgenda';
 import { MotivationalQuote } from '@/components/focus/MotivationalQuote';
 import { PaceIndicatorCard } from '@/components/focus/PaceIndicatorCard';
 import { LazyOnView } from '@/components/ui/LazyOnView';
@@ -142,6 +143,11 @@ export default function Focus() {
   }, [targetCycles]);
   const [showCourseChangeDialog, setShowCourseChangeDialog] = useState(false);
   const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
+  // Início pedido pela agenda enquanto outro timer roda: aplicado após salvar/descartar.
+  const [pendingStart, setPendingStart] = useState<{ courseId: string; moduleId: string; minutes: number } | null>(null);
+  const [modulesPendingToday, setModulesPendingToday] = useState(0);
+  const [autoStartRequested, setAutoStartRequested] = useState(false);
+  const [activeModuleInfo, setActiveModuleInfo] = useState<{ id: string; name: string } | null>(null);
   const [todayStudiedMinutes, setTodayStudiedMinutes] = useState<number>(0);
   const [weekStudiedMinutes, setWeekStudiedMinutes] = useState<number>(0);
   const [todayCompletedCycles, setTodayCompletedCycles] = useState<number>(0);
@@ -208,6 +214,28 @@ export default function Focus() {
     const saved = localStorage.getItem(`${MANUAL_DAILY_GOAL_KEY_PREFIX}${selectedCourse}`);
     setManualDailyHours(saved ?? '');
   }, [selectedCourse]);
+
+  // Nome do módulo vinculado ao timer (também ao reabrir a página com um módulo salvo).
+  useEffect(() => {
+    if (!selectedModule) {
+      setActiveModuleInfo(null);
+      return;
+    }
+    if (activeModuleInfo?.id === selectedModule) return;
+    let cancelled = false;
+    supabase
+      .from('course_modules')
+      .select('id, name')
+      .eq('id', selectedModule)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setActiveModuleInfo({ id: data.id, name: data.name });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModule]);
 
   // Show break transition only when a break is pending (user must confirm start)
   useEffect(() => {
@@ -954,6 +982,7 @@ export default function Focus() {
         });
       }
       setSelectedCourse(pendingCourseId);
+      applyPendingStart();
       setPendingCourseId(null);
       setShowCourseChangeDialog(false);
     }
@@ -963,10 +992,29 @@ export default function Focus() {
     if (pendingCourseId) {
       resetTimer();
       setSelectedCourse(pendingCourseId);
+      applyPendingStart();
       setPendingCourseId(null);
       setShowCourseChangeDialog(false);
     }
   };
+
+  // Depois de salvar/descartar a sessão anterior, já começa o módulo pedido pela agenda.
+  const applyPendingStart = () => {
+    if (!pendingStart) return;
+    const { moduleId, minutes } = pendingStart;
+    setSelectedModule(moduleId);
+    setCustomTime(minutes * 60, 'work');
+    setPendingStart(null);
+    setAutoStartRequested(true);
+  };
+
+  // Inicia o timer depois que curso/módulo/tempo já foram aplicados — evita
+  // começar com a duração antiga (o toggle lê o tempo do render atual).
+  useEffect(() => {
+    if (!autoStartRequested || isRunning) return;
+    setAutoStartRequested(false);
+    toggleTimer();
+  }, [autoStartRequested, isRunning, toggleTimer]);
 
   // Handle break transition actions
   const handleStartBreak = () => {
@@ -981,29 +1029,39 @@ export default function Focus() {
   };
 
   // Handle start session from Daily Agenda
-  const handleStartFromAgenda = useCallback((courseId: string, durationMinutes: number) => {
-    // If timer is running with a different course, just select without starting
-    if (isRunning && courseId !== selectedCourse) {
+  const handleStartFromAgenda = useCallback((courseId: string, durationMinutes: number, moduleId: string | null = null) => {
+    const targetModule = moduleId ?? '';
+    // Timer rodando em outro curso/módulo: pergunta antes de trocar.
+    if (isRunning && (courseId !== selectedCourse || targetModule !== selectedModule)) {
       setPendingCourseId(courseId);
+      setPendingStart({ courseId, moduleId: targetModule, minutes: durationMinutes });
       setShowCourseChangeDialog(true);
       return;
     }
 
-    // Select the course
+    // Select the course (trocar de curso limpa o módulo; depois vinculamos o pedido)
     setSelectedCourse(courseId);
+    setSelectedModule(targetModule);
 
     // Set custom time for the session (in work mode)
     const durationSeconds = durationMinutes * 60;
     setCustomTime(durationSeconds, 'work');
 
-    // Optionally auto-start if not running
-    if (!isRunning) {
-      // Small delay to ensure state is updated before starting
-      setTimeout(() => {
-        toggleTimer();
-      }, 100);
+    // Auto-start if not running (o efeito abaixo inicia com o tempo já atualizado)
+    if (!isRunning) setAutoStartRequested(true);
+  }, [isRunning, selectedCourse, selectedModule, setSelectedCourse, setSelectedModule, setCustomTime, toggleTimer]);
+
+  const handleStartModule = useCallback((args: StartModuleSessionArgs) => {
+    if (args.moduleId) setActiveModuleInfo({ id: args.moduleId, name: args.moduleName });
+    const willStartNow = !isRunning || (args.courseId === selectedCourse && (args.moduleId ?? '') === selectedModule);
+    handleStartFromAgenda(args.courseId, args.minutes, args.moduleId);
+    if (willStartNow && !isRunning) {
+      toast({
+        title: 'Sessão do módulo iniciada',
+        description: `${args.minutes} min de ${args.moduleName} (${args.courseName}).`,
+      });
     }
-  }, [isRunning, selectedCourse, setSelectedCourse, setCustomTime, toggleTimer]);
+  }, [handleStartFromAgenda, isRunning, selectedCourse, selectedModule, toast]);
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -1146,6 +1204,24 @@ export default function Focus() {
                   </motion.div>
                 )}
                 </AnimatePresence>
+                {selectedModule && activeModuleInfo?.id === selectedModule && (
+                  <div className="flex justify-center -mt-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/25 px-3 py-1 text-xs max-w-[300px]">
+                      <Layers className="h-3 w-3 shrink-0" />
+                      <span className="truncate">Módulo: {activeModuleInfo.name}</span>
+                      {!isRunning && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedModule('')}
+                          className="ml-0.5 rounded-full hover:bg-white/20 p-0.5"
+                          aria-label="Desvincular módulo do timer"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                )}
 
                 {/* Mode Indicator */}
                 <div className="flex items-center justify-center gap-2">
@@ -1405,6 +1481,14 @@ export default function Focus() {
               <TabsTrigger value="hoje" className="gap-2 text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Calendar className="h-4 w-4" />
                 Hoje
+                {modulesPendingToday > 0 && (
+                  <span
+                    className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+                    aria-label={`${modulesPendingToday} módulos pendentes hoje`}
+                  >
+                    {modulesPendingToday}
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="ajustes" className="gap-2 text-sm rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Settings className="h-4 w-4" />
@@ -1833,6 +1917,13 @@ export default function Focus() {
             {/* ─── Aba HOJE: agenda + metas + histórico ─── */}
             <TabsContent value="hoje" className="mt-3 space-y-3">
               <DailyGoalCard plans={studyPlans as any} refreshKey={focusRefreshKey} />
+              <ModuleFocusAgenda
+                onStartSession={handleStartModule}
+                activeModuleId={selectedModule}
+                isRunning={isRunning && mode === 'work'}
+                refreshKey={focusRefreshKey}
+                onPendingCountChange={setModulesPendingToday}
+              />
               <DailyAgenda onStartSession={handleStartFromAgenda} refreshKey={focusRefreshKey} />
 
               <div className="hidden sm:block">
@@ -2013,6 +2104,7 @@ export default function Focus() {
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel onClick={() => {
               setPendingCourseId(null);
+              setPendingStart(null);
               setShowCourseChangeDialog(false);
             }}>
               Cancelar
