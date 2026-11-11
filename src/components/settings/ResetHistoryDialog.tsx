@@ -40,44 +40,54 @@ export function ResetHistoryDialog({ children }: ResetHistoryDialogProps) {
       // get re-synced into the database right after we delete them.
       resetLocalFocusData();
 
-      // Delete all user data in the correct order to avoid foreign key issues
-      const tables = [
-        'daily_study_progress',
-        'study_plan_courses',
-        'study_plan_modules',
-        'study_plans',
-        'focus_sessions',
-        'course_modules',
-        'courses',
-        'tasks',
-        'study_notes',
-        'weekly_goals',
-        'monthly_goals',
-        'impulse_logs',
-        'relapses',
-        'addiction_checkins',
-        'clean_streaks',
-        'recovery_goals',
-        'addiction_profiles',
-        'notification_history',
-        'study_reminders',
-        'user_achievements',
-        'user_certificates',
-        'user_projects',
-        'user_resume',
-        'user_social_links',
-      ];
+      // Child tables without user_id are deleted through their parent IDs.
+      const [plansRes, coursesRes] = await Promise.all([
+        supabase.from('study_plans').select('id').eq('user_id', user.id),
+        supabase.from('courses').select('id').eq('user_id', user.id),
+      ]);
+      if (plansRes.error) throw new Error(`study_plans: ${plansRes.error.message}`);
+      if (coursesRes.error) throw new Error(`courses: ${coursesRes.error.message}`);
+      const planIds = (plansRes.data || []).map((r: any) => r.id);
+      const courseIds = (coursesRes.data || []).map((r: any) => r.id);
 
-      for (const table of tables) {
-        const { error } = await supabase
-          .from(table as any)
-          .delete()
-          .eq('user_id', user.id);
-        
-        if (error && !error.message.includes('0 rows')) {
-          throw new Error(`${table}: ${error.message}`);
-        }
+      const run = async (label: string, q: any) => {
+        const { error } = await q;
+        if (error) throw new Error(`${label}: ${error.message}`);
+      };
+      const byUser = (table: string) =>
+        run(table, (supabase.from as any)(table).delete().eq('user_id', user.id));
+
+      await byUser('daily_study_progress');
+      await byUser('academic_events');
+      await byUser('focus_sessions');
+      await byUser('tasks');
+      await byUser('study_notes');
+      if (planIds.length) {
+        await run('study_plan_time_blocks', (supabase.from as any)('study_plan_time_blocks').delete().in('study_plan_id', planIds));
+        await run('study_plan_courses', (supabase.from as any)('study_plan_courses').delete().in('study_plan_id', planIds));
+        await run('study_plan_modules', (supabase.from as any)('study_plan_modules').delete().in('study_plan_id', planIds));
       }
+      if (courseIds.length) {
+        const modsRes = await (supabase.from as any)('course_modules').select('id').in('course_id', courseIds);
+        if (modsRes.error) throw new Error(`course_modules: ${modsRes.error.message}`);
+        const moduleIds = (modsRes.data || []).map((r: any) => r.id);
+        if (moduleIds.length) {
+          await run('course_submodules', (supabase.from as any)('course_submodules').delete().in('module_id', moduleIds));
+        }
+        await run('study_plan_modules', (supabase.from as any)('study_plan_modules').delete().in('course_id', courseIds));
+        await run('course_modules', (supabase.from as any)('course_modules').delete().in('course_id', courseIds));
+      }
+      await byUser('user_certificates');
+      await byUser('study_plans');
+      await byUser('courses');
+
+      const rest = [
+        'weekly_goals', 'monthly_goals', 'reward_claims', 'reward_goals', 'planning_global_goals',
+        'impulse_logs', 'relapses', 'addiction_checkins', 'clean_streaks', 'recovery_goals',
+        'addiction_profiles', 'notification_history', 'study_reminders', 'user_achievements',
+        'user_projects', 'user_resume', 'user_social_links',
+      ];
+      for (const table of rest) await byUser(table);
 
       // Reset profile stats
       const { error: profileError } = await supabase
