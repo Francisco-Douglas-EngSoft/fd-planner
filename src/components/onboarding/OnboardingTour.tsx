@@ -8,6 +8,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { LayoutDashboard, Timer, BookOpen, Sparkles } from "lucide-react";
 
 const STORAGE_KEY = "fdp_tour_v1_done";
@@ -39,17 +41,32 @@ export function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      // Pequeno delay para não competir com o carregamento inicial.
-      const t = setTimeout(() => setOpen(true), 900);
-      return () => clearTimeout(t);
+  const { user } = useAuth();
+
+  // Mostra só no primeiro acesso da conta: a marca fica no aparelho e na conta.
+  const markSeen = () => {
+    localStorage.setItem(STORAGE_KEY, "1");
+    if (user && !user.user_metadata?.tour_done) {
+      supabase.auth.updateUser({ data: { tour_done: true } }).catch(() => {});
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !user) return;
+    if (localStorage.getItem(STORAGE_KEY) || user.user_metadata?.tour_done) {
+      localStorage.setItem(STORAGE_KEY, "1");
+      return;
+    }
+    const t = setTimeout(() => {
+      setOpen(true);
+      markSeen();
+    }, 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const finish = () => {
-    localStorage.setItem(STORAGE_KEY, "1");
+    markSeen();
     setOpen(false);
     setStep(0);
   };
