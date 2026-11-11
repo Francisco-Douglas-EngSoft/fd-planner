@@ -110,11 +110,31 @@ export class GDPRService {
         metadata: { userId: user.id },
       });
 
+      // Estas tabelas filhas não possuem user_id: o vínculo com o usuário
+      // acontece por meio dos planejamentos e cursos aos quais pertencem.
+      const [
+        { data: userPlans, error: plansError },
+        { data: userCourses, error: coursesError },
+      ] = await Promise.all([
+        supabase.from('study_plans').select('id').eq('user_id', user.id),
+        supabase.from('courses').select('id').eq('user_id', user.id),
+      ]);
+
+      if (plansError) throw plansError;
+      if (coursesError) throw coursesError;
+
+      const planIds = (userPlans || []).map((plan) => plan.id);
+      const courseIds = (userCourses || []).map((course) => course.id);
+
       // Deleta dados em cascata (ordem correta respeitando foreign keys)
       // 1. Primeiro: tabelas filhas (que referenciam outras)
-      await (supabase.from('study_plan_courses') as any).delete().eq('user_id', user.id);
-      await (supabase.from as any)('study_plan_modules').delete().eq('user_id', user.id);
-      await (supabase.from as any)('course_modules').delete().eq('user_id', user.id);
+      if (planIds.length > 0) {
+        await (supabase.from('study_plan_courses') as any).delete().in('study_plan_id', planIds);
+        await (supabase.from as any)('study_plan_modules').delete().in('study_plan_id', planIds);
+      }
+      if (courseIds.length > 0) {
+        await (supabase.from as any)('course_modules').delete().in('course_id', courseIds);
+      }
       await supabase.from('user_achievements').delete().eq('user_id', user.id);
       await supabase.from('focus_sessions').delete().eq('user_id', user.id);
       await supabase.from('study_notes').delete().eq('user_id', user.id);
