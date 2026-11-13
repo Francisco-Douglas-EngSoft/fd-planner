@@ -12,23 +12,18 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Performance optimizations
     target: 'es2020',
-    minify: 'esbuild',
     sourcemap: mode === 'development',
-    // Strip console.log/debug in production
-    ...(mode === 'production' && {
-      esbuild: {
-        drop: ['console', 'debugger'],
-      },
-    }),
     rollupOptions: {
       output: {
         // Code splitting for better caching
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-tooltip'],
-          'vendor-utils': ['date-fns', 'zod', 'clsx', 'tailwind-merge'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-charts': ['recharts'],
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'vendor-react';
+          if (id.includes('@radix-ui')) return 'vendor-ui';
+          if (/[\\/]node_modules[\\/](date-fns|zod|clsx|tailwind-merge)[\\/]/.test(id)) return 'vendor-utils';
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+)[\\/]/.test(id)) return 'vendor-charts';
+          return undefined;
         },
         // Asset file naming for better caching
         assetFileNames: (assetInfo) => {

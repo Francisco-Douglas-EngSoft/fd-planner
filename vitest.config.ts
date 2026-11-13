@@ -4,6 +4,9 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  // Vitest runs on its own bundled Vite; keep JSX on the automatic runtime there
+  // even when the React plugin defers JSX to the app's newer Vite.
+  esbuild: { jsx: "automatic" },
   test: {
     environment: "jsdom",
     globals: true,

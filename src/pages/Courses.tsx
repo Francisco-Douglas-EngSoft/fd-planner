@@ -23,6 +23,8 @@ import { CourseDetailsSidebar } from '@/components/courses/CourseDetailsSidebar'
 import { ImportExportDialog } from '@/components/courses/ImportExportDialog';
 import { DeleteConfirmDialog } from '@/components/courses/DeleteConfirmDialog';
 import { CourseImage } from '@/components/courses/CourseImage';
+import { CategoryHoursPanel } from '@/components/courses/CategoryHoursPanel';
+import { summarizeCategoryHours, UNCATEGORIZED } from '@/lib/categoryHours';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -238,6 +240,7 @@ export default function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryHours, setShowCategoryHours] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [editCourse, setEditCourse] = useState<Course | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -330,6 +333,12 @@ export default function Courses() {
     
     return matchesSearch && matchesCategory && matchesDate;
   });
+
+  // Hours per category for the current tab (ignores the category filter so totals stay complete)
+  const tabCategoryHours = useMemo(
+    () => new Map(summarizeCategoryHours(currentTabCourses).categories.map((c) => [c.category, c])),
+    [currentTabCourses],
+  );
 
   // Group courses by category
   const coursesByCategory = filteredCourses.reduce((acc, course) => {
@@ -668,8 +677,20 @@ export default function Courses() {
               </div>
               
               {/* Category Pills */}
-              {categories.length > 0 && (
-                <ScrollArea className="w-full whitespace-nowrap">
+              {currentTabCourses.length > 0 && (
+                <div className="flex items-start gap-2">
+                <Button
+                  variant={showCategoryHours ? 'default' : 'outline'}
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={() => setShowCategoryHours((v) => !v)}
+                  aria-pressed={showCategoryHours}
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  Horas por categoria
+                </Button>
+                {categories.length > 0 && (
+                <ScrollArea className="w-full min-w-0 whitespace-nowrap">
                   <div className="flex gap-2 pb-2">
                     <Button
                       variant={selectedCategory === null ? "default" : "outline"}
@@ -699,7 +720,23 @@ export default function Courses() {
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
+                )}
+                </div>
               )}
+
+              <AnimatePresence initial={false}>
+                {showCategoryHours && currentTabCourses.length > 0 && (
+                  <CategoryHoursPanel
+                    key="category-hours"
+                    tabCourses={currentTabCourses}
+                    allCourses={courses}
+                    tabLabel={activeTab === 'active' ? 'Em andamento' : 'Concluídos'}
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={(c) => setSelectedCategory(c === UNCATEGORIZED ? null : c)}
+                    onClose={() => setShowCategoryHours(false)}
+                  />
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Completed Courses Stats Summary (only on completed tab) */}
@@ -757,6 +794,12 @@ export default function Courses() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FolderOpen className="h-4 w-4" />
                     <span>{filteredCourses.length} curso(s) em "{selectedCategory}"</span>
+                    {tabCategoryHours.get(selectedCategory) && (
+                      <Badge variant="outline" className="ml-1 gap-1 font-mono tabular-nums">
+                        <Clock className="h-3 w-3" />
+                        {formatHoursHMS(tabCategoryHours.get(selectedCategory)!.totalHours)}
+                      </Badge>
+                    )}
                   </div>
                   <div className={cn(
                     "grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2",
@@ -791,6 +834,16 @@ export default function Courses() {
                           <Badge variant="secondary" className="ml-2 text-xs">
                             {categoryCourses.length}
                           </Badge>
+                          {tabCategoryHours.get(category) && (
+                            <Badge
+                              variant="outline"
+                              className="gap-1 font-mono text-xs font-medium tabular-nums"
+                              title="Total de horas da categoria"
+                            >
+                              <Clock className="h-3 w-3" />
+                              {formatHoursHMS(tabCategoryHours.get(category)!.totalHours)}
+                            </Badge>
+                          )}
                         </h2>
                         <Button 
                           variant="ghost" 

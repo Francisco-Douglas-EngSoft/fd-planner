@@ -79,7 +79,7 @@ export function Footer() {
             </p>
             <div className="flex gap-6">
               <Link
-                to="/privacy-policy"
+                to="/privacidade"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
               >
                 Política de Privacidade

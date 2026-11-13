@@ -13,3 +13,9 @@
 - Route code for lazy pages comes from the shared loaders in `src/lib/routePreload.ts` (used by both `React.lazy` and menu-hover/idle preloading), and `MainLayout` owns the page-level Suspense — why: preloaded pages open instantly and the menu stays visible while a page loads.
 - "Por Módulo" plans use the pure engine in `src/lib/moduleSchedule.ts` (weekly lanes per course or one sequence) and `src/lib/modulePlanAdapter.ts` to read saved rows; lane settings are stored per row in `study_plan_modules` (`day_id` = comma-separated weekdays, null on every row = sequence mode; `daily_hours` = fixed session hours; `time_slot`) — why: no schema change was needed and the same rules drive the form preview, the weekly calendar, Today card and the details tab.
 - Focus's "Módulos de hoje" agenda is computed by the pure `src/lib/focusModuleAgenda.ts` (today's plan subtracts only minutes studied before today, from `focus_sessions.module_id`); shared module reads/completion live in `src/lib/modulePlanData.ts` — why: studying today fills the day's goal instead of reshuffling it, and Planning and Focus load/complete modules the same way.
+
+## Project rules
+
+- Landing and login pages wrap their content in the `.brand-surface` class (src/index.css), which redefines the semantic color tokens for the brand; style them with tokens, never hex colors, so the in-app themes stay untouched.
+- Category hour totals come from `summarizeCategoryHours` in src/lib/categoryHours.ts (covered by tests); reuse it instead of re-summing hours in components.
+- Keep Vite on major 8 (and plugins that support it): the Lovable preview server cannot load a Vite 6 config and crashes at startup.

@@ -1402,3 +1402,116 @@ select,
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════
+   BRAND SURFACE — Landing page e Login
+   Superfície de marca sempre escura (tinta profunda + azul gelo + âmbar),
+   independente do tema escolhido no app. Os componentes usam os tokens
+   semânticos normais (bg-background, text-primary...), que aqui são
+   redefinidos para a paleta da marca.
+═══════════════════════════════════════════════════════════════ */
+@layer base {
+  .brand-surface {
+    --background: 222 22% 6%;
+    --foreground: 210 30% 96%;
+    --card: 222 18% 9%;
+    --card-foreground: 210 30% 96%;
+    --popover: 222 18% 10%;
+    --popover-foreground: 210 30% 96%;
+    --primary: 198 78% 72%;
+    --primary-foreground: 222 35% 8%;
+    --primary-glow: 198 90% 62%;
+    --secondary: 222 15% 14%;
+    --secondary-foreground: 210 25% 92%;
+    --muted: 222 15% 12%;
+    --muted-foreground: 216 14% 64%;
+    --accent: 36 85% 64%;
+    --accent-foreground: 30 45% 9%;
+    --success: 152 45% 56%;
+    --success-foreground: 222 35% 8%;
+    --warning: 36 85% 64%;
+    --warning-foreground: 30 45% 9%;
+    --destructive: 356 62% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 14% 16%;
+    --input: 222 14% 18%;
+    --ring: 198 78% 72%;
+    --shadow-card: 0 1px 0 0 hsl(210 30% 96% / 0.04) inset, 0 20px 40px -24px rgb(0 0 0 / 0.7);
+    --shadow-glow: 0 0 60px -12px hsl(198 90% 62% / 0.45);
+
+    color-scheme: dark;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.006em;
+  }
+
+  .brand-surface :is(h1, h2, h3, h4, h5, h6),
+  .brand-surface .font-display {
+    font-family: 'Sora', system-ui, sans-serif;
+    letter-spacing: -0.03em;
+  }
+
+  .brand-surface ::selection {
+    background: hsl(var(--primary) / 0.3);
+  }
+}
+
+@layer components {
+  /* Grade técnica sutil que some nas bordas */
+  .brand-grid {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+
+  .brand-glow {
+    background: radial-gradient(closest-side, hsl(var(--primary-glow) / 0.28), transparent);
+    filter: blur(20px);
+  }
+
+  .brand-glow-accent {
+    background: radial-gradient(closest-side, hsl(var(--accent) / 0.18), transparent);
+    filter: blur(24px);
+  }
+
+  .text-brand-gradient {
+    background: linear-gradient(100deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 55%, hsl(var(--accent)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand-card {
+    position: relative;
+    border: 1px solid hsl(var(--border));
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 140%);
+    box-shadow: var(--shadow-card);
+  }
+
+  .brand-ring {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), var(--shadow-glow);
+  }
+
+  .brand-input {
+    height: 3rem;
+    border-radius: 0.75rem;
+    border: 1px solid hsl(var(--input));
+    background: hsl(var(--muted) / 0.6);
+    padding-left: 2.5rem;
+    color: hsl(var(--foreground));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .brand-input::placeholder {
+    color: hsl(var(--muted-foreground) / 0.7);
+  }
+  .brand-input:focus-visible {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.7);
+    background: hsl(var(--muted));
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12);
+  }
+}
