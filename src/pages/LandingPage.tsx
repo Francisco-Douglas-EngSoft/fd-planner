@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import fdPlannerLogo from "@/assets/fd-planner-logo.png";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
@@ -72,11 +73,15 @@ const previewCategories = [
 ];
 
 function BrandMark({ size = "md" }: { readonly size?: "sm" | "md" }) {
-  const box = size === "sm" ? "h-8 w-8 rounded-lg" : "h-9 w-9 rounded-xl";
+  const box = size === "sm" ? "h-8 w-8" : "h-9 w-9";
   return (
-    <div className={`${box} grid place-items-center bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-[var(--shadow-glow)]`}>
-      <Zap className="h-4 w-4" strokeWidth={2.5} />
-    </div>
+    <img
+      src={fdPlannerLogo}
+      alt="FD-Planner"
+      className={`${box} rounded-xl shadow-[var(--shadow-glow)]`}
+      width={36}
+      height={36}
+    />
   );
 }
 

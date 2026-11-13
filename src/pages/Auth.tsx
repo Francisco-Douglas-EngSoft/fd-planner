@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, UserCheck, Zap, Clock, Flame, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, UserCheck, Clock, Flame, CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import fdPlannerLogo from '@/assets/fd-planner-logo.png';
 import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { validatePasswordStrength } from '@/lib/security';
@@ -190,9 +191,13 @@ export default function Auth() {
         <div aria-hidden className="brand-glow-accent pointer-events-none absolute -bottom-24 right-0 h-80 w-80" />
 
         <Link to="/" className="relative z-10 flex w-fit items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-[var(--shadow-glow)]">
-            <Zap className="h-5 w-5" strokeWidth={2.5} />
-          </div>
+          <img
+            src={fdPlannerLogo}
+            alt="FD-Planner"
+            className="h-10 w-10 rounded-xl shadow-[var(--shadow-glow)]"
+            width={40}
+            height={40}
+          />
           <span className="font-display text-xl font-bold">FD-Planner</span>
         </Link>
 
@@ -253,9 +258,13 @@ export default function Auth() {
               </Link>
             </Button>
             <Link to="/" className="flex items-center gap-2 lg:hidden">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary-glow text-primary-foreground">
-                <Zap className="h-4 w-4" strokeWidth={2.5} />
-              </div>
+              <img
+                src={fdPlannerLogo}
+                alt="FD-Planner"
+                className="h-8 w-8 rounded-lg"
+                width={32}
+                height={32}
+              />
               <span className="font-display font-bold">FD-Planner</span>
             </Link>
           </div>
