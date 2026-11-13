@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/utils';
+import { loadPlanningReservations, isModuleAvailable } from '@/lib/planningAvailability';
 import { BookOpen, Clock, Calculator, GripVertical, CalendarDays, AlertCircle, CalendarCheck, Wand2, Target, Layers, BookMarked, ChevronDown, ChevronRight, GraduationCap, Plus, Trash2, TrendingUp, TrendingDown, Check, ArrowLeft, ArrowRight, Settings2, ListChecks, LayoutGrid } from 'lucide-react';
 import { differenceInDays, parseISO, addDays, format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -568,6 +569,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [coursesInOtherPlans, setCoursesInOtherPlans] = useState<Set<string>>(new Set());
   const [planCourses, setPlanCourses] = useState<{ course_id: string; allocated_hours: number; is_fixed?: boolean; study_days?: string[] }[]>([]);
   const [courseSettings, setCourseSettings] = useState<Record<string, CourseSettings>>({});
@@ -608,11 +610,10 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   useEffect(() => {
     if (user && open) {
       fetchCourses();
-      fetchCoursesInOtherPlans();
+      fetchReservations();
       fetchModules();
-      fetchModulesInOtherPlans();
     }
-  }, [user, open]);
+  }, [user, open, editPlan?.id]);
 
   useEffect(() => {
     if (open) setStep(0);
@@ -696,21 +697,15 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     }
   };
 
-  const fetchModulesInOtherPlans = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('study_plan_modules')
-      .select('module_id, study_plan_id');
-
-    if (!error && data) {
-      const modulesInPlans = new Set<string>();
-      data.forEach(pm => {
-        if (!editPlan || pm.study_plan_id !== editPlan.id) {
-          modulesInPlans.add(pm.module_id);
-        }
-      });
-      setModulesInOtherPlans(modulesInPlans);
+  const fetchReservations = async () => {
+    setAvailabilityLoading(true);
+    try {
+      const reservations = await loadPlanningReservations(editPlan?.id);
+      setCoursesInOtherPlans(reservations.courses);
+      setModulesInOtherPlans(reservations.modules);
+      setAvailabilityLoading(false);
+    } catch (error) {
+      toast({ title: 'Não foi possível verificar os cursos disponíveis', description: getErrorMessage(error), variant: 'destructive' });
     }
   };
 
@@ -769,26 +764,6 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     }
   };
 
-  const fetchCoursesInOtherPlans = async () => {
-    if (!user) return;
-
-    // Get all courses that are already in any plan (excluding current edit plan)
-    const { data, error } = await supabase
-      .from('study_plan_courses')
-      .select('course_id, study_plan_id');
-
-    if (!error && data) {
-      const coursesInPlans = new Set<string>();
-      data.forEach(pc => {
-        // If editing, exclude courses from the current plan
-        if (!editPlan || pc.study_plan_id !== editPlan.id) {
-          coursesInPlans.add(pc.course_id);
-        }
-      });
-      setCoursesInOtherPlans(coursesInPlans);
-    }
-  };
-
   const fetchPlanCourses = async (planId: string) => {
     const { data, error } = await supabase
       .from('study_plan_courses')
@@ -819,8 +794,9 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
 
   // Filter available courses based on planning category
   const availableCourses = useMemo(() => {
-    let base = editPlan ? allCourses : allCourses.filter(course => {
-      if (coursesInOtherPlans.has(course.id)) return false;
+    let base = allCourses.filter(course => {
+      if (availabilityLoading || coursesInOtherPlans.has(course.id)) return false;
+      if (editPlan) return true;
       if (course.status === 'completed') return false;
       if ((course.total_hours || 0) > 0 && (course.completed_hours || 0) >= (course.total_hours || 0)) return false;
       return true;
@@ -830,26 +806,25 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
       return base.filter(course => course.category === 'Faculdades');
     }
     return base.filter(course => course.category !== 'Faculdades');
-  }, [allCourses, coursesInOtherPlans, editPlan, planningCategory]);
+  }, [allCourses, coursesInOtherPlans, editPlan, planningCategory, availabilityLoading]);
 
   const faculdadesCourses = useMemo(() => {
     if (planningCategory === 'faculdade') return [];
-    let base = editPlan ? allCourses : allCourses.filter(course => {
-      if (coursesInOtherPlans.has(course.id)) return false;
+    let base = allCourses.filter(course => {
+      if (availabilityLoading || coursesInOtherPlans.has(course.id)) return false;
+      if (editPlan) return true;
       if (course.status === 'completed') return false;
       if ((course.total_hours || 0) > 0 && (course.completed_hours || 0) >= (course.total_hours || 0)) return false;
       return true;
     });
     return base.filter(course => course.category === 'Faculdades');
-  }, [allCourses, coursesInOtherPlans, editPlan, planningCategory]);
+  }, [allCourses, coursesInOtherPlans, editPlan, planningCategory, availabilityLoading]);
 
   // Filter available modules (exclude modules already in other plans)
   const availableModules = useMemo(() => {
-    if (editPlan && editPlan.planning_type === 'module') {
-      return modules;
-    }
-    return modules.filter(module => !modulesInOtherPlans.has(module.id));
-  }, [modules, modulesInOtherPlans, editPlan]);
+    if (availabilityLoading) return [];
+    return modules.filter(module => isModuleAvailable(module, { courses: coursesInOtherPlans, modules: modulesInOtherPlans }));
+  }, [modules, modulesInOtherPlans, coursesInOtherPlans, availabilityLoading]);
 
   // Group modules by course for better display
   const modulesByCourse = useMemo(() => {
@@ -934,6 +909,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   };
 
   const toggleCourse = (courseId: string) => {
+    if (availabilityLoading || coursesInOtherPlans.has(courseId)) return;
     setSelectedCourses(prev => {
       if (prev.includes(courseId)) {
         // Remove course settings when deselecting
@@ -962,6 +938,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
   };
 
   const toggleModule = (moduleId: string) => {
+    if (!availableModules.some(m => m.id === moduleId)) return;
     setSelectedModules(prev => {
       if (prev.includes(moduleId)) {
         setModuleSettings(prevSettings => {
@@ -992,6 +969,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
    * - Se o módulo alvo estiver marcado, desmarca ele e TODOS os seguintes.
    */
   const applySequentialToggle = (courseModules: Module[], targetModuleId: string) => {
+    if (!availableModules.some(m => m.id === targetModuleId)) return;
     const targetIdx = courseModules.findIndex(m => m.id === targetModuleId);
     if (targetIdx === -1) return;
 
@@ -1595,6 +1573,18 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
     setIsLoading(true);
 
     try {
+      const reservations = await loadPlanningReservations(editPlan?.id);
+      setCoursesInOtherPlans(reservations.courses);
+      setModulesInOtherPlans(reservations.modules);
+      const conflicts = planningType === 'course'
+        ? selectedCourses.some(id => reservations.courses.has(id))
+        : selectedModules.some(id => {
+            const module = modules.find(m => m.id === id);
+            return !module || !isModuleAvailable(module, reservations);
+          });
+      if (conflicts) {
+        throw new Error('Um curso ou módulo selecionado já pertence a outro planejamento. Revise a seleção.');
+      }
       const planData = {
         user_id: user.id,
         name,
@@ -2831,7 +2821,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
                 type="button"
                 variant="secondary"
                 onClick={handleSubmit}
-                disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
+                disabled={isLoading || availabilityLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
               >
                 {isLoading ? 'Salvando...' : 'Salvar'}
               </Button>
@@ -2854,7 +2844,7 @@ export function PlanningFormDialog({ open, onOpenChange, onSuccess, initialPlann
             ) : (
               <Button 
                 onClick={handleSubmit}
-                disabled={isLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
+                disabled={isLoading || availabilityLoading || !name.trim() || (!noDeadline && (!startDate || !endDate))}
               >
                 {isLoading ? 'Salvando...' : editPlan ? 'Salvar Alterações' : 'Criar Planejamento'}
               </Button>

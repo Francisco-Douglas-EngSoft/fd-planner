@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { addDays, addMonths, format } from 'date-fns';
+import { loadPlanningReservations } from '@/lib/planningAvailability';
 
 interface Course {
   id: string;
@@ -60,7 +61,7 @@ export function AutoGeneratePlansButton({ onSuccess }: { onSuccess: () => void }
 
     try {
       // Fetch all courses (excluding completed ones)
-      const { data: courses, error: coursesError } = await supabase
+      const { data: fetchedCourses, error: coursesError } = await supabase
         .from('courses')
         .select('id, name, total_hours, category')
         .eq('user_id', user.id)
@@ -68,6 +69,8 @@ export function AutoGeneratePlansButton({ onSuccess }: { onSuccess: () => void }
         .not('category', 'eq', 'Faculdades');
 
       if (coursesError) throw coursesError;
+      const reservations = await loadPlanningReservations();
+      const courses = (fetchedCourses || []).filter(c => !reservations.courses.has(c.id));
       if (!courses || courses.length === 0) {
         toast({
           title: 'Nenhum curso encontrado',
@@ -98,7 +101,7 @@ export function AutoGeneratePlansButton({ onSuccess }: { onSuccess: () => void }
       }
 
       // Plan 2: IA & Automation (2 months)
-      const iaCourses = iaAutomation.slice(0, 6);
+      const iaCourses = iaAutomation.filter(c => !quickWinCourses.some(q => q.id === c.id)).slice(0, 6);
       if (iaCourses.length > 0) {
         plansToCreate.push({
           name: '🤖 Trilha IA & Automação',
@@ -112,7 +115,7 @@ export function AutoGeneratePlansButton({ onSuccess }: { onSuccess: () => void }
       }
 
       // Plan 3: Java Enterprise (4 months)
-      const javaCourses = javaTrack.slice(0, 6);
+      const javaCourses = javaTrack.filter(c => !quickWinCourses.some(q => q.id === c.id) && !iaCourses.some(i => i.id === c.id)).slice(0, 6);
       if (javaCourses.length > 0) {
         plansToCreate.push({
           name: '☕ Trilha Java Enterprise',

@@ -1,5 +1,7 @@
 # AGENTS.md
 
+- Planning availability uses `src/lib/planningAvailability.ts` for course/module reservations across both association tables, excluding the edited plan; both manual saves and automatic generation read it — why: cross-type links must not offer the same course twice.
+
 - Offline data goes through `src/lib/offline` (window.fetch wrapper installed as the first import in `main.tsx`): Supabase REST reads are cached per user in IndexedDB and writes are queued when offline — why: 180+ direct `supabase.from()` calls get offline support without per-screen rewrites.
 - Never add Supabase runtime caching or backgroundSync to the service worker — why: it would cache data across users and replay writes twice alongside the app's own queue.
 - Never import the Supabase client statically from `src/lib/offline/install.ts` or `bootstrap.ts` — why: the client must be created after the fetch wrapper is installed.
