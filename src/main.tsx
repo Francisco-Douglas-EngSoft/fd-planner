@@ -8,10 +8,16 @@ import { initializeBranding } from "./hooks/useBranding";
 import { initializeCustomTheme } from "./hooks/useCustomTheme";
 import { installFocusQueueAutoFlush } from "./lib/offlineFocusQueue";
 import { registerAppServiceWorker } from "./pwa/registerServiceWorker";
-import { initSentry } from "./lib/sentry";
+import { preloadInitialRoute } from "./lib/routePreload";
+import { getOfflineUserId } from "./lib/offline/offlineUser";
 
-// Initialize Sentry before anything else so early errors are captured.
-initSentry();
+// Baixa já a tela que vai abrir, em paralelo com a verificação do login.
+preloadInitialRoute(getOfflineUserId() !== null);
+
+// Monitoramento de erros só é baixado quando configurado (não pesa na abertura).
+if (import.meta.env.VITE_SENTRY_DSN) {
+  void import("./lib/sentry").then((m) => m.initSentry());
+}
 
 // Initialize theme classes before React mounts to prevent flash
 (() => {

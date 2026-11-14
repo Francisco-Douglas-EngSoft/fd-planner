@@ -17,12 +17,12 @@ import { FcmForegroundListener } from "@/components/notifications/FcmForegroundL
 import { lazy, Suspense } from "react";
 import { telas } from "@/lib/routePreload";
 
-// Eager: rota inicial e auth (críticas)
-import Auth from "./pages/Auth";
-import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
-// Lazy: rotas pesadas e secundárias (code-split por rota; ver src/lib/routePreload.ts)
+// Todas as telas são baixadas sob demanda (ver src/lib/routePreload.ts); a tela inicial
+// já começa a baixar em main.tsx, junto com o restante do app.
+const LandingPage = lazy(telas['/']);
+const Auth = lazy(telas['/auth']);
 const Dashboard = lazy(telas['/dashboard']);
 const Courses = lazy(telas['/cursos']);
 const Focus = lazy(telas['/foco']);

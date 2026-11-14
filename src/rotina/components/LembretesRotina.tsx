@@ -3,7 +3,7 @@
  * (em qualquer tela). Não desenha nada além do aviso.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,7 +51,7 @@ export default function LembretesRotina() {
     staleTime: 5 * 60 * 1000,
   });
   // Se a tela da Rotina estiver carregada, usa a versão dela (já com as edições na hora).
-  const base = useQuery<{ tarefas: RotinaTarefa[] }>({ queryKey: ['rotina', uid, 'base'], enabled: false });
+  const base = useQuery<{ tarefas: RotinaTarefa[] }>({ queryKey: ['rotina', uid, 'base'], queryFn: skipToken });
   const tarefas = base.data?.tarefas ?? lista.data ?? [];
   const tarefasRef = useRef(tarefas);
   tarefasRef.current = tarefas;

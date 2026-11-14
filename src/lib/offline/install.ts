@@ -30,6 +30,31 @@ function isSupabaseUrl(url: string): boolean {
   }
 }
 
+/** Servidor lento: depois disto, abre a cópia guardada enquanto a resposta chega. */
+export const FAST_CACHE_MS = 3000;
+
+const WRITE_MARKS_KEY = "fdplanner_write_marks_v1";
+
+function createWriteMarks() {
+  let marks: Record<string, number> = {};
+  try {
+    marks = JSON.parse(localStorage.getItem(WRITE_MARKS_KEY) ?? "{}") ?? {};
+  } catch {
+    marks = {};
+  }
+  return {
+    get: (table: string) => marks[table] ?? 0,
+    mark: (table: string) => {
+      marks[table] = Date.now();
+      try {
+        localStorage.setItem(WRITE_MARKS_KEY, JSON.stringify(marks));
+      } catch {
+        /* noop */
+      }
+    },
+  };
+}
+
 export function isOnline(): boolean {
   return typeof navigator === "undefined" ? true : navigator.onLine !== false;
 }
@@ -45,6 +70,8 @@ export function installOfflineFetch(): void {
     fallbackUserId: getOfflineUserId,
     cache: responseCache,
     queue: { enqueue: (item) => idbQueueStorage.put(item), pendingFor: pendingWritesFor },
+    fastCacheMs: FAST_CACHE_MS,
+    writeMarks: createWriteMarks(),
   });
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => wrapped(input, init)) as FetchFn;
 }

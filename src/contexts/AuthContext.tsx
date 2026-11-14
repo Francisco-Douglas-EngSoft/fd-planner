@@ -33,9 +33,11 @@ function isNetworkAuthError(error: unknown): boolean {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
+  // Quem já entrou neste aparelho abre o app na hora; a sessão é confirmada em segundo plano
+  // (se tiver expirado de vez, getSession abaixo devolve null e a pessoa vai para o login).
+  const [user, setUserState] = useState<User | null>(() => getOfflineUser());
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getOfflineUser() === null);
   const [isGuest, setIsGuest] = useState(() => {
     return sessionStorage.getItem('fdplanner_guest_mode') === 'true';
   });

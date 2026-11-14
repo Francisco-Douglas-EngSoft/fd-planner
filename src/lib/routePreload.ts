@@ -7,6 +7,8 @@ import type { ComponentType } from 'react';
 type Carregador = () => Promise<{ default: ComponentType<unknown> }>;
 
 export const telas = {
+  '/': () => import('@/pages/LandingPage'),
+  '/auth': () => import('@/pages/Auth'),
   '/dashboard': () => import('@/pages/Dashboard'),
   '/cursos': () => import('@/pages/Courses'),
   '/foco': () => import('@/pages/Focus'),
@@ -51,6 +53,17 @@ export function preloadRoute(href: string): void {
   if (!c || iniciadas.has(c)) return;
   iniciadas.add(c);
   telas[c]().catch(() => iniciadas.delete(c));
+}
+
+/**
+ * Começa a baixar a tela que vai abrir junto com o restante do app, sem esperar
+ * a confirmação do login. Quem já entrou e abre "/" ou "/auth" vai para o painel.
+ */
+export function preloadInitialRoute(signedInBefore: boolean): void {
+  const { pathname } = window.location;
+  const raiz = `/${pathname.split('/')[1] ?? ''}`;
+  if (signedInBefore && (raiz === '/' || raiz === '/auth')) preloadRoute('/dashboard');
+  else preloadRoute(pathname);
 }
 
 /** Telas mais usadas, baixadas aos poucos quando o aparelho está ocioso. */
