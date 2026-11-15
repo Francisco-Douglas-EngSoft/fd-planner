@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { RotinaEstado } from '../hooks';
 import type { NovaTarefaInput, RotinaCategoria, RotinaTarefa } from '../tipos';
-import { ordenarPorHora } from '../calculos';
+import { ordenarPorHora, horaDeTermino, rotuloDeTermino } from '../calculos';
 import { DIAS_SEMANA_LETRA, DIAS_SEMANA_NOME } from '../datas';
 import { tarefaSchema } from '../api';
 import { GerenciarCategorias } from './GerenciarCategorias';
@@ -130,6 +130,7 @@ function LinhaTarefa({ tarefa, categorias, rotina }: LinhaProps) {
   const reverterHora = () => setHora(tarefa.hora);
   const reverterDuracao = () => setDuracao(tarefa.duracao_min?.toString() ?? '');
   const sufixo = `tarefa-${tarefa.id}`;
+  const termino = horaDeTermino(hora, duracaoDeTexto(duracao));
 
   return (
     <li
@@ -160,22 +161,30 @@ function LinhaTarefa({ tarefa, categorias, rotina }: LinhaProps) {
         onKeyDown={teclas(reverterNome)}
         className="h-11 md:h-9"
       />
-      <div className="flex items-center gap-1">
-        <Label htmlFor={`dur-${sufixo}`} className="sr-only">Duração em minutos</Label>
-        <Input
-          id={`dur-${sufixo}`}
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={1440}
-          placeholder="—"
-          value={duracao}
-          onChange={(e) => setDuracao(e.target.value)}
-          onBlur={() => salvar('duracao_min', duracaoDeTexto(duracao), reverterDuracao)}
-          onKeyDown={teclas(reverterDuracao)}
-          className="h-11 tabular-nums md:h-9"
-        />
-        <span className="text-xs text-muted-foreground md:sr-only">min</span>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <Label htmlFor={`dur-${sufixo}`} className="sr-only">Duração em minutos</Label>
+          <Input
+            id={`dur-${sufixo}`}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={1440}
+            placeholder="—"
+            value={duracao}
+            onChange={(e) => setDuracao(e.target.value)}
+            onBlur={() => salvar('duracao_min', duracaoDeTexto(duracao), reverterDuracao)}
+            onKeyDown={teclas(reverterDuracao)}
+            className="h-11 tabular-nums md:h-9"
+          />
+          <span className="text-xs text-muted-foreground md:sr-only">min</span>
+        </div>
+        <span
+          className="text-[11px] leading-none tabular-nums text-muted-foreground"
+          title={termino ? `Término previsto às ${rotuloDeTermino(termino)}` : 'Sem duração definida'}
+        >
+          {termino ? `→ ${termino.hora}${termino.noDiaSeguinte ? ' +1d' : ''}` : '→ —'}
+        </span>
       </div>
       <SeletorCategoria
         valor={tarefa.categoria_id}
@@ -245,6 +254,7 @@ function NovaTarefa({ rotina }: { rotina: RotinaEstado }) {
   const [dias, setDias] = useState<number[]>(TODOS_OS_DIAS);
 
   const categoriaEfetiva = categoria ?? rotina.categorias[0]?.id ?? null;
+  const termino = horaDeTermino(hora, duracaoDeTexto(duracao));
 
   const enviar = async (e: FormEvent) => {
     e.preventDefault();
@@ -298,6 +308,16 @@ function NovaTarefa({ rotina }: { rotina: RotinaEstado }) {
           <SeletorCategoria id="nova-categoria" valor={categoriaEfetiva} categorias={rotina.categorias} onChange={setCategoria} />
         </div>
       </div>
+      <p className="text-xs text-muted-foreground" role="status">
+        {termino ? (
+          <>
+            Começa às <strong className="font-semibold tabular-nums text-foreground">{hora}</strong> e termina às{' '}
+            <strong className="font-semibold tabular-nums text-foreground">{rotuloDeTermino(termino)}</strong>.
+          </>
+        ) : (
+          'Informe a duração para ver na hora o horário de término.'
+        )}
+      </p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SeletorDias rotulo="Dias em que a nova tarefa se repete" valor={dias} onChange={setDias} />
         <Button type="submit" className="h-11 md:h-9" disabled={rotina.criandoTarefa}>

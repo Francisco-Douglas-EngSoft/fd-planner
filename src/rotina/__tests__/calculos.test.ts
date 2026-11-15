@@ -3,12 +3,14 @@ import {
   calcularStreak,
   estatisticasDoPeriodo,
   gerarCsv,
+  horaDeTermino,
   maiorSequencia,
   percentual,
   proximaPendente,
   resumoDoDia,
   resumoPorCategoria,
   resumosDoIntervalo,
+  rotuloDeTermino,
   tarefaAtual,
   tarefasDoDia,
 } from '../calculos';
@@ -172,5 +174,28 @@ describe('gerarCsv', () => {
     expect(linhas[0]).toBe('Data;Dia da semana;Hora;Tarefa;Categoria;Duração (min);Concluída;Concluída em');
     expect(linhas[1]).toBe('09/11/2026;segunda-feira;04:00;"Oração; manhã";;;Sim;09/11/2026 10:00');
     expect(csv).toContain('Média do período;100%');
+  });
+});
+
+describe('horaDeTermino', () => {
+  it('soma a duração ao horário de início: 04:00 + 5 min termina 04:05', () => {
+    expect(horaDeTermino('04:00', 5)).toEqual({ hora: '04:05', noDiaSeguinte: false });
+    expect(rotuloDeTermino(horaDeTermino('04:00', 5))).toBe('04:05');
+  });
+  it('ajusta minutos e horas cheias: 22:30 + 95 min termina 00:05 do dia seguinte', () => {
+    expect(horaDeTermino('22:30', 95)).toEqual({ hora: '00:05', noDiaSeguinte: true });
+    expect(rotuloDeTermino(horaDeTermino('22:30', 95))).toBe('00:05 do dia seguinte');
+  });
+  it('passar exatamente da meia-noite conta como dia seguinte', () => {
+    expect(horaDeTermino('23:00', 60)).toEqual({ hora: '00:00', noDiaSeguinte: true });
+  });
+  it('não inventa término sem duração válida ou com horário incompleto', () => {
+    expect(horaDeTermino('04:00', null)).toBeNull();
+    expect(horaDeTermino('04:00', 0)).toBeNull();
+    expect(horaDeTermino('04:00', Number.NaN)).toBeNull();
+    expect(horaDeTermino('', 5)).toBeNull();
+    expect(horaDeTermino('04', 5)).toBeNull();
+    expect(horaDeTermino('24:00', 5)).toBeNull();
+    expect(rotuloDeTermino(null)).toBe('');
   });
 });

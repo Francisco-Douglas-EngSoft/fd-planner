@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RotinaCategoria, RotinaTarefa } from '../tipos';
 import { formatarDuracao } from '../datas';
+import { horaDeTermino, rotuloDeTermino } from '../calculos';
 
 interface LinhaDoTempoProps {
   tarefas: RotinaTarefa[];
@@ -27,6 +28,7 @@ export function LinhaDoTempo({ tarefas, categorias, concluidas, atualId, onAlter
         const corAnterior = corDe(tarefas[i - 1]);
         const categoria = t.categoria_id ? porId.get(t.categoria_id) : undefined;
         const duracao = formatarDuracao(t.duracao_min);
+        const termino = horaDeTermino(t.hora, t.duracao_min);
         return (
           <li key={t.id} className="grid grid-cols-[3rem_1.75rem_minmax(0,1fr)] gap-x-2 sm:grid-cols-[3.5rem_2rem_minmax(0,1fr)]">
             <time
@@ -88,6 +90,7 @@ export function LinhaDoTempo({ tarefas, categorias, concluidas, atualId, onAlter
                       </span>
                     )}
                     {duracao && <span>· {duracao}</span>}
+                    {termino && <span>· até {rotuloDeTermino(termino)}</span>}
                   </span>
                 </span>
                 {agora && (

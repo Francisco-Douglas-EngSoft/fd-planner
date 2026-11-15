@@ -187,6 +187,37 @@ export function tarefaAtual(doDia: RotinaTarefa[], agoraHHMM: string): RotinaTar
   return atual;
 }
 
+export interface TerminoPrevisto {
+  /** "HH:MM" do momento em que a tarefa termina */
+  hora: string;
+  /** true quando o término passa da meia-noite e cai no dia seguinte */
+  noDiaSeguinte: boolean;
+}
+
+const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const doisDigitos = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * Horário em que a tarefa termina: `hora` de início + `duracaoMin`.
+ * Ex.: "04:00" + 5 → "04:05". Passar da meia-noite marca `noDiaSeguinte`.
+ * Retorna null quando falta a duração ou o horário é inválido.
+ */
+export function horaDeTermino(hora: string, duracaoMin: number | null | undefined): TerminoPrevisto | null {
+  if (!HORA_VALIDA.test(hora)) return null;
+  const dur = duracaoMin == null ? NaN : Number(duracaoMin);
+  if (!Number.isFinite(dur) || dur < 1) return null;
+  const total = horaParaMinutos(hora) + Math.round(dur);
+  const noDiaSeguinte = total >= 1440;
+  const restante = total % 1440;
+  return { hora: `${doisDigitos(Math.floor(restante / 60))}:${doisDigitos(restante % 60)}`, noDiaSeguinte };
+}
+
+/** Texto do término: "04:05" ou "00:20 do dia seguinte". */
+export function rotuloDeTermino(termino: TerminoPrevisto | null): string {
+  if (!termino) return '';
+  return termino.noDiaSeguinte ? `${termino.hora} do dia seguinte` : termino.hora;
+}
+
 /** Próxima tarefa pendente que ainda vai começar. */
 export function proximaPendente(
   doDia: RotinaTarefa[],
