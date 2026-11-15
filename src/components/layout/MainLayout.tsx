@@ -18,12 +18,15 @@ import { Logo } from '@/components/ui/Logo';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { CommandPalette } from '@/components/CommandPalette';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useI18n } from '@/i18n';
 import { installLinkPreload, preloadCommonRoutes } from '@/lib/routePreload';
 
 /** Mostrado só na área da página enquanto o código dela chega (o menu continua na tela). */
 function ContentLoader() {
+  const { t } = useI18n();
   return (
-    <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label="Carregando">
+    <div className="flex min-h-[50vh] items-center justify-center" role="status" aria-label={t('Carregando', 'Loading')}>
       <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
     </div>
   );
@@ -38,6 +41,7 @@ export function MainLayout() {
   const isDesktop = device === 'desktop';
   const { isGuest, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useI18n();
   const location = useLocation();
   const showGuestBanner = isGuest && !user;
   
@@ -104,10 +108,10 @@ export function MainLayout() {
       {!isOnline && (
         <div className="fixed top-0 left-0 right-0 z-[200] bg-warning/90 text-warning-foreground py-1 px-4 flex items-center justify-center gap-2 text-sm">
           <WifiOff className="h-4 w-4" />
-          <span>Você está offline — alterações serão sincronizadas</span>
+          <span>{t('Você está offline — alterações serão sincronizadas', "You're offline — changes will sync later")}</span>
           {pendingActions > 0 && (
             <Badge variant="secondary" className="bg-background/20 text-warning-foreground">
-              {pendingActions} pendente{pendingActions !== 1 ? 's' : ''}
+              {t(`${pendingActions} pendente${pendingActions !== 1 ? 's' : ''}`, `${pendingActions} pending`)}
             </Badge>
           )}
         </div>
@@ -151,21 +155,24 @@ export function MainLayout() {
               size="icon"
               className="h-9 w-9"
               onClick={() => setDrawerOpen(true)}
-              aria-label="Abrir menu"
+              aria-label={t('Abrir menu', 'Open menu')}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <Logo size="md" variant="full" />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
-            onClick={toggleTheme}
-            aria-label="Alternar tema"
-          >
-            {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <LanguageSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={toggleTheme}
+              aria-label={t('Alternar tema', 'Toggle theme')}
+            >
+              {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </Button>
+          </div>
         </header>
       )}
       

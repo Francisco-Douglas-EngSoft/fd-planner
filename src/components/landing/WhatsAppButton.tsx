@@ -1,6 +1,7 @@
 import { MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { useI18n } from '@/i18n';
 
 interface WhatsAppButtonProps {
   phoneNumber: string;
@@ -9,8 +10,10 @@ interface WhatsAppButtonProps {
 
 export function WhatsAppButton({ 
   phoneNumber, 
-  defaultMessage = 'Olá! Gostaria de saber mais sobre o FD-Planner.' 
+  defaultMessage
 }: WhatsAppButtonProps) {
+  const { t } = useI18n();
+  defaultMessage ??= t('Olá! Gostaria de saber mais sobre o FD-Planner.', "Hi! I'd like to know more about FD-Planner.");
   // Clean phone number and encode message
   const cleanPhone = phoneNumber.replace(/\D/g, '');
   const encodedMessage = encodeURIComponent(defaultMessage);
@@ -35,7 +38,7 @@ export function WhatsAppButton({
           size="lg"
           onClick={handleClick}
           className="h-14 w-14 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-white shadow-xl shadow-[#25D366]/30 hover:shadow-[#25D366]/50 transition-all"
-          aria-label="Contato via WhatsApp"
+          aria-label={t('Contato via WhatsApp', 'Contact via WhatsApp')}
         >
           <MessageCircle className="h-6 w-6" />
         </Button>
@@ -50,9 +53,11 @@ export function WhatsAppButton({
 // Inline version for use in sections
 export function WhatsAppInlineButton({ 
   phoneNumber, 
-  defaultMessage = 'Olá! Gostaria de saber mais sobre o FD-Planner.',
+  defaultMessage,
   className = ''
 }: WhatsAppButtonProps & { className?: string }) {
+  const { t } = useI18n();
+  defaultMessage ??= t('Olá! Gostaria de saber mais sobre o FD-Planner.', "Hi! I'd like to know more about FD-Planner.");
   const cleanPhone = phoneNumber.replace(/\D/g, '');
   const encodedMessage = encodeURIComponent(defaultMessage);
   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
@@ -68,7 +73,7 @@ export function WhatsAppInlineButton({
       className={`gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all ${className}`}
     >
       <MessageCircle className="h-4 w-4" />
-      Falar no WhatsApp
+      {t('Falar no WhatsApp', 'Chat on WhatsApp')}
     </Button>
   );
 }

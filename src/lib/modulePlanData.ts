@@ -49,11 +49,14 @@ export async function enrichPlanModules<T extends WithModules>(plans: T[]): Prom
  * planos que o usam e recalcula as horas concluídas do curso — mesma regra da
  * tela de Cursos (módulo com submódulos conta as horas dos submódulos).
  */
-export async function completeCourseModule(moduleId: string): Promise<{ courseId: string | null }> {
+export async function completeCourseModule(
+  moduleId: string,
+  source: 'focus_agenda' | 'planning' = 'focus_agenda',
+): Promise<{ courseId: string | null }> {
   const now = new Date().toISOString();
   const { data: mod, error: modErr } = await supabase
     .from('course_modules')
-    .select('id, course_id')
+    .select('id, course_id, hours, is_completed')
     .eq('id', moduleId)
     .maybeSingle();
   if (modErr) throw modErr;
@@ -63,6 +66,13 @@ export async function completeCourseModule(moduleId: string): Promise<{ courseId
     .update({ is_completed: true, completed_at: now })
     .eq('id', moduleId);
   if (upErr) throw upErr;
+
+  if (!mod?.is_completed) {
+    window.__lovableEvents?.track?.('project.course_module_completed', {
+      source,
+      module_hours: Number(mod?.hours || 0),
+    });
+  }
 
   await Promise.all([
     supabase.from('course_submodules').update({ is_completed: true, completed_at: now }).eq('module_id', moduleId),

@@ -15,6 +15,9 @@ async function persistFocusSession(params: {
   moduleId?: string | null;
   durationMinutes: number;
   sessionType: 'work' | 'break' | 'longBreak';
+  ended: 'timer_finished' | 'stopped_early' | 'finished_while_away';
+  plannedMinutes: number;
+  presetName: string;
 }) {
   enqueueFocusSession({
     user_id: params.userId,
@@ -24,6 +27,15 @@ async function persistFocusSession(params: {
     session_type: params.sessionType,
     completed_at: new Date().toISOString(),
   });
+  if (params.sessionType === 'work') {
+    window.__lovableEvents?.track?.('project.focus_session_completed', {
+      duration_minutes: params.durationMinutes,
+      planned_minutes: params.plannedMinutes,
+      ended: params.ended,
+      preset: params.presetName,
+      has_module: !!params.moduleId,
+    });
+  }
   // Notify listeners immediately so UI updates optimistically.
   try { emitFocusSessionSaved(); } catch { /* noop */ }
   // Fire-and-forget flush; failures stay in the queue for later retry.
@@ -33,6 +45,7 @@ async function persistFocusSession(params: {
 const STORAGE_KEY = 'fdplanner_pomodoro_state';
 const PRESETS_KEY = 'fdplanner_pomodoro_presets';
 const SETTINGS_KEY = 'fdplanner_pomodoro_settings';
+const ACTIVE_PRESET_KEY = 'fdplanner_pomodoro_active_preset';
 
 interface PomodoroSettings {
   autoStartBreak: boolean;
@@ -59,9 +72,38 @@ export interface Preset {
   work: number;
   break: number;
   longBreak: number;
+  /** Texto curto explicando para que serve o ritmo (presets prontos). */
+  description?: string;
+  /** Nome e descrição em inglês (presets prontos). */
+  nameEn?: string;
+  descriptionEn?: string;
+  /** true para os presets prontos do app (não podem ser apagados). */
+  builtIn?: boolean;
 }
 
+/** Ritmos prontos, sempre disponíveis. Os presets do usuário ficam em `presets`. */
+export const BUILT_IN_PRESETS: Preset[] = [
+  { name: 'Pomodoro Clássico', nameEn: 'Classic Pomodoro', work: 25, break: 5, longBreak: 15, description: 'Equilíbrio ideal para o dia a dia', descriptionEn: 'The ideal everyday balance', builtIn: true },
+  { name: 'Sprint', nameEn: 'Sprint', work: 15, break: 3, longBreak: 10, description: 'Revisões e tarefas rápidas', descriptionEn: 'Reviews and quick tasks', builtIn: true },
+  { name: 'Foco Estendido', nameEn: 'Extended Focus', work: 45, break: 10, longBreak: 20, description: 'Aulas e leituras mais longas', descriptionEn: 'Longer lessons and readings', builtIn: true },
+  { name: 'Deep Work', nameEn: 'Deep Work', work: 50, break: 10, longBreak: 30, description: 'Concentração profunda', descriptionEn: 'Deep concentration', builtIn: true },
+  { name: 'Ritmo 52/17', nameEn: '52/17 Rhythm', work: 52, break: 17, longBreak: 30, description: 'Alta produtividade com pausas generosas', descriptionEn: 'High output with generous breaks', builtIn: true },
+  { name: 'Ultradiano', nameEn: 'Ultradian', work: 90, break: 20, longBreak: 30, description: 'Blocos longos de estudo intenso', descriptionEn: 'Long blocks of intense study', builtIn: true },
+];
+
+const DEFAULT_PRESET: Preset = BUILT_IN_PRESETS[0];
+
 const defaultPresets: Preset[] = [];
+
+/** Nome seguro para métricas: presets prontos pelo nome, os do usuário como 'custom'. */
+export function presetLabel(p: Preset): string {
+  return p.builtIn ? p.name : 'custom';
+}
+
+function isValidPreset(p: unknown): p is Preset {
+  const v = p as Preset;
+  return !!v && typeof v.name === 'string' && v.work > 0 && v.break > 0 && v.longBreak > 0;
+}
 
 export function usePomodoroTimer() {
   const [presets, setPresets] = useState<Preset[]>(() => {
@@ -69,6 +111,17 @@ export function usePomodoroTimer() {
     return saved ? JSON.parse(saved) : defaultPresets;
   });
   const [presetIndex, setPresetIndex] = useState(0);
+  // Preset em uso (pronto, salvo ou personalizado na hora).
+  const [activePreset, setActivePreset] = useState<Preset>(() => {
+    try {
+      const saved = localStorage.getItem(ACTIVE_PRESET_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (isValidPreset(parsed)) return parsed;
+    } catch {
+      // ignore
+    }
+    return DEFAULT_PRESET;
+  });
   const [mode, setMode] = useState<'work' | 'break' | 'longBreak'>('work');
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -110,7 +163,11 @@ export function usePomodoroTimer() {
     setEndTime(isRunning ? targetEndTimeRef.current : null);
   }, [isRunning, timeLeft]);
 
-  const preset = presets[presetIndex] || { name: 'Padrão', work: 25, break: 5, longBreak: 15 };
+  const preset = activePreset;
+
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_PRESET_KEY, JSON.stringify(activePreset));
+  }, [activePreset]);
 
   // Save presets to localStorage
   useEffect(() => {
@@ -153,7 +210,7 @@ export function usePomodoroTimer() {
             targetEndTimeRef.current = null;
 
             if (state.mode === 'work' && state.selectedCourse && state.timerStartedAt) {
-              const totalTimeSeconds = state.customTotalTime || 25 * 60;
+              const totalTimeSeconds = state.customTotalTime || preset.work * 60;
               
               // Calcular quanto tempo realmente passou desde que o timer foi iniciado
               const actualElapsedMs = state.targetEndTime - state.timerStartedAt;
@@ -172,6 +229,9 @@ export function usePomodoroTimer() {
                       moduleId: state.selectedModule || null,
                       durationMinutes,
                       sessionType: 'work',
+                      ended: 'finished_while_away',
+                      plannedMinutes: Math.round(totalTimeSeconds / 60),
+                      presetName: presetLabel(preset),
                     });
                   }
                 }).catch(() => { /* enqueued on next try */ });
@@ -255,6 +315,9 @@ export function usePomodoroTimer() {
                 moduleId: selectedModule || null,
                 durationMinutes,
                 sessionType: 'work',
+                ended: 'timer_finished',
+                plannedMinutes: durationMinutes,
+                presetName: presetLabel(preset),
               });
             }
           }
@@ -353,6 +416,14 @@ export function usePomodoroTimer() {
       // Se não temos timerStartedAt, significa que é um novo início (não uma retomada)
       if (!timerStartedAt) {
         setTimerStartedAt(now);
+        if (mode === 'work') {
+          window.__lovableEvents?.track?.('project.focus_session_started', {
+            planned_minutes: Math.round(timeLeft / 60),
+            preset: presetLabel(preset),
+            has_course: !!selectedCourse,
+            has_module: !!selectedModule,
+          });
+        }
       }
       
       setIsRunning(true);
@@ -362,7 +433,7 @@ export function usePomodoroTimer() {
         Notification.requestPermission();
       }
     }
-  }, [isRunning, timeLeft, timerStartedAt]);
+  }, [isRunning, timeLeft, timerStartedAt, mode, preset, selectedCourse, selectedModule]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);
@@ -381,28 +452,16 @@ export function usePomodoroTimer() {
       return;
     }
 
+    // Tempo realmente cronometrado (pausas não contam): total do ciclo − restante.
+    const totalTimeSeconds = customTotalTime || preset.work * 60;
+    const remainingSeconds = isRunning && targetEndTimeRef.current
+      ? Math.max(0, Math.round((targetEndTimeRef.current - Date.now()) / 1000))
+      : timeLeft;
+    const elapsedSeconds = Math.min(totalTimeSeconds, Math.max(0, totalTimeSeconds - remainingSeconds));
+    const elapsedMinutes = Math.round(elapsedSeconds / 60);
+
     setIsRunning(false);
     targetEndTimeRef.current = null;
-
-    // Calculate elapsed time usando timerStartedAt se disponível
-    let elapsedMinutes = 0;
-    
-    if (timerStartedAt) {
-      // Calcular tempo decorrido desde o início real
-      const now = Date.now();
-      const elapsedMs = now - timerStartedAt;
-      const elapsedSeconds = Math.floor(elapsedMs / 1000);
-      
-      // Limitar ao tempo total configurado
-      const totalTimeSeconds = customTotalTime || preset.work * 60;
-      const cappedElapsedSeconds = Math.min(elapsedSeconds, totalTimeSeconds);
-      elapsedMinutes = Math.round(cappedElapsedSeconds / 60);
-    } else {
-      // Fallback: usar o método antigo
-      const totalTimeSeconds = customTotalTime || preset.work * 60;
-      const elapsedSeconds = totalTimeSeconds - timeLeft;
-      elapsedMinutes = Math.round(elapsedSeconds / 60);
-    }
 
     // Save focus session if there's meaningful progress (at least 1 minute)
     if (elapsedMinutes >= 1 && selectedCourse && mode === 'work') {
@@ -415,6 +474,9 @@ export function usePomodoroTimer() {
             moduleId: selectedModule || null,
             durationMinutes: elapsedMinutes,
             sessionType: 'work',
+            ended: 'stopped_early',
+            plannedMinutes: Math.round(totalTimeSeconds / 60),
+            presetName: presetLabel(preset),
           });
         }
       } catch (error) {
@@ -458,12 +520,15 @@ export function usePomodoroTimer() {
     if (index !== -1) {
       setPresetIndex(index);
     }
+    setActivePreset({ ...newPreset });
+    setPendingBreak(null);
     setIsRunning(false);
     targetEndTimeRef.current = null;
     setTimerStartedAt(null);
     setMode('work');
     setTimeLeft(newPreset.work * 60);
-    setCustomTotalTime(null);
+    // Duração explícita: o tempo cronometrado com o preset é o que vai para as metas.
+    setCustomTotalTime(newPreset.work * 60);
   }, [presets]);
 
   const changeMode = useCallback((newMode: 'work' | 'break' | 'longBreak') => {
@@ -532,6 +597,9 @@ export function usePomodoroTimer() {
       updated[index] = newPreset;
       return updated;
     });
+    if (presets[index] && presets[index].name === activePreset.name && !activePreset.builtIn) {
+      setActivePreset({ ...newPreset });
+    }
     
     // If updating current preset, also update timeLeft
     if (index === presetIndex && !isRunning) {
@@ -542,20 +610,20 @@ export function usePomodoroTimer() {
           : newPreset.longBreak;
       setTimeLeft(time * 60);
     }
-  }, [presetIndex, isRunning, mode]);
+  }, [presetIndex, isRunning, mode, presets, activePreset]);
 
   const addCustomPreset = useCallback((newPreset: Preset) => {
     setPresets(prev => [...prev, newPreset]);
   }, []);
 
   const removePreset = useCallback((index: number) => {
-    if (presets.length <= 1) return;
-    
+    if (!presets[index]) return;
+
     setPresets(prev => prev.filter((_, i) => i !== index));
     if (presetIndex >= index && presetIndex > 0) {
       setPresetIndex(prev => prev - 1);
     }
-  }, [presets.length, presetIndex]);
+  }, [presets, presetIndex]);
 
   const totalTime = customTotalTime || (mode === 'work' 
     ? preset.work * 60 
@@ -616,6 +684,7 @@ export function usePomodoroTimer() {
     changePreset,
     changeMode,
     presets,
+    builtInPresets: BUILT_IN_PRESETS,
     updatePreset,
     addCustomPreset,
     removePreset,

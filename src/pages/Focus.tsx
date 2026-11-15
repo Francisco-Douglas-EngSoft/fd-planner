@@ -31,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { usePomodoroTimer } from '@/hooks/usePomodoroTimer';
 import { useFocusSounds } from '@/hooks/useFocusSounds';
 import { TimerSettingsDialog } from '@/components/focus/TimerSettingsDialog';
+import { FocusPresetsPanel, type TimerSource } from '@/components/focus/FocusPresetsPanel';
+import type { Preset } from '@/hooks/usePomodoroTimer';
 import { DigitalClock } from '@/components/focus/DigitalClock';
 import { FocusImpulseButton } from '@/components/antivicio/FocusImpulseButton';
 import { TodaySessionsHistory } from '@/components/focus/TodaySessionsHistory';
@@ -190,6 +192,7 @@ export default function Focus() {
     changePreset,
     changeMode,
     presets,
+    builtInPresets,
     updatePreset,
     addCustomPreset,
     removePreset,
@@ -202,6 +205,14 @@ export default function Focus() {
     sessionStartTime,
     sessionEndTime,
   } = usePomodoroTimer();
+
+  // De onde vem a duração do ciclo: divisão automática da meta do plano ou um preset escolhido.
+  const [timerSource, setTimerSource] = useState<TimerSource>(() =>
+    localStorage.getItem('fdplanner_focus_timer_source') === 'preset' ? 'preset' : 'plan',
+  );
+  useEffect(() => {
+    localStorage.setItem('fdplanner_focus_timer_source', timerSource);
+  }, [timerSource]);
 
   const MANUAL_DAILY_GOAL_KEY_PREFIX = 'fdplanner_manual_daily_goal_hours:';
   const [manualDailyHours, setManualDailyHours] = useState<string>('');
@@ -887,6 +898,8 @@ export default function Focus() {
   const prevCyclesKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!cyclesInfo || isRunning) return;
+    // Preset escolhido pelo usuário tem prioridade sobre a divisão automática.
+    if (timerSource === 'preset') return;
     
     // Create a key that represents the current cycle configuration
     const cyclesKey = `${cyclesInfo.workMinutesPerCycle.toFixed(2)}-${cyclesInfo.remainingMinutes.toFixed(2)}-${cyclesInfo.cyclesNeeded}`;
@@ -899,7 +912,57 @@ export default function Focus() {
     if (workSeconds > 0) {
       setCustomTime(workSeconds, 'work');
     }
-  }, [cyclesInfo, setCustomTime, isRunning]);
+  }, [cyclesInfo, setCustomTime, isRunning, timerSource]);
+
+  // Sessão iniciada (rodando ou pausada) com tempo ainda não salvo.
+  const sessionInProgress = mode === 'work' && !!sessionStartTime;
+
+  // Salva o tempo já cronometrado antes de trocar o ritmo (nada se perde).
+  const saveProgressBeforeSwitch = async () => {
+    if (!sessionInProgress) return;
+    const minutes = await stopAndSave();
+    if (minutes && minutes >= 1 && selectedCourse) {
+      toast({
+        title: 'Sessão salva',
+        description: `${minutes} min de foco registrados${selectedCourseName ? ` em ${selectedCourseName}` : ''}.`,
+      });
+    }
+  };
+
+  const handleSelectPreset = async (p: Preset) => {
+    await saveProgressBeforeSwitch();
+    setTimerSource('preset');
+    changePreset(p);
+    window.__lovableEvents?.track?.('project.focus_preset_selected', {
+      preset: p.builtIn ? p.name : 'custom',
+      kind: p.builtIn ? 'built_in' : p.name === 'Personalizado' ? 'adjusted_now' : 'saved_custom',
+      work_minutes: p.work,
+      break_minutes: p.break,
+    });
+  };
+
+  const handleSelectPlanSource = async () => {
+    await saveProgressBeforeSwitch();
+    setTimerSource('plan');
+    prevCyclesKeyRef.current = null;
+    window.__lovableEvents?.track?.('project.focus_preset_selected', {
+      preset: 'plan_automatic',
+      kind: 'plan',
+      work_minutes: cyclesInfo ? Math.round(cyclesInfo.workMinutesPerCycle) : 0,
+      break_minutes: cyclesInfo ? Math.round(cyclesInfo.breakMinutesPerCycle) : 0,
+    });
+    if (cyclesInfo) {
+      const workSeconds = Math.round(cyclesInfo.workMinutesPerCycle * 60);
+      if (workSeconds > 0) setCustomTime(workSeconds, 'work');
+    }
+  };
+
+  const handleSaveCustomPreset = (p: Preset) => {
+    const exists = presets.findIndex((x) => x.name.toLowerCase() === p.name.toLowerCase());
+    if (exists >= 0) updatePreset(exists, p);
+    else addCustomPreset(p);
+    toast({ title: 'Preset salvo', description: `${p.name}: ${p.work} min de foco, ${p.break} min de pausa.` });
+  };
 
   const selectedCourseName = useMemo(() => {
     if (!selectedCourse) return null;
@@ -1229,6 +1292,14 @@ export default function Focus() {
                     {mode === 'work' && '⚡ FOCO TOTAL'}
                     {mode === 'break' && '☕ PAUSA CURTA'}
                     {mode === 'longBreak' && '🌟 PAUSA LONGA'}
+                  </span>
+                </div>
+                <div className="flex justify-center -mt-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 px-3 py-0.5 text-[11px] opacity-90 tabular-nums">
+                    <Zap className="h-3 w-3" />
+                    {timerSource === 'plan' && cyclesInfo && !cyclesInfo.isCompleted
+                      ? 'Ritmo automático do plano'
+                      : `${preset.name} · ${preset.work}/${preset.break} min`}
                   </span>
                 </div>
 
@@ -2043,40 +2114,20 @@ export default function Focus() {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-2xl">
-                <CardHeader className="pb-2 p-4">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1 rounded-lg bg-primary/10">
-                      <Zap className="h-3.5 w-3.5 text-primary" />
-                    </div>
-                    Presets Rápidos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1.5 px-4 pb-4">
-                  {presets.slice(0, 3).map(p => (
-                    <button
-                      key={p.name}
-                      onClick={() => changePreset(p)}
-                      className={cn(
-                        "w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between gap-2 group",
-                        preset.name === p.name
-                          ? "border-primary/30 bg-primary/[0.06] shadow-sm"
-                          : "border-border/50 hover:border-primary/20 hover:bg-muted/30"
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium text-xs truncate">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                          {p.work}m foco · {p.break}m pausa · {p.longBreak}m longa
-                        </p>
-                      </div>
-                      {preset.name === p.name && (
-                        <Badge variant="default" className="text-[9px] shrink-0 rounded-full px-2">Ativo</Badge>
-                      )}
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
+              <FocusPresetsPanel
+                activePreset={preset}
+                builtInPresets={builtInPresets}
+                customPresets={presets}
+                timerSource={timerSource}
+                planCycleMinutes={cyclesInfo && !cyclesInfo.isCompleted ? cyclesInfo.workMinutesPerCycle : null}
+                hasCourse={!!selectedCourse}
+                sessionInProgress={sessionInProgress}
+                cyclesUntilLongBreak={settings.cyclesUntilLongBreak ?? 4}
+                onSelectPlan={handleSelectPlanSource}
+                onSelectPreset={handleSelectPreset}
+                onSaveCustom={handleSaveCustomPreset}
+                onRemoveCustom={removePreset}
+              />
             </TabsContent>
           </Tabs>
         </div>

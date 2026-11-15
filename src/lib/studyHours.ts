@@ -111,3 +111,19 @@ export function sumFocusMinutes(
     .filter((s) => (onlyWork ? s.session_type == null || s.session_type === 'work' : true))
     .reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
 }
+
+/**
+ * Horas que ainda faltam estudar nos cursos.
+ * - Curso com status `completed` não tem horas restantes.
+ * - Demais cursos: carga horária menos as horas concluídas (nunca negativo).
+ * Use depois de `applyCompletedHours` para ler o progresso real dos módulos.
+ */
+export function computeRemainingHours(
+  courses: { status?: string | null; total_hours?: number | null; completed_hours?: number | null }[],
+): number {
+  return courses.reduce((sum, c) => {
+    if (c.status === 'completed') return sum;
+    const remaining = (c.total_hours || 0) - (c.completed_hours || 0);
+    return sum + Math.max(0, remaining);
+  }, 0);
+}

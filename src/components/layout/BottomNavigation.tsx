@@ -36,27 +36,31 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePendingTasksCount } from '@/hooks/usePendingTasksCount';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useI18n } from '@/i18n';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
-const primaryNavItems = [
-  { path: '/dashboard', label: 'Início', icon: LayoutDashboard },
-  { path: '/planejamentos', label: 'Planejar', icon: Calendar },
-  { path: '/foco', label: 'Foco', icon: Target },
-  { path: '/cursos', label: 'Cursos', icon: BookOpen },
+type T = (pt: string, en: string) => string;
+
+const getPrimaryNavItems = (t: T) => [
+  { path: '/dashboard', label: t('Início', 'Home'), icon: LayoutDashboard },
+  { path: '/planejamentos', label: t('Planejar', 'Plan'), icon: Calendar },
+  { path: '/foco', label: t('Foco', 'Focus'), icon: Target },
+  { path: '/cursos', label: t('Cursos', 'Courses'), icon: BookOpen },
 ];
 
-const secondaryNavItems = [
-  { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
-  { path: '/rotina', label: 'Rotina', icon: CalendarCheck2 },
-  { path: '/notas', label: 'Notas', icon: StickyNote },
-  { path: '/biblioteca', label: 'Biblioteca', icon: Library },
-  { path: '/marcadores', label: 'Marcadores', icon: Bookmark },
-  { path: '/assistente', label: 'Assistente IA', icon: Sparkles },
-  { path: '/antivicio', label: 'AntiVício', icon: Shield },
-  { path: '/redes', label: 'Redes', icon: Share2 },
-  { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { path: '/conquistas', label: 'Conquistas', icon: Trophy },
-  { path: '/perfil', label: 'Perfil', icon: User },
-  { path: '/configuracoes', label: 'Configurações', icon: Settings },
+const getSecondaryNavItems = (t: T) => [
+  { path: '/tarefas', label: t('Tarefas', 'Tasks'), icon: CheckSquare },
+  { path: '/rotina', label: t('Rotina', 'Routine'), icon: CalendarCheck2 },
+  { path: '/notas', label: t('Notas', 'Notes'), icon: StickyNote },
+  { path: '/biblioteca', label: t('Biblioteca', 'Library'), icon: Library },
+  { path: '/marcadores', label: t('Marcadores', 'Bookmarks'), icon: Bookmark },
+  { path: '/assistente', label: t('Assistente IA', 'AI Assistant'), icon: Sparkles },
+  { path: '/antivicio', label: t('AntiVício', 'Habit Control'), icon: Shield },
+  { path: '/redes', label: t('Redes', 'Networks'), icon: Share2 },
+  { path: '/relatorios', label: t('Relatórios', 'Reports'), icon: BarChart3 },
+  { path: '/conquistas', label: t('Conquistas', 'Achievements'), icon: Trophy },
+  { path: '/perfil', label: t('Perfil', 'Profile'), icon: User },
+  { path: '/configuracoes', label: t('Configurações', 'Settings'), icon: Settings },
 ];
 
 export function BottomNavigation() {
@@ -67,6 +71,9 @@ export function BottomNavigation() {
   const { signOut } = useAuth();
   const pendingTasks = usePendingTasksCount();
   const { isAdmin } = useUserRole();
+  const { t } = useI18n();
+  const primaryNavItems = getPrimaryNavItems(t);
+  const secondaryNavItems = getSecondaryNavItems(t);
 
   const menuItems = [
     ...primaryNavItems,
@@ -87,7 +94,7 @@ export function BottomNavigation() {
       <nav
         className="fixed bottom-0 left-0 right-0 z-[100] bg-background/95 backdrop-blur-xl border-t border-border/60 safe-area-bottom shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]"
         role="navigation"
-        aria-label="Navegação principal"
+        aria-label={t('Navegação principal', 'Main navigation')}
       >
         <div className="flex items-stretch justify-around h-[64px] px-1 max-w-md mx-auto">
           {primaryNavItems.map((item) => {
@@ -134,7 +141,7 @@ export function BottomNavigation() {
                   "relative flex flex-col items-center justify-center gap-0.5 flex-1 min-w-[44px] min-h-[44px] touch-feedback rounded-lg outline-none",
                   isMoreActive || open ? "text-primary" : "text-muted-foreground"
                 )}
-                aria-label="Abrir menu"
+                aria-label={t('Abrir menu', 'Open menu')}
               >
                 {(isMoreActive || open) && (
                   <motion.div
@@ -150,7 +157,7 @@ export function BottomNavigation() {
                 {pendingTasks > 0 && (
                   <span
                     className="absolute top-2.5 right-1/2 translate-x-[14px] h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
-                    aria-label={`${pendingTasks} tarefas pendentes`}
+                    aria-label={t(`${pendingTasks} tarefas pendentes`, `${pendingTasks} pending tasks`)}
                   />
                 )}
                 <span className={cn("text-[10px] leading-tight", isMoreActive || open ? "font-semibold" : "font-medium")}>
@@ -173,7 +180,7 @@ export function BottomNavigation() {
 
               <div className="flex-1 overflow-y-auto py-3 no-scrollbar">
                 <p className="px-5 pb-2 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">
-                  Navegação
+                  {t('Navegação', 'Navigation')}
                 </p>
                 <nav className="px-2 space-y-0.5">
                   {menuItems.map((item) => {
@@ -215,15 +222,16 @@ export function BottomNavigation() {
                   className="w-full justify-start gap-3 h-12"
                 >
                   {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+                  <span>{theme === 'light' ? t('Modo Escuro', 'Dark Mode') : t('Modo Claro', 'Light Mode')}</span>
                 </Button>
+                <LanguageSwitcher variant="full" align="start" className="w-full justify-start gap-3 h-12 px-4 [&_span]:text-sm [&_span]:font-medium" />
                 <Button
                   variant="ghost"
                   onClick={handleLogout}
                   className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="h-5 w-5" />
-                  <span>Sair</span>
+                  <span>{t('Sair', 'Sign out')}</span>
                 </Button>
               </div>
             </SheetContent>

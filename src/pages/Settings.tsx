@@ -28,11 +28,13 @@ import { CustomThemeBuilder } from '@/components/settings/CustomThemeBuilder';
 import { BrandingSettings } from '@/components/settings/BrandingSettings';
 
 import { Link } from 'react-router-dom';
+import { LANGUAGES, useI18n, type Language } from '@/i18n';
 
 export default function Settings() {
   const { theme, setTheme, darkVariant, setDarkVariant, lightVariant, setLightVariant, clearCustomTheme } = useTheme();
   const { user, updatePassword } = useAuth();
   const { toast } = useToast();
+  const { t, lang, setLang } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState({
@@ -340,9 +342,9 @@ export default function Settings() {
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       {/* Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold font-display">Configurações</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-display">{t('Configurações', 'Settings')}</h1>
         <p className="text-sm sm:text-base text-muted-foreground">
-          Personalize sua experiência no FD-Planner
+          {t('Personalize sua experiência no FD-Planner', 'Customize your FD-Planner experience')}
         </p>
       </div>
 
@@ -351,27 +353,27 @@ export default function Settings() {
           <TabsList className="inline-flex w-auto min-w-full sm:min-w-0 sm:grid sm:grid-cols-6 sm:w-auto">
             <TabsTrigger value="profile" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Perfil</span>
+              <span className="hidden xs:inline sm:inline">{t('Perfil', 'Profile')}</span>
             </TabsTrigger>
             <TabsTrigger value="appearance" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <Palette className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Aparência</span>
+              <span className="hidden xs:inline sm:inline">{t('Aparência', 'Appearance')}</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <Bell className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Alertas</span>
+              <span className="hidden xs:inline sm:inline">{t('Alertas', 'Alerts')}</span>
             </TabsTrigger>
             <TabsTrigger value="language" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Idioma</span>
+              <span className="hidden xs:inline sm:inline">{t('Idioma', 'Language')}</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Segurança</span>
+              <span className="hidden xs:inline sm:inline">{t('Segurança', 'Security')}</span>
             </TabsTrigger>
             <TabsTrigger value="privacy" className="gap-1.5 sm:gap-2 text-xs sm:text-sm px-2.5 sm:px-3">
               <Database className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline sm:inline">Dados</span>
+              <span className="hidden xs:inline sm:inline">{t('Dados', 'Data')}</span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -642,51 +644,45 @@ export default function Settings() {
         <TabsContent value="language">
           <Card>
             <CardHeader>
-              <CardTitle>Idioma e Região</CardTitle>
+              <CardTitle>{t('Idioma', 'Language')}</CardTitle>
               <CardDescription>
-                Configure suas preferências de idioma
+                {t(
+                  'Escolha o idioma do sistema. A troca vale na hora, em todas as telas, e fica salva neste aparelho.',
+                  'Choose the app language. It changes right away on every screen and is saved on this device.',
+                )}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Idioma</Label>
-                <Select defaultValue="pt-BR">
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pt-BR">🇧🇷 Português (Brasil)</SelectItem>
-                    <SelectItem value="en-US">🇺🇸 English (US)</SelectItem>
-                    <SelectItem value="es">🇪🇸 Español</SelectItem>
-                  </SelectContent>
-                </Select>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 max-w-xl">
+                {LANGUAGES.map((l) => (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => setLang(l.value as Language)}
+                    className={`flex items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+                      lang === l.value
+                        ? 'border-primary bg-primary/5 shadow-sm'
+                        : 'border-border hover:border-primary/40 hover:bg-muted/40'
+                    }`}
+                    aria-pressed={lang === l.value}
+                  >
+                    <span className="text-2xl" aria-hidden>{l.flag}</span>
+                    <span className="flex-1">
+                      <span className="block font-medium">{l.label}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {l.value === 'pt' ? 'Datas como 15/11/2026' : 'Dates like 11/15/2026'}
+                      </span>
+                    </span>
+                    {lang === l.value && <Check className="h-5 w-5 text-primary" />}
+                  </button>
+                ))}
               </div>
-              <div className="space-y-2">
-                <Label>Fuso Horário</Label>
-                <Select defaultValue="america-sp">
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="america-sp">América/São Paulo (GMT-3)</SelectItem>
-                    <SelectItem value="america-ny">América/New York (GMT-5)</SelectItem>
-                    <SelectItem value="europe-london">Europa/Londres (GMT+0)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Formato de Data</Label>
-                <Select defaultValue="dd-mm-yyyy">
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dd-mm-yyyy">DD/MM/AAAA</SelectItem>
-                    <SelectItem value="mm-dd-yyyy">MM/DD/AAAA</SelectItem>
-                    <SelectItem value="yyyy-mm-dd">AAAA-MM-DD</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  'Você também pode trocar o idioma a qualquer momento pelo botão de idioma no menu lateral.',
+                  'You can also switch languages anytime with the language button in the side menu.',
+                )}
+              </p>
             </CardContent>
           </Card>
         </TabsContent>

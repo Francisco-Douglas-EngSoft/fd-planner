@@ -35,6 +35,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { usePendingTasksCount } from '@/hooks/usePendingTasksCount';
 import { Logo, LogoIcon } from '@/components/ui/Logo';
 import { GlobalSearch } from './GlobalSearch';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useI18n } from '@/i18n';
 import {
   Sheet,
   SheetContent,
@@ -42,23 +44,23 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/planejamentos', label: 'Planejamentos', icon: Calendar },
-  { path: '/cursos', label: 'Cursos', icon: BookOpen },
-  { path: '/foco', label: 'Foco', icon: Target },
-  { path: '/tarefas', label: 'Tarefas', icon: CheckSquare },
-  { path: '/rotina', label: 'Rotina', icon: CalendarCheck2 },
-  { path: '/notas', label: 'Notas', icon: StickyNote },
-  { path: '/biblioteca', label: 'Biblioteca', icon: Library },
-  { path: '/marcadores', label: 'Marcadores', icon: Bookmark },
-  { path: '/assistente', label: 'Assistente IA', icon: Sparkles },
-  { path: '/antivicio', label: 'AntiVício', icon: Shield },
-  { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-  { path: '/conquistas', label: 'Conquistas', icon: Trophy },
-  { path: '/redes', label: 'Redes', icon: Share2 },
-  { path: '/perfil', label: 'Perfil', icon: User },
-  { path: '/configuracoes', label: 'Configurações', icon: Settings },
+const getNavItems = (t: (pt: string, en: string) => string) => [
+  { path: '/dashboard', label: t('Dashboard', 'Dashboard'), icon: LayoutDashboard },
+  { path: '/planejamentos', label: t('Planejamentos', 'Planning'), icon: Calendar },
+  { path: '/cursos', label: t('Cursos', 'Courses'), icon: BookOpen },
+  { path: '/foco', label: t('Foco', 'Focus'), icon: Target },
+  { path: '/tarefas', label: t('Tarefas', 'Tasks'), icon: CheckSquare },
+  { path: '/rotina', label: t('Rotina', 'Routine'), icon: CalendarCheck2 },
+  { path: '/notas', label: t('Notas', 'Notes'), icon: StickyNote },
+  { path: '/biblioteca', label: t('Biblioteca', 'Library'), icon: Library },
+  { path: '/marcadores', label: t('Marcadores', 'Bookmarks'), icon: Bookmark },
+  { path: '/assistente', label: t('Assistente IA', 'AI Assistant'), icon: Sparkles },
+  { path: '/antivicio', label: t('AntiVício', 'Habit Control'), icon: Shield },
+  { path: '/relatorios', label: t('Relatórios', 'Reports'), icon: BarChart3 },
+  { path: '/conquistas', label: t('Conquistas', 'Achievements'), icon: Trophy },
+  { path: '/redes', label: t('Redes', 'Networks'), icon: Share2 },
+  { path: '/perfil', label: t('Perfil', 'Profile'), icon: User },
+  { path: '/configuracoes', label: t('Configurações', 'Settings'), icon: Settings },
 ];
 
 interface AppSidebarProps {
@@ -82,6 +84,8 @@ export function AppSidebar({
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
   const pendingTasks = usePendingTasksCount();
+  const { t } = useI18n();
+  const navItems = getNavItems(t);
   const items = isAdmin
     ? [...navItems, { path: '/admin', label: 'Admin', icon: Shield }]
     : navItems;
@@ -138,7 +142,7 @@ export function AppSidebar({
                   "ml-auto min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center rounded-full text-[10px] font-semibold",
                   isActive ? "bg-primary-foreground text-primary" : "bg-destructive text-destructive-foreground"
                 )}
-                aria-label={`${pendingTasks} tarefas pendentes`}
+                aria-label={t(`${pendingTasks} tarefas pendentes`, `${pendingTasks} pending tasks`)}
               >
                 {pendingTasks > 99 ? '99+' : pendingTasks}
               </span>
@@ -162,9 +166,18 @@ export function AppSidebar({
       >
         {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
         {!compact && (
-          <span className="text-[13px]">{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+          <span className="text-[13px]">{theme === 'light' ? t('Modo Escuro', 'Dark Mode') : t('Modo Claro', 'Light Mode')}</span>
         )}
       </Button>
+
+      <LanguageSwitcher
+        variant={compact ? 'compact' : 'full'}
+        align="start"
+        className={cn(
+          "w-full h-8 justify-start gap-2.5 px-3 font-normal text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&_span]:text-[13px] [&_span]:font-normal",
+          compact && "justify-center px-0 [&_span]:hidden"
+        )}
+      />
 
       <Button
         variant="ghost"
@@ -176,7 +189,7 @@ export function AppSidebar({
         )}
       >
         <LogOut className="h-4 w-4" />
-        {!compact && <span className="text-[13px]">Sair</span>}
+        {!compact && <span className="text-[13px]">{t('Sair', 'Sign out')}</span>}
       </Button>
 
       {variant === 'fixed' && (
@@ -194,7 +207,7 @@ export function AppSidebar({
           ) : (
             <>
               <ChevronLeft className="h-4 w-4" />
-              <span className="text-[13px]">Recolher</span>
+              <span className="text-[13px]">{t('Recolher', 'Collapse')}</span>
             </>
           )}
         </Button>

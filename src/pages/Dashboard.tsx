@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Clock, Target, Flame, Trophy, TrendingUp, Library, Timer, CheckCircle } from 'lucide-react';
+import { BookOpen, Clock, Target, Flame, Trophy, TrendingUp, Library, Timer, CheckCircle, Hourglass } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ProgressChart } from '@/components/dashboard/ProgressChart';
@@ -15,6 +15,9 @@ import { FocusSessionsChart } from '@/components/dashboard/FocusSessionsChart';
 import { CourseStudyChart } from '@/components/dashboard/CourseStudyChart';
 import { StudyComparisonChart } from '@/components/dashboard/StudyComparisonChart';
 import { StudyHoursEvolutionChart } from '@/components/dashboard/StudyHoursEvolutionChart';
+import { StudyRhythmChart } from '@/components/dashboard/StudyRhythmChart';
+import { WeeklyModuleGoalCard } from '@/components/dashboard/WeeklyModuleGoalCard';
+import { useI18n } from '@/i18n';
 import { AdvancedAnalytics } from '@/components/analytics/AdvancedAnalytics';
 import { WeeklyDeltaCard } from '@/components/dashboard/WeeklyDeltaCard';
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour';
@@ -30,7 +33,8 @@ import { useGuestMode } from '@/hooks/useGuestMode';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDurationHuman } from '@/lib/timeUtils';
-import { computeCompletedHours, sumFocusMinutes, applyCompletedHours } from '@/lib/studyHours';
+import { computeCompletedHours, sumFocusMinutes, applyCompletedHours, computeRemainingHours } from '@/lib/studyHours';
+import { useRealtimeFocusSessions } from '@/hooks/useRealtimeFocusSessions';
 import { StudyAudit } from '@/components/dashboard/StudyAudit';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
@@ -49,27 +53,53 @@ export default function Dashboard() {
     level: 1,
     achievements: 0,
     totalCourseHours: 0,
+    remainingHours: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
   const { user } = useAuth();
   const { isReadOnly, getDemoData } = useGuestMode();
+  const { t, localeTag } = useI18n();
+  const refreshKey = useRealtimeFocusSessions(isReadOnly ? undefined : user?.id);
 
   useEffect(() => {
     if (isReadOnly) {
       const demoData = getDemoData();
-      setUserName('Visitante');
-      setStats(demoData.stats);
+      setUserName(t('Visitante', 'Guest'));
+      const demo = demoData.stats;
+      setStats({
+        ...demo,
+        remainingHours: Math.max(0, (demo.totalCourseHours || 0) - (demo.courseCompletedHours || 0)),
+      });
+      setLoading(false);
     } else if (user) {
       fetchStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, isReadOnly]);
 
-  const fetchStats = async () => {
+  // Atualiza os cards quando cursos/sessões mudam (sem mostrar o carregamento).
+  useEffect(() => {
+    if (!user || isReadOnly || refreshKey === 0) return;
+    fetchStats(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+
+  // Ao voltar para a aba, recalcula (ex.: módulos concluídos em outra tela).
+  useEffect(() => {
+    if (!user || isReadOnly) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchStats(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, isReadOnly]);
+
+  const fetchStats = async (silent = false) => {
     if (!user) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -122,8 +152,9 @@ export default function Dashboard() {
       
       const totalCourseHours = syncedCourses.reduce((sum, c) => sum + (c.total_hours || 0), 0);
       const totalFocusMinutes = sumFocusMinutes(focusSessions);
+      const remainingHours = computeRemainingHours(syncedCourses);
 
-      setUserName(profileResult.data?.full_name || user.email?.split('@')[0] || 'Estudante');
+      setUserName(profileResult.data?.full_name || user.email?.split('@')[0] || t('Estudante', 'Student'));
       setStats({
         courseCompletedHours,
         totalFocusMinutes,
@@ -136,10 +167,11 @@ export default function Dashboard() {
         level: profileResult.data?.level || 1,
         achievements: achievementsResult.count || 0,
         totalCourseHours,
+        remainingHours,
       });
     } catch (error: any) {
       console.error('Error fetching dashboard stats:', error);
-      setError(error.message || 'Erro ao carregar estatísticas');
+      setError(error.message || t('Erro ao carregar estatísticas', 'Error loading statistics'));
     } finally {
       setLoading(false);
     }
@@ -149,62 +181,76 @@ export default function Dashboard() {
   // Recebe SEMPRE minutos e exibe de forma humana e consistente (ex.: "3h 11min").
   const formatTime = (minutes: number) => formatDurationHuman(minutes);
 
+  const pctDone = stats.totalCourseHours > 0
+    ? Math.min(100, Math.round(((stats.totalCourseHours - stats.remainingHours) / stats.totalCourseHours) * 100))
+    : 0;
+
   const statCards = [
     {
-      title: 'Horas Estudadas',
+      title: t('Horas Estudadas', 'Hours Studied'),
       value: formatTime(stats.courseCompletedHours * 60),
-      subtitle: 'Progresso concluído nos cursos',
+      subtitle: t('Progresso concluído nos cursos', 'Completed course progress'),
       icon: Clock,
       tint: 'blue',
     },
     {
-      title: 'Tempo de Foco',
+      title: t('Tempo de Foco', 'Focus Time'),
       value: formatTime(stats.totalFocusMinutes),
-      subtitle: 'Cronômetro Pomodoro (sessões)',
+      subtitle: t('Cronômetro Pomodoro (sessões)', 'Pomodoro timer (sessions)'),
       icon: Timer,
       tint: 'violet',
     },
     {
-      title: 'Carga Horária Total',
+      title: t('Carga Horária Total', 'Total Workload'),
       value: formatTime(stats.totalCourseHours * 60),
-      subtitle: 'Meta dos cursos ativos',
+      subtitle: t('Meta dos cursos ativos', 'Active courses target'),
       icon: Library,
       tint: 'cyan',
     },
     {
-      title: 'Cursos Ativos',
+      title: t('Horas Restantes', 'Hours Remaining'),
+      value: formatTime(stats.remainingHours * 60),
+      subtitle: stats.totalCourseHours > 0
+        ? t(`${pctDone}% da carga concluída`, `${pctDone}% of workload done`)
+        : t('Falta estudar nos cursos', 'Left to study in your courses'),
+      icon: Hourglass,
+      link: '/cursos',
+      tint: 'rose',
+    },
+    {
+      title: t('Cursos Ativos', 'Active Courses'),
       value: stats.activeCourses,
-      subtitle: `${stats.inProgressCourses} em andamento`,
+      subtitle: t(`${stats.inProgressCourses} em andamento`, `${stats.inProgressCourses} in progress`),
       icon: BookOpen,
       tint: 'teal',
     },
     {
-      title: 'Cursos Concluídos',
+      title: t('Cursos Concluídos', 'Completed Courses'),
       value: stats.completedCourses,
-      subtitle: 'Finalizados',
+      subtitle: t('Finalizados', 'Finished'),
       icon: CheckCircle,
       link: '/cursos',
       tint: 'emerald',
     },
     {
-      title: 'Tarefas Concluídas',
+      title: t('Tarefas Concluídas', 'Tasks Completed'),
       value: stats.completedTasks,
-      subtitle: `De ${stats.totalTasks} no total`,
+      subtitle: t(`De ${stats.totalTasks} no total`, `Of ${stats.totalTasks} total`),
       icon: Target,
       tint: 'indigo',
     },
     {
-      title: 'Sequência',
-      value: `${stats.streakDays} dias`,
-      subtitle: `Nível ${stats.level}`,
+      title: t('Sequência', 'Streak'),
+      value: t(`${stats.streakDays} dias`, `${stats.streakDays} days`),
+      subtitle: t(`Nível ${stats.level}`, `Level ${stats.level}`),
       icon: Flame,
       link: '/conquistas',
       tint: 'orange',
     },
     {
-      title: 'Conquistas',
+      title: t('Conquistas', 'Achievements'),
       value: stats.achievements,
-      subtitle: 'Desbloqueadas',
+      subtitle: t('Desbloqueadas', 'Unlocked'),
       icon: Trophy,
       link: '/conquistas',
       tint: 'amber',
@@ -227,7 +273,7 @@ export default function Dashboard() {
               </div>
               {card.link && (
                 <span className="text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                  ver mais →
+                  {t('ver mais →', 'see more →')}
                 </span>
               )}
             </div>
@@ -253,7 +299,7 @@ export default function Dashboard() {
     );
   };
 
-  const today = new Date().toLocaleDateString('pt-BR', {
+  const today = new Date().toLocaleDateString(localeTag, {
     weekday: 'long', day: 'numeric', month: 'long',
   });
 
@@ -268,18 +314,18 @@ export default function Dashboard() {
             {today}
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold font-display">
-            Olá, {userName}! 👋
+            {t('Olá', 'Hi')}, {userName}! 👋
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Aqui está o resumo dos seus estudos. Continue assim!
+            {t('Aqui está o resumo dos seus estudos. Continue assim!', "Here's a summary of your studies. Keep it up!")}
           </p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {loading ? (
-          Array.from({ length: 7 }).map((_, i) => (
+          Array.from({ length: 9 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full rounded-2xl" />
           ))
         ) : error ? (
@@ -310,18 +356,20 @@ export default function Dashboard() {
       {/* Tabs por área */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="w-full sm:w-auto flex-wrap h-auto">
-          <TabsTrigger value="overview">Visão geral</TabsTrigger>
-          <TabsTrigger value="studies">Estudos</TabsTrigger>
-          <TabsTrigger value="habits">Hábitos</TabsTrigger>
-          <TabsTrigger value="audit">Auditoria</TabsTrigger>
-          <TabsTrigger value="expansion">Expansão</TabsTrigger>
+          <TabsTrigger value="overview">{t('Visão geral', 'Overview')}</TabsTrigger>
+          <TabsTrigger value="studies">{t('Estudos', 'Studies')}</TabsTrigger>
+          <TabsTrigger value="habits">{t('Hábitos', 'Habits')}</TabsTrigger>
+          <TabsTrigger value="audit">{t('Auditoria', 'Audit')}</TabsTrigger>
+          <TabsTrigger value="expansion">{t('Expansão', 'Expansion')}</TabsTrigger>
         </TabsList>
 
 
         {/* Visão geral */}
         <TabsContent value="overview" className="space-y-6 mt-0">
           <TaskReminders />
+          <WeeklyModuleGoalCard />
           <WeeklyDeltaCard />
+          <StudyRhythmChart />
           <StudyHoursEvolutionChart />
           <WeeklyStats />
           <UpcomingTasks />
@@ -331,8 +379,8 @@ export default function Dashboard() {
         <TabsContent value="studies" className="space-y-6 mt-0">
           <StudyComparisonChart />
           <AdvancedAnalytics
-            title="Análises avançadas"
-            description="Padrões de foco, comparativos e metas"
+            title={t('Análises avançadas', 'Advanced analytics')}
+            description={t('Padrões de foco, comparativos e metas', 'Focus patterns, comparisons and goals')}
           />
           <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
             <FocusSessionsChart />

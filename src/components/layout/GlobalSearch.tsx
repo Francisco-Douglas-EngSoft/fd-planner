@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { tr, useI18n } from '@/i18n';
 
 interface SearchResult {
   id: string;
@@ -32,6 +33,7 @@ export function GlobalSearch() {
   
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   // Keyboard shortcut to open search
   useEffect(() => {
@@ -94,28 +96,28 @@ export function GlobalSearch() {
           id: c.id,
           type: 'course' as const,
           title: c.name,
-          subtitle: c.category || 'Curso',
+          subtitle: c.category || tr('Curso', 'Course'),
           url: '/cursos',
         })),
         ...(plans || []).map(p => ({
           id: p.id,
           type: 'plan' as const,
           title: p.name,
-          subtitle: p.description || 'Planejamento',
+          subtitle: p.description || tr('Planejamento', 'Plan'),
           url: '/planejamentos',
         })),
         ...(tasks || []).map(t => ({
           id: t.id,
           type: 'task' as const,
           title: t.title,
-          subtitle: t.status === 'completed' ? 'Concluída' : 'Pendente',
+          subtitle: t.status === 'completed' ? tr('Concluída', 'Completed') : tr('Pendente', 'Pending'),
           url: '/tarefas',
         })),
         ...(notes || []).map(n => ({
           id: n.id,
           type: 'note' as const,
           title: n.title,
-          subtitle: 'Nota',
+          subtitle: tr('Nota', 'Note'),
           url: '/notas',
         })),
       ];
@@ -154,10 +156,10 @@ export function GlobalSearch() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'course': return 'Curso';
-      case 'plan': return 'Planejamento';
-      case 'task': return 'Tarefa';
-      case 'note': return 'Nota';
+      case 'course': return t('Curso', 'Course');
+      case 'plan': return t('Planejamento', 'Plan');
+      case 'task': return t('Tarefa', 'Task');
+      case 'note': return t('Nota', 'Note');
       default: return type;
     }
   };
@@ -178,8 +180,8 @@ export function GlobalSearch() {
         onClick={() => setOpen(true)}
       >
         <Search className="mr-2 h-4 w-4" />
-        <span className="hidden lg:inline-flex">Buscar...</span>
-        <span className="inline-flex lg:hidden">Buscar</span>
+        <span className="hidden lg:inline-flex">{t('Buscar...', 'Search...')}</span>
+        <span className="inline-flex lg:hidden">{t('Buscar', 'Search')}</span>
         <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-6 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>
@@ -187,7 +189,7 @@ export function GlobalSearch() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput 
-          placeholder="Buscar cursos, planejamentos, tarefas, notas..." 
+          placeholder={t('Buscar cursos, planejamentos, tarefas, notas...', 'Search courses, plans, tasks, notes...')} 
           value={query}
           onValueChange={setQuery}
         />
@@ -195,20 +197,20 @@ export function GlobalSearch() {
           {isSearching && (
             <div className="py-6 text-center text-sm text-muted-foreground">
               <Clock className="h-4 w-4 animate-spin mx-auto mb-2" />
-              Buscando...
+              {t('Buscando...', 'Searching...')}
             </div>
           )}
           
           {!isSearching && query.length >= 2 && results.length === 0 && (
             <CommandEmpty>
-              Nenhum resultado encontrado para "{query}"
+              {t('Nenhum resultado encontrado para', 'No results found for')} "{query}"
             </CommandEmpty>
           )}
 
           {!isSearching && query.length < 2 && (
             <div className="py-6 text-center text-sm text-muted-foreground">
               <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              Digite pelo menos 2 caracteres para buscar
+              {t('Digite pelo menos 2 caracteres para buscar', 'Type at least 2 characters to search')}
             </div>
           )}
 

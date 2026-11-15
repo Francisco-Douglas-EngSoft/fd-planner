@@ -6,6 +6,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createIdbPersister } from "@/lib/queryPersister";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LanguageProvider } from "@/i18n";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -165,6 +166,7 @@ const App = () => (
       client={queryClient}
       persistOptions={{ persister: createIdbPersister(), maxAge: 7 * 24 * 60 * 60 * 1000, buster: "v1" }}
     >
+      <LanguageProvider>
       <ThemeProvider>
         <AuthProvider>
           <TooltipProvider>
@@ -172,6 +174,7 @@ const App = () => (
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>
+      </LanguageProvider>
     </PersistQueryClientProvider>
   </ErrorBoundary>
 );

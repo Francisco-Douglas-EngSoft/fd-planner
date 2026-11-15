@@ -7,3 +7,7 @@
 - [ ] Configurações: Alto Contraste e Reduzir Animações funcionando; tirar opções de idioma/fuso/data e email que não fazem nada
 - [ ] Velocidade: Leitor, editor de notas e pré-carregamento de páginas mais leves
 - [ ] Segurança: imagens das notas sem link de 10 anos; limite no formulário de contato; lembretes diários enviando; senhas vazadas
+- [ ] Rastrear cada módulo marcado como concluído
+- [ ] Dashboard: progresso da meta semanal de módulos concluídos
+- [ ] Ritmo de Estudos: filtro por curso e comparação entre cursos
+- [ ] Idioma Inglês em todo o sistema (Landing, login, menu, Painel e demais páginas) com seletor sempre disponível

@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "events": {
+    "project.course_module_completed": {
+      "event_schema_version": 1,
+      "description": "A course module was marked as completed (checked in the course list, all its sub-items checked, or finished from the Focus agenda).",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "module_hours"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "course_list",
+              "all_submodules",
+              "focus_agenda",
+              "planning"
+            ]
+          },
+          "module_hours": {
+            "type": "number"
+          },
+          "has_submodules": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "project.focus_preset_selected": {
+      "event_schema_version": 1,
+      "description": "The user picked a focus rhythm: a built-in preset, a saved or adjusted custom one, or the plan's automatic split.",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "preset",
+          "kind",
+          "work_minutes",
+          "break_minutes"
+        ],
+        "properties": {
+          "preset": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "built_in",
+              "saved_custom",
+              "adjusted_now",
+              "plan"
+            ]
+          },
+          "work_minutes": {
+            "type": "number"
+          },
+          "break_minutes": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "project.focus_session_completed": {
+      "event_schema_version": 1,
+      "description": "A focus session was saved with its studied minutes (timer finished, stopped early, or finished while the app was closed).",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "duration_minutes",
+          "planned_minutes",
+          "ended",
+          "preset",
+          "has_module"
+        ],
+        "properties": {
+          "duration_minutes": {
+            "type": "number"
+          },
+          "planned_minutes": {
+            "type": "number"
+          },
+          "ended": {
+            "type": "string",
+            "enum": [
+              "timer_finished",
+              "stopped_early",
+              "finished_while_away"
+            ]
+          },
+          "preset": {
+            "type": "string"
+          },
+          "has_module": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "project.focus_session_started": {
+      "event_schema_version": 1,
+      "description": "A new focus (work) session was started on the Focus timer (resuming a paused session does not count).",
+      "privacy": {
+        "contains_pii": false,
+        "purpose": "product_analytics"
+      },
+      "properties_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "planned_minutes",
+          "preset",
+          "has_course",
+          "has_module"
+        ],
+        "properties": {
+          "planned_minutes": {
+            "type": "number"
+          },
+          "preset": {
+            "type": "string"
+          },
+          "has_course": {
+            "type": "boolean"
+          },
+          "has_module": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

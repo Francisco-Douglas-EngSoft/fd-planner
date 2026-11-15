@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useI18n } from '@/i18n';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -49,11 +51,12 @@ function Field({
 }
 
 function PasswordToggle({ shown, onToggle }: { readonly shown: boolean; readonly onToggle: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       onClick={onToggle}
-      aria-label={shown ? 'Ocultar senha' : 'Mostrar senha'}
+      aria-label={shown ? t('Ocultar senha', 'Hide password') : t('Mostrar senha', 'Show password')}
       className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
     >
       {shown ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -61,10 +64,10 @@ function PasswordToggle({ shown, onToggle }: { readonly shown: boolean; readonly
   );
 }
 
-const highlights: { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: Clock, title: 'Horas sob controle', desc: 'Total por curso, por categoria e geral.' },
-  { icon: Flame, title: 'Ofensivas e foco', desc: 'Pomodoro persistente com histórico.' },
-  { icon: Sparkles, title: 'Assistente com IA', desc: 'Resumos e planos de estudo.' },
+const getHighlights = (t: (pt: string, en: string) => string): { icon: LucideIcon; title: string; desc: string }[] => [
+  { icon: Clock, title: t('Horas sob controle', 'Hours under control'), desc: t('Total por curso, por categoria e geral.', 'Totals per course, per category and overall.') },
+  { icon: Flame, title: t('Ofensivas e foco', 'Streaks and focus'), desc: t('Pomodoro persistente com histórico.', 'A persistent Pomodoro with history.') },
+  { icon: Sparkles, title: t('Assistente com IA', 'AI assistant'), desc: t('Resumos e planos de estudo.', 'Summaries and study plans.') },
 ];
 
 export default function Auth() {
@@ -85,6 +88,8 @@ export default function Auth() {
   const { signIn, signUp, user, resetPassword, updatePassword, enterAsGuest } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { t } = useI18n();
+  const highlights = getHighlights(t);
 
   useEffect(() => {
     if (searchParams.get('mode') === 'reset') setAuthView('reset');
@@ -105,13 +110,13 @@ export default function Auth() {
     const { error } = await signIn(loginEmail, loginPassword);
     if (error) {
       toast({
-        title: 'Erro ao entrar',
+        title: t('Erro ao entrar', 'Sign-in failed'),
         description:
-          error.message === 'Invalid login credentials' ? 'Email ou senha incorretos' : error.message,
+          error.message === 'Invalid login credentials' ? t('Email ou senha incorretos', 'Incorrect email or password') : error.message,
         variant: 'destructive',
       });
     } else {
-      toast({ title: 'Bem-vindo de volta!', description: 'Login realizado com sucesso.' });
+      toast({ title: t('Bem-vindo de volta!', 'Welcome back!'), description: t('Login realizado com sucesso.', 'Signed in successfully.') });
       navigate('/dashboard');
     }
     setIsLoading(false);
@@ -122,20 +127,20 @@ export default function Auth() {
     setIsLoading(true);
     const v = validatePassword(signupPassword);
     if (!v.valid) {
-      toast({ title: 'Senha inválida', description: v.message, variant: 'destructive' });
+      toast({ title: t('Senha inválida', 'Invalid password'), description: v.message, variant: 'destructive' });
       setIsLoading(false);
       return;
     }
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     if (error) {
       toast({
-        title: 'Erro ao criar conta',
+        title: t('Erro ao criar conta', 'Could not create account'),
         description:
-          error.message === 'User already registered' ? 'Este email já está cadastrado' : error.message,
+          error.message === 'User already registered' ? t('Este email já está cadastrado', 'This email is already registered') : error.message,
         variant: 'destructive',
       });
     } else {
-      toast({ title: 'Conta criada!', description: 'Bem-vindo ao FD-Planner.' });
+      toast({ title: t('Conta criada!', 'Account created!'), description: t('Bem-vindo ao FD-Planner.', 'Welcome to FD-Planner.') });
       navigate('/onboarding');
     }
     setIsLoading(false);
@@ -146,9 +151,9 @@ export default function Auth() {
     setIsLoading(true);
     const { error } = await resetPassword(forgotEmail);
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      toast({ title: t('Erro', 'Error'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Email enviado', description: 'Verifique sua caixa de entrada.' });
+      toast({ title: t('Email enviado', 'Email sent'), description: t('Verifique sua caixa de entrada.', 'Check your inbox.') });
       setAuthView('login');
       setForgotEmail('');
     }
@@ -159,21 +164,21 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     if (newPassword !== confirmPassword) {
-      toast({ title: 'Erro', description: 'As senhas não coincidem.', variant: 'destructive' });
+      toast({ title: t('Erro', 'Error'), description: t('As senhas não coincidem.', 'Passwords do not match.'), variant: 'destructive' });
       setIsLoading(false);
       return;
     }
     const v = validatePassword(newPassword);
     if (!v.valid) {
-      toast({ title: 'Senha inválida', description: v.message, variant: 'destructive' });
+      toast({ title: t('Senha inválida', 'Invalid password'), description: v.message, variant: 'destructive' });
       setIsLoading(false);
       return;
     }
     const { error } = await updatePassword(newPassword);
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      toast({ title: t('Erro', 'Error'), description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Senha atualizada', description: 'Sua senha foi redefinida.' });
+      toast({ title: t('Senha atualizada', 'Password updated'), description: t('Sua senha foi redefinida.', 'Your password has been reset.') });
       navigate('/');
     }
     setIsLoading(false);
@@ -208,10 +213,10 @@ export default function Auth() {
           className="relative z-10 max-w-lg"
         >
           <h1 className="text-4xl font-bold leading-[1.08] xl:text-5xl">
-            O sucesso é um sistema de <span className="text-brand-gradient">hábitos consistentes</span>.
+            {t('O sucesso é um sistema de', 'Success is a system of')} <span className="text-brand-gradient">{t('hábitos consistentes', 'consistent habits')}</span>.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
-            Foco, cursos, biblioteca e planejamento integrados para desenhar sua rotina de aprendizado.
+            {t('Foco, cursos, biblioteca e planejamento integrados para desenhar sua rotina de aprendizado.', 'Focus, courses, library and planning working together to shape your learning routine.')}
           </p>
 
           <ul className="mt-10 space-y-3">
@@ -236,7 +241,7 @@ export default function Auth() {
         </motion.div>
 
         <p className="relative z-10 text-xs uppercase tracking-[0.25em] text-muted-foreground">
-          Estudo · Foco · Evolução
+          {t('Estudo · Foco · Evolução', 'Study · Focus · Growth')}
         </p>
       </aside>
 
@@ -251,12 +256,15 @@ export default function Auth() {
           className="relative z-10 w-full max-w-[420px]"
         >
           <div className="mb-10 flex items-center justify-between">
-            <Button asChild variant="ghost" size="sm" className="-ml-2 gap-2 text-muted-foreground hover:bg-muted hover:text-foreground">
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4" />
-                Início
-              </Link>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button asChild variant="ghost" size="sm" className="-ml-2 gap-2 text-muted-foreground hover:bg-muted hover:text-foreground">
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('Início', 'Home')}
+                </Link>
+              </Button>
+              <LanguageSwitcher align="start" className="text-muted-foreground hover:bg-muted hover:text-foreground" />
+            </div>
             <Link to="/" className="flex items-center gap-2 lg:hidden">
               <img
                 src={fdPlannerLogo}
@@ -271,18 +279,18 @@ export default function Auth() {
 
           {authView === 'forgot' && (
             <div>
-              <h2 className="text-3xl font-bold">Recuperar senha</h2>
-              <p className="mb-8 mt-2 text-muted-foreground">Enviaremos um link de recuperação para seu email.</p>
+              <h2 className="text-3xl font-bold">{t('Recuperar senha', 'Reset password')}</h2>
+              <p className="mb-8 mt-2 text-muted-foreground">{t('Enviaremos um link de recuperação para seu email.', "We'll send a recovery link to your email.")}</p>
               <form onSubmit={handleForgot} className="space-y-5">
                 <Field id="forgot-email" label="Email" icon={Mail}>
-                  <Input id="forgot-email" type="email" autoComplete="email" placeholder="seu@email.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className={INPUT} />
+                  <Input id="forgot-email" type="email" autoComplete="email" placeholder={t('seu@email.com', 'you@email.com')} value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className={INPUT} />
                 </Field>
                 <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
                   {isLoading && spinner}
-                  {isLoading ? 'Enviando...' : 'Enviar link'}
+                  {isLoading ? t('Enviando...', 'Sending...') : t('Enviar link', 'Send link')}
                 </Button>
                 <Button type="button" variant="ghost" className="w-full text-muted-foreground hover:bg-muted hover:text-foreground" onClick={() => setAuthView('login')}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para o login
+                  <ArrowLeft className="mr-2 h-4 w-4" /> {t('Voltar para o login', 'Back to sign in')}
                 </Button>
               </form>
             </div>
@@ -290,19 +298,19 @@ export default function Auth() {
 
           {authView === 'reset' && (
             <div>
-              <h2 className="text-3xl font-bold">Nova senha</h2>
-              <p className="mb-8 mt-2 text-muted-foreground">Defina uma nova senha para sua conta.</p>
+              <h2 className="text-3xl font-bold">{t('Nova senha', 'New password')}</h2>
+              <p className="mb-8 mt-2 text-muted-foreground">{t('Defina uma nova senha para sua conta.', 'Set a new password for your account.')}</p>
               <form onSubmit={handleReset} className="space-y-5">
-                <Field id="new-password" label="Nova senha" icon={Lock}>
+                <Field id="new-password" label={t('Nova senha', 'New password')} icon={Lock}>
                   <Input id="new-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} className={INPUT} />
                   {passwordToggle}
                 </Field>
-                <Field id="confirm-password" label="Confirmar senha" icon={Lock} hint="Mín. 8 caracteres com maiúscula, minúscula, número e caractere especial.">
+                <Field id="confirm-password" label={t('Confirmar senha', 'Confirm password')} icon={Lock} hint={t('Mín. 8 caracteres com maiúscula, minúscula, número e caractere especial.', 'Min. 8 characters with uppercase, lowercase, number and special character.')}>
                   <Input id="confirm-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className={INPUT} />
                 </Field>
                 <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
                   {isLoading && spinner}
-                  {isLoading ? 'Salvando...' : 'Salvar nova senha'}
+                  {isLoading ? t('Salvando...', 'Saving...') : t('Salvar nova senha', 'Save new password')}
                 </Button>
               </form>
             </div>
@@ -311,36 +319,36 @@ export default function Auth() {
           {(authView === 'login' || authView === 'signup') && (
             <div>
               <h2 className="text-3xl font-bold">
-                {authView === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}
+                {authView === 'login' ? t('Bem-vindo de volta', 'Welcome back') : t('Crie sua conta', 'Create your account')}
               </h2>
               <p className="mb-8 mt-2 text-muted-foreground">
                 {authView === 'login'
-                  ? 'Entre para continuar sua jornada de estudos.'
-                  : 'Leva menos de um minuto. É grátis.'}
+                  ? t('Entre para continuar sua jornada de estudos.', 'Sign in to continue your study journey.')
+                  : t('Leva menos de um minuto. É grátis.', 'It takes less than a minute. It\'s free.')}
               </p>
 
               <Tabs value={authView} onValueChange={(v) => setAuthView(v as AuthView)} className="w-full">
                 <TabsList className="mb-7 grid h-11 w-full grid-cols-2 rounded-xl border border-border bg-muted/60 p-1">
                   <TabsTrigger value="login" className="rounded-lg text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-                    Entrar
+                    {t('Entrar', 'Sign in')}
                   </TabsTrigger>
                   <TabsTrigger value="signup" className="rounded-lg text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-                    Criar conta
+                    {t('Criar conta', 'Sign up')}
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="login" className="mt-0">
                   <form onSubmit={handleLogin} className="space-y-5">
                     <Field id="login-email" label="Email" icon={Mail}>
-                      <Input id="login-email" type="email" autoComplete="email" placeholder="seu@email.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className={INPUT} />
+                      <Input id="login-email" type="email" autoComplete="email" placeholder={t('seu@email.com', 'you@email.com')} value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className={INPUT} />
                     </Field>
                     <Field
                       id="login-password"
-                      label="Senha"
+                      label={t('Senha', 'Password')}
                       icon={Lock}
                       aside={
                         <button type="button" onClick={() => setAuthView('forgot')} className="mb-2 text-xs font-medium text-primary transition-colors hover:text-foreground">
-                          Esqueceu a senha?
+                          {t('Esqueceu a senha?', 'Forgot password?')}
                         </button>
                       }
                     >
@@ -349,29 +357,29 @@ export default function Auth() {
                     </Field>
                     <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
                       {isLoading && spinner}
-                      {isLoading ? 'Entrando...' : 'Entrar na plataforma'}
+                      {isLoading ? t('Entrando...', 'Signing in...') : t('Entrar na plataforma', 'Sign in')}
                     </Button>
                   </form>
                 </TabsContent>
 
                 <TabsContent value="signup" className="mt-0">
                   <form onSubmit={handleSignup} className="space-y-5">
-                    <Field id="signup-name" label="Nome" icon={User}>
-                      <Input id="signup-name" type="text" autoComplete="name" placeholder="Seu nome" value={signupName} onChange={(e) => setSignupName(e.target.value)} required className={INPUT} />
+                    <Field id="signup-name" label={t('Nome', 'Name')} icon={User}>
+                      <Input id="signup-name" type="text" autoComplete="name" placeholder={t('Seu nome', 'Your name')} value={signupName} onChange={(e) => setSignupName(e.target.value)} required className={INPUT} />
                     </Field>
                     <Field id="signup-email" label="Email" icon={Mail}>
-                      <Input id="signup-email" type="email" autoComplete="email" placeholder="seu@email.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className={INPUT} />
+                      <Input id="signup-email" type="email" autoComplete="email" placeholder={t('seu@email.com', 'you@email.com')} value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required className={INPUT} />
                     </Field>
-                    <Field id="signup-password" label="Senha" icon={Lock} hint="Inclua maiúscula, minúscula, número e caractere especial.">
-                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="Mín. 8 caracteres" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} className={INPUT} />
+                    <Field id="signup-password" label={t('Senha', 'Password')} icon={Lock} hint={t('Inclua maiúscula, minúscula, número e caractere especial.', 'Include uppercase, lowercase, a number and a special character.')}>
+                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder={t('Mín. 8 caracteres', 'Min. 8 characters')} value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={8} className={INPUT} />
                       {passwordToggle}
                     </Field>
                     <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
                       {isLoading && spinner}
-                      {isLoading ? 'Criando conta...' : 'Criar minha conta'}
+                      {isLoading ? t('Criando conta...', 'Creating account...') : t('Criar minha conta', 'Create my account')}
                     </Button>
                     <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-success" /> Seus dados ficam protegidos e só você tem acesso.
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success" /> {t('Seus dados ficam protegidos e só você tem acesso.', 'Your data stays protected and only you can access it.')}
                     </p>
                   </form>
                 </TabsContent>
@@ -382,7 +390,7 @@ export default function Auth() {
                   <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase tracking-widest">
-                  <span className="bg-background px-3 text-muted-foreground">ou</span>
+                  <span className="bg-background px-3 text-muted-foreground">{t('ou', 'or')}</span>
                 </div>
               </div>
 
@@ -396,10 +404,10 @@ export default function Auth() {
                 }}
               >
                 <UserCheck className="h-4 w-4" />
-                Explorar como visitante
+                {t('Explorar como visitante', 'Explore as a guest')}
               </Button>
               <p className="mt-3 text-center text-xs text-muted-foreground">
-                Acesse todas as telas em modo demonstração.
+                {t('Acesse todas as telas em modo demonstração.', 'Try every screen in demo mode.')}
               </p>
             </div>
           )}

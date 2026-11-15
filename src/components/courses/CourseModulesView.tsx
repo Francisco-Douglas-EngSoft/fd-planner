@@ -1164,6 +1164,14 @@ export function CourseModulesView({ course, onModuleUpdate }: CourseModulesViewP
         .eq('id', subModule.module_id);
 
       if (!moduleError) {
+        const parentModule = modules.find(m => m.id === subModule.module_id);
+        if (parentModule && !parentModule.is_completed) {
+          window.__lovableEvents?.track?.('project.course_module_completed', {
+            source: 'all_submodules',
+            module_hours: updatedSubModulesForModule.reduce((sum, sm) => sum + (sm.hours || 0), 0),
+            has_submodules: true,
+          });
+        }
         updatedModules = modules.map(m =>
           m.id === subModule.module_id
             ? { ...m, is_completed: true, completed_at: new Date().toISOString() }
@@ -1300,6 +1308,14 @@ export function CourseModulesView({ course, onModuleUpdate }: CourseModulesViewP
         variant: 'destructive',
       });
       return;
+    }
+
+    if (newCompleted) {
+      window.__lovableEvents?.track?.('project.course_module_completed', {
+        source: 'course_list',
+        module_hours: subs.length > 0 ? subs.reduce((sum, s) => sum + (s.hours || 0), 0) : module.hours || 0,
+        has_submodules: subs.length > 0,
+      });
     }
     
     // Recalculate course completed hours with the updated state

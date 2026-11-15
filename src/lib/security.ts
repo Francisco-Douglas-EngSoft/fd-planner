@@ -1,3 +1,4 @@
+import { tr } from '@/i18n';
 /**
  * Security Utilities Module
  * Provides various security-related helper functions
@@ -198,7 +199,7 @@ export function validatePasswordStrength(password: string): {
   if (password.length >= 8) {
     score += 1;
   } else {
-    errors.push('Mínimo de 8 caracteres');
+    errors.push(tr('Mínimo de 8 caracteres', 'At least 8 characters'));
   }
   
   if (password.length >= 12) score += 1;
@@ -206,25 +207,25 @@ export function validatePasswordStrength(password: string): {
   if (/[A-Z]/.test(password)) {
     score += 1;
   } else {
-    errors.push('Pelo menos uma letra maiúscula');
+    errors.push(tr('Pelo menos uma letra maiúscula', 'At least one uppercase letter'));
   }
   
   if (/[a-z]/.test(password)) {
     score += 1;
   } else {
-    errors.push('Pelo menos uma letra minúscula');
+    errors.push(tr('Pelo menos uma letra minúscula', 'At least one lowercase letter'));
   }
   
   if (/[0-9]/.test(password)) {
     score += 1;
   } else {
-    errors.push('Pelo menos um número');
+    errors.push(tr('Pelo menos um número', 'At least one number'));
   }
   
   if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     score += 1;
   } else {
-    errors.push('Pelo menos um caractere especial');
+    errors.push(tr('Pelo menos um caractere especial', 'At least one special character'));
   }
   
   return {

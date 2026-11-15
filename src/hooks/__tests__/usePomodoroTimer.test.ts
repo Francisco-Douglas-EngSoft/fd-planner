@@ -4,7 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 // Mock Supabase — the timer talks to auth.getUser() when a session finishes.
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
   },
 }));
 vi.mock("@/hooks/useRealtimeFocusSessions", () => ({
@@ -16,11 +16,13 @@ vi.mock("@/lib/offlineFocusQueue", () => ({
 }));
 
 import { usePomodoroTimer } from "@/hooks/usePomodoroTimer";
+import { enqueueFocusSession } from "@/lib/offlineFocusQueue";
 
 describe("usePomodoroTimer", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
+    vi.mocked(enqueueFocusSession).mockClear();
   });
 
   it("inicia com valores padrão de work e sem timer rodando", () => {
@@ -64,5 +66,39 @@ describe("usePomodoroTimer", () => {
     );
     const saved = JSON.parse(localStorage.getItem("fdplanner_pomodoro_presets") ?? "[]");
     expect(saved.some((p: { name: string }) => p.name === "Estudo Intenso")).toBe(true);
+  });
+
+  it("escolher um preset define a duração do foco pelo preset", () => {
+    const { result } = renderHook(() => usePomodoroTimer());
+    const deepWork = result.current.builtInPresets.find((p) => p.name === "Deep Work")!;
+    act(() => result.current.changePreset(deepWork));
+    expect(result.current.timeLeft).toBe(50 * 60);
+    expect(result.current.customTotalTime).toBe(50 * 60);
+    expect(result.current.preset.name).toBe("Deep Work");
+  });
+
+  it("o tempo estudado com preset é salvo como sessão de foco, sem contar a pausa", async () => {
+    const { result } = renderHook(() => usePomodoroTimer());
+    act(() => result.current.setSelectedCourse("course-1"));
+    const classic = result.current.builtInPresets.find((p) => p.name === "Pomodoro Clássico")!;
+    act(() => result.current.changePreset(classic));
+
+    act(() => result.current.toggleTimer()); // inicia
+    act(() => vi.advanceTimersByTime(10 * 60 * 1000)); // 10 min estudando
+    act(() => result.current.toggleTimer()); // pausa
+    act(() => vi.advanceTimersByTime(30 * 60 * 1000)); // 30 min parado
+    act(() => result.current.toggleTimer()); // retoma
+    act(() => vi.advanceTimersByTime(5 * 60 * 1000)); // +5 min
+
+    await act(async () => {
+      await result.current.stopAndSave();
+    });
+
+    expect(enqueueFocusSession).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(enqueueFocusSession).mock.calls[0][0]).toMatchObject({
+      course_id: "course-1",
+      duration_minutes: 15,
+      session_type: "work",
+    });
   });
 });

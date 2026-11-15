@@ -2,9 +2,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Eye, LogIn, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useI18n } from '@/i18n';
 
 export function GuestModeBanner() {
   const { isGuest, user, exitGuestMode } = useAuth();
+  const { t } = useI18n();
 
   // Only show banner if in guest mode and not logged in
   if (!isGuest || user) return null;
@@ -15,18 +17,18 @@ export function GuestModeBanner() {
         <div className="flex items-center gap-2 text-sm">
           <Eye className="h-4 w-4" />
           <span className="hidden sm:inline">
-            <strong>Modo Visitante:</strong> Você está explorando a plataforma. Suas ações não serão salvas.
+            <strong>{t('Modo Visitante:', 'Guest Mode:')}</strong> {t('Você está explorando a plataforma. Suas ações não serão salvas.', "You're exploring the platform. Your actions won't be saved.")}
           </span>
           <span className="sm:hidden">
-            <strong>Modo Visitante</strong> - Somente leitura
+            <strong>{t('Modo Visitante', 'Guest Mode')}</strong> - {t('Somente leitura', 'Read only')}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Link to="/auth">
             <Button size="sm" variant="secondary" className="gap-1 text-xs h-7">
               <LogIn className="h-3 w-3" />
-              <span className="hidden sm:inline">Criar Conta</span>
-              <span className="sm:hidden">Entrar</span>
+              <span className="hidden sm:inline">{t('Criar Conta', 'Sign Up')}</span>
+              <span className="sm:hidden">{t('Entrar', 'Sign in')}</span>
             </Button>
           </Link>
           <Button
