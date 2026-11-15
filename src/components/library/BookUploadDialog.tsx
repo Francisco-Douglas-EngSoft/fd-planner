@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { checkUploadFit, formatBytes, STORAGE_BUDGET_BYTES } from "@/lib/libraryStorage";
+import { checkUploadFit, formatBytes, formatPercent, storageUsagePercent, STORAGE_LIMIT_BYTES } from "@/lib/libraryStorage";
 
 const MAX_MB = 50;
 const ACCEPTED = ["pdf", "epub"];
@@ -54,7 +54,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
-  /** Espaço já usado no Storage (bytes), para avisar da meta de 800 MB. */
+  /** Espaço já usado no Storage (bytes), para avisar quando o servidor estiver quase cheio. */
   usedBytes: number;
   categories: string[];
   onCreate: (payload: Omit<BookInsert, "user_id">) => Promise<unknown>;
@@ -141,7 +141,7 @@ export function BookUploadDialog({ open, onOpenChange, userId, usedBytes, catego
       return;
     }
     if (fit.blocked) {
-      toast.error("Esse envio passaria do limite de 1 GB do Supabase. Remova livros ou arquivos antes.");
+      toast.error(`Esse envio passaria do limite de ${formatBytes(STORAGE_LIMIT_BYTES)}. Remova livros ou arquivos antes.`);
       return;
     }
     setRunning(true);
@@ -331,14 +331,14 @@ export function BookUploadDialog({ open, onOpenChange, userId, usedBytes, catego
           >
             <p className="tabular-nums">
               Este envio: <strong>{formatBytes(incomingBytes)}</strong> · depois dele:{" "}
-              <strong>{formatBytes(fit.after)}</strong> de {formatBytes(STORAGE_BUDGET_BYTES)}
+              <strong>{formatBytes(fit.after)}</strong> de {formatBytes(STORAGE_LIMIT_BYTES)} ({formatPercent(storageUsagePercent(fit.after))})
             </p>
             {fit.blocked ? (
-              <p className="text-destructive font-medium">Passa do limite real de 1 GB — o Supabase recusaria. Libere espaço antes.</p>
+              <p className="text-destructive font-medium">Passa do limite de {formatBytes(STORAGE_LIMIT_BYTES)} — o envio seria recusado. Libere espaço antes.</p>
             ) : fit.warn ? (
-              <p className="text-warning font-medium">Atenção: você vai passar da sua meta de 800 MB. Ainda dá para enviar.</p>
+              <p className="text-warning font-medium">Atenção: o servidor vai ficar {formatPercent(storageUsagePercent(fit.after))} cheio. Ainda dá para enviar.</p>
             ) : (
-              <p className="text-muted-foreground">Dentro da sua meta. Restarão {formatBytes(STORAGE_BUDGET_BYTES - fit.after)}.</p>
+              <p className="text-muted-foreground">Cabe no servidor. Restarão {formatBytes(STORAGE_LIMIT_BYTES - fit.after)} livres.</p>
             )}
           </div>
         )}

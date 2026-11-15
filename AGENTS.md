@@ -25,3 +25,8 @@
 - Dashboard "Horas Restantes" uses `computeRemainingHours` in src/lib/studyHours.ts (tested) — why: completed courses and over-studied courses must never inflate what is left.
 - Dashboard "Ritmo de Estudos" buckets come from the pure `buildStudyRhythm` in src/lib/studyRhythm.ts (tested; weeks start Monday; focus = work sessions, modules = completed module hours) — why: day and week views must group the same data the same way.
 - Focus analytics events (`project.focus_session_started/completed`, `project.focus_preset_selected`) are emitted at their call sites in usePomodoroTimer/Focus and catalogued in `.lovable/events.json`; custom preset names are sent as `custom` — why: user-typed names are free text and must not reach analytics.
+
+<!-- AGENT-MEMORY:BEGIN -->
+- Library reading forecast (books per week/month/quarter/semester/year and the per-book start/deadline schedule) comes from the pure `src/lib/readingForecast.ts` (tested); the PDF export in `src/lib/readingReportPdf.ts` loads jsPDF on demand — why: the screen, the PDF and the tests must use the same queue order and daily-capacity rules.
+- English UI = `t('pt','en')` where already written plus a DOM translator (`src/i18n/domTranslator.ts`, pure rules in `translateText.ts`, tested) that swaps rendered Portuguese using `src/i18n/dictionary.en.json`, loaded only when English is on; editors, inputs, the PDF text layer and `translate="no"`/`data-no-translate` areas are skipped. After adding UI text, run `scripts/i18n/extract.cjs` → `translate.mjs` → `build-dictionary.mjs` — why: 4,000+ hard-coded strings in 360 files get translated without rewriting every screen.
+<!-- AGENT-MEMORY:END -->

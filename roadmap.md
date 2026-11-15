@@ -10,4 +10,7 @@
 - [ ] Rastrear cada módulo marcado como concluído
 - [ ] Dashboard: progresso da meta semanal de módulos concluídos
 - [ ] Ritmo de Estudos: filtro por curso e comparação entre cursos
-- [ ] Idioma Inglês em todo o sistema (Landing, login, menu, Painel e demais páginas) com seletor sempre disponível
+- [x] Idioma Inglês em todo o sistema (Landing, login, menu, Painel e demais páginas) com seletor sempre disponível
+- [x] Biblioteca: relatório profissional de Metas de Leitura (previsão de livros por semana/mês/trimestre/semestre/ano, livro, início e prazo)
+- [x] Leitor no celular: sumário escondido por padrão, página em tela cheia
+- [x] Biblioteca: meta de armazenamento usado = 1,8 GB

@@ -306,7 +306,7 @@ export default function Library() {
         <StatTile icon={CheckCircle2} label="Concluídos" value={String(stats.completed)} />
       </div>
 
-      {/* Espaço usado: meta de 800 MB (limite real 1 GB) */}
+      {/* Espaço usado: meta e limite definidos em libraryStorage.ts */}
       <StorageMeter
         total={storage.total}
         byBucket={storage.byBucket}

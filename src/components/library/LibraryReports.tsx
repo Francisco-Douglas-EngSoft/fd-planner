@@ -40,6 +40,7 @@ import {
   computePeriods,
   isoDate,
 } from "@/lib/libraryGoals";
+import { ReadingForecastReport } from "@/components/library/ReadingForecastReport";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -691,6 +692,16 @@ export function LibraryReports({ books }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Previsão: livros por período + cronograma por livro */}
+      <ReadingForecastReport
+        books={books}
+        sessions={sessions}
+        dailyPages={effectiveDailyPages}
+        dailyMinutes={dailyMinutes}
+        planStart={planStart}
+        planEnd={planEnd}
+      />
 
       {/* Gráficos */}
       <div className="grid gap-3 sm:gap-4 xl:grid-cols-2">

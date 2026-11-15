@@ -1,6 +1,6 @@
 /**
  * Gerenciador de armazenamento da biblioteca.
- * Mostra o uso de tudo no Storage (meta 800 MB / limite 1 GB), os maiores livros,
+ * Mostra o uso de tudo no Storage (capacidade e limite em libraryStorage.ts), os maiores livros,
  * arquivos órfãos e os livros guardados no aparelho.
  */
 import { useState } from "react";
@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { libraryService, type BookRow } from "@/services/libraryService";
 import { useStorageUsage } from "@/hooks/useStorageUsage";
-import { BUCKET_LABELS, STORAGE_BUDGET_BYTES, formatBytes } from "@/lib/libraryStorage";
+import { BUCKET_LABELS, STORAGE_LIMIT_BYTES, formatBytes, formatPercent, storageUsagePercent } from "@/lib/libraryStorage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,7 +86,7 @@ export function StorageManager({ books, onRefreshBooks, onOpenBook }: Props) {
           ))}
           <div className="flex justify-between border-t pt-1.5 font-semibold">
             <span>Total</span>
-            <span className="tabular-nums">{formatBytes(storage.total)} / {formatBytes(STORAGE_BUDGET_BYTES)}</span>
+            <span className="tabular-nums">{formatBytes(storage.total)} / {formatBytes(STORAGE_LIMIT_BYTES)} ({formatPercent(storageUsagePercent(storage.total))})</span>
           </div>
           {storage.estimated && (
             <p className="text-[11px] text-muted-foreground">Sem conexão: valor estimado pelos livros cadastrados.</p>

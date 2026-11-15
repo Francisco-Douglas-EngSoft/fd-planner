@@ -87,7 +87,8 @@ export default function Reader() {
   const [appearance, setAppearance] = useReaderAppearance();
   const [loadPct, setLoadPct] = useState<number | null>(null);
 
-  const [showThumbs, setShowThumbs] = useState(true);
+  // No celular o sumário começa fechado (a página ocupa a tela toda) e abre por cima da leitura.
+  const [showThumbs, setShowThumbs] = useState(() => typeof window === "undefined" || window.innerWidth >= 768);
   const [leftPanel, setLeftPanel] = useState<"outline" | "thumbs">("outline");
   const [sidePanel, setSidePanel] = useState<"notes" | "search" | "highlights" | "notebook">("notes");
 
@@ -819,6 +820,11 @@ export default function Reader() {
     });
   };
 
+  const selectFromPanel = (target: number) => {
+    goToPage(target);
+    if (isMobile) setShowThumbs(false);
+  };
+
   const renderLeftPanel = (fullscreen: boolean) => (
     <Card className={`p-0 flex flex-col overflow-hidden ${fullscreen ? "h-full" : "max-h-[85vh]"}`}>
       <div className="grid grid-cols-2 border-b border-border/60 shrink-0">
@@ -843,9 +849,9 @@ export default function Reader() {
       </div>
       <div className={`flex-1 min-h-0 ${leftPanel === "outline" ? "flex flex-col" : "overflow-y-auto"}`}>
         {leftPanel === "outline" ? (
-          <PdfOutline pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={goToPage} />
+          <PdfOutline pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={selectFromPanel} />
         ) : (
-          <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={goToPage} />
+          <PdfThumbnails pdf={pdf} totalPages={totalPages} currentPage={page} onSelect={selectFromPanel} />
         )}
       </div>
     </Card>
@@ -959,16 +965,31 @@ export default function Reader() {
           }}
         >
           {/* Sumário / Miniaturas */}
-          {showThumbs && !isFullscreen ? (
-            <div className={isMobile ? "max-h-[45vh] flex flex-col min-h-0" : "contents"}>{renderLeftPanel(false)}</div>
-          ) : isMobile ? null : (
+          {isMobile ? null : showThumbs && !isFullscreen ? (
+            <div className="contents">{renderLeftPanel(false)}</div>
+          ) : (
             <div />
           )}
 
           {/* Viewer */}
           <div ref={viewerRef} className={`min-w-0 bg-background ${pseudoFs ? "fixed inset-0 z-[100]" : ""} ${isFullscreen ? `h-[100dvh] w-screen flex ${isMobile ? "flex-col" : "flex-row"} p-2 sm:p-3 gap-2 sm:gap-3` : "space-y-3"}`}>
-            {isFullscreen && showThumbs && (
-              <div className={isMobile ? "w-full shrink-0 h-[35vh] min-h-0" : "w-[250px] shrink-0 h-full min-h-0"}>{renderLeftPanel(true)}</div>
+            {isFullscreen && showThumbs && !isMobile && (
+              <div className="w-[250px] shrink-0 h-full min-h-0">{renderLeftPanel(true)}</div>
+            )}
+            {/* Celular: sumário em gaveta por cima da página; fecha ao escolher um item ou tocar fora */}
+            {isMobile && showThumbs && isPdf && (
+              <div className="fixed inset-0 z-[120] flex" role="dialog" aria-modal="true" aria-label="Sumário">
+                <div className="w-[85%] max-w-[320px] h-full bg-background shadow-2xl flex flex-col min-h-0">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 shrink-0">
+                    <span className="text-sm font-medium">Sumário</span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowThumbs(false)} aria-label="Fechar sumário">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex-1 min-h-0">{renderLeftPanel(true)}</div>
+                </div>
+                <button type="button" className="flex-1 bg-background/70 backdrop-blur-[1px]" onClick={() => setShowThumbs(false)} aria-label="Fechar sumário" />
+              </div>
             )}
             <div className={isFullscreen ? "flex-1 min-w-0 flex flex-col gap-3 min-h-0" : "space-y-3"}>
             {/* Toolbar (flutuante e arrastável em tela cheia) */}

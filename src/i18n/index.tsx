@@ -9,6 +9,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { enUS, ptBR, type Locale } from 'date-fns/locale';
+import { loadDictionary, startDomTranslation, stopDomTranslation } from './domTranslator';
 
 export type Language = 'pt' | 'en';
 
@@ -32,6 +33,29 @@ function detectInitialLanguage(): Language {
 }
 
 let currentLanguage: Language = detectInitialLanguage();
+
+/*
+ * Inglês salvo: baixa o dicionário já na abertura e esconde a página por no máximo 800 ms,
+ * para não piscar em português antes da tradução.
+ */
+const PENDING_CLASS = 'i18n-pending';
+if (typeof document !== 'undefined' && currentLanguage === 'en') {
+  document.documentElement.classList.add(PENDING_CLASS);
+  window.setTimeout(() => document.documentElement.classList.remove(PENDING_CLASS), 800);
+  void loadDictionary().catch(() => undefined);
+}
+
+/** Liga/desliga a tradução da tela inteira conforme o idioma. */
+function applyDomLanguage(lang: Language) {
+  if (lang === 'en') {
+    startDomTranslation()
+      .catch(() => undefined)
+      .finally(() => document.documentElement.classList.remove(PENDING_CLASS));
+  } else {
+    stopDomTranslation();
+    document.documentElement.classList.remove(PENDING_CLASS);
+  }
+}
 
 /** Idioma atual (para código fora de componentes). */
 export function getLanguage(): Language {
@@ -69,6 +93,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     currentLanguage = lang;
     document.documentElement.lang = localeTagFor(lang);
+    applyDomLanguage(lang);
   }, [lang]);
 
   const setLang = useCallback((next: Language) => {

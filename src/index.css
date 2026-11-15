@@ -1515,3 +1515,8 @@ select,
     box-shadow: 0 0 0 4px hsl(var(--primary) / 0.12);
   }
 }
+
+/* Idioma inglês carregando: evita piscar o texto em português (no máximo 800 ms). */
+html.i18n-pending body {
+  visibility: hidden;
+}

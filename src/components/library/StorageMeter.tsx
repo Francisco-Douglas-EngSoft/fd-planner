@@ -3,10 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   BUCKET_LABELS,
-  STORAGE_BUDGET_BYTES,
   STORAGE_LIMIT_BYTES,
   formatBytes,
+  formatPercent,
   storageLevel,
+  storageUsagePercent,
 } from "@/lib/libraryStorage";
 import { cn } from "@/lib/utils";
 
@@ -17,24 +18,23 @@ interface Props {
   onOpenDetails?: () => void;
 }
 
-/** Barra "X MB de 800 MB" com o limite real de 1 GB marcado. */
+/** Barra com a porcentagem real usada do espaço do servidor (2 GB). */
 export function StorageMeter({ total, byBucket, estimated, onOpenDetails }: Props) {
   const level = storageLevel(total);
-  const pctOfLimit = Math.min(100, (total / STORAGE_LIMIT_BYTES) * 100);
-  const budgetMark = (STORAGE_BUDGET_BYTES / STORAGE_LIMIT_BYTES) * 100;
-  const remaining = STORAGE_BUDGET_BYTES - total;
+  const pct = storageUsagePercent(total);
+  const free = STORAGE_LIMIT_BYTES - total;
 
   const barColor =
     level === "ok" ? "bg-primary" : level === "near" ? "bg-warning" : "bg-destructive";
 
   const message =
     level === "over-limit"
-      ? "Limite de 1 GB do Supabase ultrapassado — novos envios vão falhar."
+      ? `Servidor cheio: ${formatBytes(-free)} acima de ${formatBytes(STORAGE_LIMIT_BYTES)} — novos envios vão falhar.`
       : level === "over-budget"
-        ? `Você passou da sua meta em ${formatBytes(-remaining)}.`
+        ? `Servidor quase cheio: restam só ${formatBytes(free)} livres.`
         : level === "near"
-          ? `Quase na meta: restam ${formatBytes(remaining)}.`
-          : `Restam ${formatBytes(remaining)} da sua meta.`;
+          ? `Atenção: restam ${formatBytes(free)} livres no servidor.`
+          : `Restam ${formatBytes(free)} livres no servidor.`;
 
   const buckets = Object.entries(byBucket).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
 
@@ -49,7 +49,10 @@ export function StorageMeter({ total, byBucket, estimated, onOpenDetails }: Prop
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Armazenamento usado {estimated && "(estimado)"}</p>
               <p className="text-lg sm:text-xl font-bold leading-tight tabular-nums">
-                {formatBytes(total)} <span className="text-sm font-medium text-muted-foreground">de {formatBytes(STORAGE_BUDGET_BYTES)}</span>
+                {formatPercent(pct)}{" "}
+                <span className="text-sm font-medium text-muted-foreground">
+                  · {formatBytes(total)} de {formatBytes(STORAGE_LIMIT_BYTES)}
+                </span>
               </p>
             </div>
           </div>
@@ -58,14 +61,13 @@ export function StorageMeter({ total, byBucket, estimated, onOpenDetails }: Prop
           )}
         </div>
 
-        <div className="relative h-2.5 w-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={Math.round(total / (1024 * 1024))} aria-valuemin={0} aria-valuemax={1024} aria-label="Espaço usado em MB">
-          <div className={cn("h-full transition-all", barColor)} style={{ width: `${pctOfLimit}%` }} />
-          <div className="absolute inset-y-0 w-0.5 bg-foreground/60" style={{ left: `${budgetMark}%` }} title="Meta de 800 MB" />
+        <div className="relative h-2.5 w-full bg-muted overflow-hidden" role="progressbar" aria-valuenow={Math.round(pct * 10) / 10} aria-valuemin={0} aria-valuemax={100} aria-label="Porcentagem usada do servidor">
+          <div className={cn("h-full transition-all", barColor)} style={{ width: `${pct}%` }} />
         </div>
-        <div className="relative h-3.5 text-[10px] text-muted-foreground tabular-nums">
-          <span className="absolute left-0">0</span>
-          <span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${budgetMark}%` }}>meta 800 MB</span>
-          <span className="absolute right-0">1 GB</span>
+        <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
+          <span>0%</span>
+          <span>50%</span>
+          <span>100% · {formatBytes(STORAGE_LIMIT_BYTES)}</span>
         </div>
 
         <p className={cn("text-xs flex items-center gap-1.5", level === "ok" ? "text-muted-foreground" : level === "near" ? "text-warning" : "text-destructive")}>

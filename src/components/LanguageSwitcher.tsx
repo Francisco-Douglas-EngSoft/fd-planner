@@ -1,13 +1,6 @@
-import { Check, Globe } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LANGUAGES, useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 
@@ -18,34 +11,31 @@ interface LanguageSwitcherProps {
   align?: 'start' | 'end' | 'center';
 }
 
+/** Um clique troca o idioma na hora (Português ⇄ English). */
 export function LanguageSwitcher({ variant = 'compact', className, align = 'end' }: LanguageSwitcherProps) {
-  const { lang, setLang, t } = useI18n();
+  const { lang, setLang } = useI18n();
   const current = LANGUAGES.find((l) => l.value === lang) ?? LANGUAGES[0];
+  const next = LANGUAGES.find((l) => l.value !== lang) ?? LANGUAGES[0];
+  const hint = next.value === 'en' ? 'Switch to English' : 'Mudar para Português';
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Tooltip>
+      <TooltipTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
           className={cn('gap-1.5 rounded-xl px-2.5', className)}
-          aria-label={t('Escolher idioma', 'Choose language')}
+          onClick={() => setLang(next.value)}
+          aria-label={hint}
+          translate="no"
         >
           <Globe className="h-4 w-4" />
           <span className="text-xs font-semibold">{variant === 'full' ? current.label : current.short}</span>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="min-w-[180px]">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Idioma', 'Language')}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {LANGUAGES.map((l) => (
-          <DropdownMenuItem key={l.value} onClick={() => setLang(l.value)} className="gap-2">
-            <span aria-hidden>{l.flag}</span>
-            <span className="flex-1">{l.label}</span>
-            {l.value === lang && <Check className="h-4 w-4 text-primary" />}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </TooltipTrigger>
+      <TooltipContent side={align === 'start' ? 'right' : 'bottom'} translate="no">
+        {hint}
+      </TooltipContent>
+    </Tooltip>
   );
 }
