@@ -13,6 +13,22 @@ const course = (id: string, total: number, completed = 0) => ({
 });
 
 describe('computePlanningTotals', () => {
+  it('plano por módulo conta as horas dos módulos concluídos', () => {
+    const plans: PlanLike[] = [{
+      id: 'm1',
+      total_hours: 0,
+      study_plan_courses: [],
+      study_plan_modules: [
+        { module_hours: 30, is_completed: true },
+        { module_hours: 70, is_completed: false },
+      ],
+    }];
+    const r = computePlanningTotals(plans);
+    expect(r.totalHours).toBe(100);
+    expect(r.completedHours).toBe(30);
+    expect(r.remainingHours).toBe(70);
+  });
+
   it('soma as horas dos cursos vinculados', () => {
     const plans: PlanLike[] = [
       { id: 'p1', study_plan_courses: [course('c1', 40, 10), course('c2', 60, 20)] },

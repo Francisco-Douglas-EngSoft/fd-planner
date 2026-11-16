@@ -131,6 +131,25 @@ export function DailyProgressReport({ planId, planName, dailyHours, studyDays }:
 
       if (planError) throw planError;
 
+      // Plano "Por Módulo": os cursos estão nas linhas de study_plan_modules.
+      let planCourseRows: any[] = planCourses || [];
+      if (planCourseRows.length === 0) {
+        const { data: modRows } = await (supabase.from as any)('study_plan_modules')
+          .select('course_id')
+          .eq('study_plan_id', planId);
+        const ids = Array.from(new Set(((modRows || []) as { course_id: string | null }[])
+          .map((r) => r.course_id).filter(Boolean))) as string[];
+        if (ids.length > 0) {
+          const { data: courseRows } = await supabase
+            .from('courses')
+            .select('id, name, total_hours, completed_hours')
+            .in('id', ids);
+          planCourseRows = (courseRows || []).map((c) => ({
+            course_id: c.id, weekly_goal_hours: 0, custom_daily_hours: null, courses: c,
+          }));
+        }
+      }
+
       // Fetch daily progress for this week
       const { data: progressData, error: progressError } = await supabase
         .from('daily_study_progress')
@@ -142,7 +161,7 @@ export function DailyProgressReport({ planId, planName, dailyHours, studyDays }:
 
       if (progressError) throw progressError;
 
-      const coursesWithProgress: CourseWithProgress[] = (planCourses || []).map((pc: any) => {
+      const coursesWithProgress: CourseWithProgress[] = planCourseRows.map((pc: any) => {
         const course = Array.isArray(pc.courses) ? pc.courses[0] : pc.courses;
         return {
           id: course?.id || pc.course_id,

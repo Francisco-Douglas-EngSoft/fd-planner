@@ -28,6 +28,9 @@ import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
+import { PLAN_MODULES_SELECT, type PlanModuleRow } from '@/lib/modulePlanAdapter';
+import { enrichPlanModules, completeCourseModule } from '@/lib/modulePlanData';
+import { currentModuleRow, modulePlanProgress, moduleCourseSchedule, isModulePlanActiveToday, planModuleRows } from '@/lib/focusModulePlan';
 import { usePomodoroTimer } from '@/hooks/usePomodoroTimer';
 import { useFocusSounds } from '@/hooks/useFocusSounds';
 import { TimerSettingsDialog } from '@/components/focus/TimerSettingsDialog';
@@ -72,8 +75,16 @@ interface StudyPlan {
   total_hours: number;
   planning_category: string;
   semester?: string | null;
+  planning_type?: string | null;
   study_plan_courses?: StudyPlanCourse[];
+  study_plan_modules?: PlanModuleRow[];
 }
+
+// Plano "Por Módulo": os cursos vêm de study_plan_modules, não de study_plan_courses.
+const isModuleBased = (plan?: StudyPlan | null) =>
+  !!plan && (plan.study_plan_courses?.length ?? 0) === 0 && (plan.study_plan_modules?.length ?? 0) > 0;
+const planItemCount = (plan: StudyPlan) =>
+  isModuleBased(plan) ? plan.study_plan_modules!.length : plan.study_plan_courses?.length || 0;
 
 interface StudyPlanCourse {
   id: string;
@@ -439,7 +450,8 @@ export default function Focus() {
           study_plan_courses (
             *,
             courses (id, name, total_hours, completed_hours, category)
-          )
+          ),
+          ${PLAN_MODULES_SELECT}
         `)
         .eq('user_id', user.id)
         .order('start_date', { ascending: false }),
@@ -459,7 +471,14 @@ export default function Focus() {
     }
     
     if (data) {
-      setStudyPlans(data as any);
+      // Nomes dos cursos e conclusão atual dos módulos (planos "Por Módulo").
+      let plansList = data as unknown as StudyPlan[];
+      try {
+        plansList = await enrichPlanModules(plansList);
+      } catch (e) {
+        console.error('Error loading plan modules:', e);
+      }
+      setStudyPlans(plansList);
       
       // Filtrar planos ativos hoje
       const today = new Date().toISOString().split('T')[0];
@@ -477,7 +496,16 @@ export default function Focus() {
         });
       }
       
-      const activePlans = data.filter(plan => {
+      const activePlans = plansList.filter(plan => {
+        if (isModuleBased(plan)) {
+          if (!isModulePlanActiveToday(plan, today, todayDayId)) return false;
+          const goal = (plan.daily_hours || 0) * 60;
+          if (goal <= 0) return true;
+          const planCourseIds = new Set(planModuleRows(plan).map(r => r.course_id).filter(Boolean));
+          let studied = 0;
+          planCourseIds.forEach(id => { studied += studiedMinutesByCourse[id as string] || 0; });
+          return studied < goal;
+        }
         const isInPeriod = plan.start_date <= today && plan.end_date >= today;
         const isStudyDay = plan.study_days?.includes(todayDayId);
         const hasActiveCourses = plan.study_plan_courses?.some(pc => !pc.is_completed);
@@ -511,10 +539,11 @@ export default function Focus() {
       
       // Auto-selecionar primeiro plano ativo ou restaurar do localStorage
       const savedPlan = localStorage.getItem('fdplanner_selected_plan');
-      if (savedPlan && data.some(p => p.id === savedPlan)) {
-        handlePlanChange(savedPlan);
+      // Passa a lista recém-carregada: o estado `studyPlans` ainda é o antigo neste ponto.
+      if (savedPlan && plansList.some(p => p.id === savedPlan)) {
+        handlePlanChange(savedPlan, plansList);
       } else if (activePlans.length > 0 && !selectedPlan) {
-        handlePlanChange(activePlans[0].id);
+        handlePlanChange(activePlans[0].id, plansList);
       }
     }
   };
@@ -598,6 +627,15 @@ export default function Focus() {
     }
   };
 
+  // Plano "Por Módulo" que contém o curso: prefere o planejamento aberto, senão um ativo hoje.
+  const activeModulePlanFor = useCallback((courseId: string): StudyPlan | null => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const has = (p: StudyPlan) => isModuleBased(p) && planModuleRows(p).some(r => r.course_id === courseId);
+    const open = studyPlans.find(p => p.id === selectedPlan);
+    if (open && has(open)) return open;
+    return studyPlans.find(p => has(p) && p.start_date <= todayStr && (!p.end_date || p.end_date >= todayStr)) ?? null;
+  }, [studyPlans, selectedPlan]);
+
   const courseDailyInfo = useMemo(() => {
     if (!selectedCourse) return null;
 
@@ -665,6 +703,26 @@ export default function Focus() {
       };
     }
 
+    // Curso dentro de um plano "Por Módulo" ativo hoje
+    const modPlan = activeModulePlanFor(selectedCourse);
+    if (modPlan) {
+      const sched = moduleCourseSchedule(modPlan, selectedCourse);
+      const todayDayId = dayIdMap[new Date().getDay()];
+      if (sched && (sched.studyDays.length === 0 || sched.studyDays.includes(todayDayId))) {
+        return {
+          dailyHours: sched.dailyHours,
+          dailyMinutes: sched.dailyHours * 60,
+          allocatedHours: 0,
+          planStartDate: sched.planStartDate,
+          planEndDate: sched.planEndDate,
+          planCourseId: undefined,
+          planStudyDays: sched.studyDays,
+          source: 'plan' as const,
+        };
+      }
+      return null;
+    }
+
     // Foco sem plano: meta diária manual por curso (salva no localStorage)
     const manual = Number(manualDailyHours);
     if (!Number.isFinite(manual) || manual <= 0) return null;
@@ -678,13 +736,24 @@ export default function Focus() {
       planStudyDays: [] as string[],
       source: 'manual' as const,
     };
-  }, [selectedCourse, studyPlanCourses, manualDailyHours]);
+  }, [selectedCourse, studyPlanCourses, manualDailyHours, activeModulePlanFor]);
 
   // Pace info: independente de "hoje ser dia de estudo", para sempre exibir o Ritmo do Curso quando houver plano.
   const paceCourseInfo = useMemo(() => {
     if (!selectedCourse) return null;
     const candidates = studyPlanCourses.filter((pc) => pc.course_id === selectedCourse);
-    if (candidates.length === 0) return null;
+    if (candidates.length === 0) {
+      const modPlan = activeModulePlanFor(selectedCourse);
+      const sched = modPlan ? moduleCourseSchedule(modPlan, selectedCourse) : null;
+      if (!sched) return null;
+      return {
+        dailyHours: sched.dailyHours,
+        planStartDate: sched.planStartDate,
+        planEndDate: sched.planEndDate,
+        planCourseId: undefined as string | undefined,
+        planStudyDays: sched.studyDays,
+      };
+    }
 
     const todayTime = new Date().getTime();
     const scored = candidates
@@ -712,13 +781,13 @@ export default function Focus() {
       dailyHours: planDailyHours,
       planStartDate: planCourse.study_plan.start_date,
       planEndDate: planCourse.study_plan.end_date,
-      planCourseId: planCourse.id,
+      planCourseId: planCourse.id as string | undefined,
       planStudyDays:
         (planCourse.study_days && planCourse.study_days.length > 0
           ? planCourse.study_days
           : planCourse.study_plan?.study_days) || [],
     };
-  }, [selectedCourse, studyPlanCourses]);
+  }, [selectedCourse, studyPlanCourses, activeModulePlanFor]);
 
   // Soma horas estudadas neste curso DESDE a data de início do plano (para o Pace Indicator)
   useEffect(() => {
@@ -750,6 +819,7 @@ export default function Focus() {
   const hasPlanForSelectedCourse = useMemo(() => {
     if (!selectedCourse) return false;
     const todayStr = new Date().toISOString().split('T')[0];
+    if (activeModulePlanFor(selectedCourse)) return true;
     return studyPlanCourses.some((pc) => {
       if (pc.course_id !== selectedCourse) return false;
       const plan = pc.study_plan;
@@ -757,7 +827,7 @@ export default function Focus() {
       // Considera apenas planos ainda ativos (hoje dentro do intervalo)
       return plan.start_date <= todayStr && plan.end_date >= todayStr;
     });
-  }, [selectedCourse, studyPlanCourses]);
+  }, [selectedCourse, studyPlanCourses, activeModulePlanFor]);
 
   // Calculate studied and remaining time (including real-time elapsed time)
   const dailyProgressInfo = useMemo(() => {
@@ -992,6 +1062,7 @@ export default function Focus() {
 
   // Get current course from a study plan
   const getCurrentPlanCourse = (plan: StudyPlan): string | null => {
+    if (isModuleBased(plan)) return currentModuleRow(plan)?.course_id ?? null;
     if (!plan.study_plan_courses || plan.study_plan_courses.length === 0) {
       return null;
     }
@@ -1008,7 +1079,7 @@ export default function Focus() {
   };
 
   // Handle plan change
-  const handlePlanChange = (planId: string) => {
+  const handlePlanChange = (planId: string, plansList: StudyPlan[] = studyPlans) => {
     if (isRunning) {
       // Se timer está rodando, não muda o plano
       toast({
@@ -1022,7 +1093,7 @@ export default function Focus() {
     setSelectedPlan(planId);
     localStorage.setItem('fdplanner_selected_plan', planId);
     
-    const plan = studyPlans.find(p => p.id === planId);
+    const plan = plansList.find(p => p.id === planId);
     if (plan) {
       const courseId = getCurrentPlanCourse(plan);
       if (courseId) {
@@ -1649,7 +1720,7 @@ export default function Focus() {
                                 )}
                                 <span className="truncate flex-1">{plan.name}</span>
                                 <Badge variant="outline" className="text-[10px] px-2 py-0 shrink-0 rounded-full">
-                                  {plan.study_plan_courses?.length || 0} cursos
+                                  {planItemCount(plan)} {isModuleBased(plan) ? 'módulos' : 'cursos'}
                                 </Badge>
                               </div>
                             </SelectItem>
@@ -1685,7 +1756,7 @@ export default function Focus() {
                               )}
                               <span className="truncate flex-1">{plan.name}</span>
                               <Badge variant="outline" className="text-[10px] px-2 py-0 shrink-0 rounded-full">
-                                {plan.study_plan_courses?.length || 0}
+                                {planItemCount(plan)}
                               </Badge>
                             </div>
                           </SelectItem>
@@ -1699,8 +1770,10 @@ export default function Focus() {
                     const plan = studyPlans.find(p => p.id === selectedPlan);
                     if (!plan) return null;
                     
-                    const totalHours = plan.total_hours || 0;
-                    const completedHours = plan.study_plan_courses?.reduce(
+                    const moduleBased = isModuleBased(plan);
+                    const modProgress = moduleBased ? modulePlanProgress(plan) : null;
+                    const totalHours = modProgress ? modProgress.totalHours : plan.total_hours || 0;
+                    const completedHours = modProgress ? modProgress.completedHours : plan.study_plan_courses?.reduce(
                       (sum, pc) => sum + (pc.courses?.completed_hours || 0), 0
                     ) || 0;
                     const progressPercent = totalHours > 0 ? (completedHours / totalHours) * 100 : 0;
@@ -1723,6 +1796,125 @@ export default function Focus() {
                           </div>
                         </div>
                         
+                        {/* Module List (planos "Por Módulo") */}
+                        {moduleBased && modProgress && (() => {
+                          const rows = planModuleRows(plan);
+                          const current = currentModuleRow(plan);
+                          return (
+                            <div className="space-y-3">
+                              {current && !current.is_completed && (
+                                <div className="p-4 rounded-xl bg-success/10 border border-success/20">
+                                  <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-success/20">
+                                      <Zap className="h-4 w-4 text-success" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-muted-foreground">Módulo Atual</p>
+                                      <p className="text-sm font-semibold truncate">{current.module_name || 'Módulo'}</p>
+                                      {current.course_name && (
+                                        <p className="text-xs text-muted-foreground truncate">{current.course_name}</p>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+                                      {formatHoursToHMS(Number(current.module_hours || 0))}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors text-sm text-muted-foreground"
+                                onClick={() => {
+                                  const el = document.getElementById('plan-modules-list');
+                                  if (el) el.classList.toggle('hidden');
+                                  const chevron = document.getElementById('plan-modules-chevron');
+                                  if (chevron) chevron.classList.toggle('rotate-180');
+                                }}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4" />
+                                  {modProgress.pendingCount} módulo{modProgress.pendingCount !== 1 ? 's' : ''} pendente{modProgress.pendingCount !== 1 ? 's' : ''} · {modProgress.completedCount} concluído{modProgress.completedCount !== 1 ? 's' : ''}
+                                </span>
+                                <ChevronDown id="plan-modules-chevron" className="h-4 w-4 transition-transform duration-200" />
+                              </button>
+
+                              <div id="plan-modules-list" className="hidden space-y-2 max-h-80 overflow-y-auto">
+                                {rows.map(r => {
+                                  const isCompleted = !!r.is_completed;
+                                  const isCurrent = r.id === current?.id;
+                                  return (
+                                    <div
+                                      key={r.id}
+                                      className={cn(
+                                        "p-3 rounded-xl border transition-all flex items-center gap-3",
+                                        isCompleted
+                                          ? "bg-muted/30 border-muted"
+                                          : isCurrent
+                                          ? "bg-success/10 border-success/20"
+                                          : "bg-card border-border/50 hover:border-primary/20"
+                                      )}
+                                    >
+                                      <Checkbox
+                                        checked={isCompleted}
+                                        disabled={isCompleted || !r.module_id}
+                                        onCheckedChange={async (checked) => {
+                                          if (!checked || !r.module_id) return;
+                                          try {
+                                            await completeCourseModule(r.module_id, 'focus_agenda');
+                                            fetchStudyPlans();
+                                            toast({
+                                              title: "✅ Módulo concluído!",
+                                              description: `${r.module_name || 'Módulo'} foi marcado como concluído.`,
+                                            });
+                                          } catch (e) {
+                                            console.error(e);
+                                            toast({ title: 'Não foi possível concluir o módulo', variant: 'destructive' });
+                                          }
+                                        }}
+                                        className={cn(
+                                          "shrink-0",
+                                          isCompleted && "data-[state=checked]:bg-success data-[state=checked]:border-success"
+                                        )}
+                                      />
+                                      <button
+                                        type="button"
+                                        disabled={!r.course_id}
+                                        onClick={() => {
+                                          if (!r.course_id) return;
+                                          if (isRunning && r.course_id !== selectedCourse) {
+                                            setPendingCourseId(r.course_id);
+                                            setShowCourseChangeDialog(true);
+                                          } else {
+                                            setCurrentPlanCourse(r.course_id);
+                                            setSelectedCourse(r.course_id);
+                                          }
+                                        }}
+                                        className="flex-1 min-w-0 text-left"
+                                      >
+                                        <p className={cn(
+                                          "text-sm font-medium truncate",
+                                          isCompleted && "line-through text-muted-foreground"
+                                        )}>
+                                          {r.module_name || 'Módulo'}
+                                        </p>
+                                        {r.course_name && (
+                                          <p className="text-xs text-muted-foreground truncate">{r.course_name}</p>
+                                        )}
+                                      </button>
+                                      {isCurrent && !isCompleted && (
+                                        <Badge variant="default" className="text-[10px] px-2 py-0.5 shrink-0 rounded-full">
+                                          Atual
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {/* Course List */}
                         {plan.study_plan_courses && plan.study_plan_courses.length > 0 && (() => {
                           const sortedCourses = [...plan.study_plan_courses]

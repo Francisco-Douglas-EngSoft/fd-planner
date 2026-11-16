@@ -39,6 +39,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { LayoutGrid } from 'lucide-react';
 import { ModuleScheduleView } from './ModuleScheduleView';
 import { isModulePlan, planToScheduleInput, type PlanModuleRow } from '@/lib/modulePlanAdapter';
+import { modulePlanProgress, planModuleRows } from '@/lib/focusModulePlan';
 
 interface StudyPlanCourse {
   id?: string;
@@ -519,13 +520,18 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
   const dailyHours = plan?.daily_hours || 1.5;
   const totalAvailableHours = totalStudyDays * dailyHours;
 
+  // Plano "Por Módulo" sem cursos vinculados: horas vêm dos módulos do plano.
+  const moduleProgress = plan && orderedCourses.length === 0 && isModulePlan(plan as any)
+    ? modulePlanProgress(plan as any)
+    : null;
+
   // Calculate total hours from all courses
-  const totalCourseHours = orderedCourses.reduce((sum, pc) => {
+  const totalCourseHours = moduleProgress ? moduleProgress.totalHours : orderedCourses.reduce((sum, pc) => {
     return sum + (pc.courses?.total_hours || 0);
   }, 0) || 0;
 
   // Calculate total completed hours from all courses
-  const totalCompletedHours = orderedCourses.reduce((sum, pc) => {
+  const totalCompletedHours = moduleProgress ? moduleProgress.completedHours : orderedCourses.reduce((sum, pc) => {
     return sum + (pc.courses?.completed_hours || 0);
   }, 0) || 0;
 
@@ -1383,7 +1389,11 @@ export function PlanDetailsDialog({ open, onOpenChange, plan, onPlanUpdated }: P
           <TabsContent value="academic" className="py-4">
             <AcademicCalendar
               planId={plan.id}
-              planCourses={orderedCourses.map(pc => ({ id: pc.course_id, name: pc.courses?.name || 'Curso' }))}
+              planCourses={orderedCourses.length > 0
+                ? orderedCourses.map(pc => ({ id: pc.course_id, name: pc.courses?.name || 'Curso' }))
+                : Array.from(new Map(planModuleRows(plan as any)
+                    .filter(r => r.course_id)
+                    .map(r => [r.course_id as string, { id: r.course_id as string, name: r.course_name || 'Curso' }])).values())}
             />
           </TabsContent>
 

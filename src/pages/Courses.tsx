@@ -387,6 +387,7 @@ export default function Courses() {
     await supabase.from('study_notes').update({ course_id: null }).eq('course_id', courseId);
     await supabase.from('tasks').update({ course_id: null }).eq('course_id', courseId);
     await supabase.from('study_plan_courses').delete().eq('course_id', courseId);
+    await (supabase.from as any)('study_plan_modules').delete().eq('course_id', courseId);
     
     const { data: courseRow } = await supabase.from('courses').select('cover_image_url').eq('id', courseId).maybeSingle();
     const { error } = await supabase.from('courses').delete().eq('id', courseId);

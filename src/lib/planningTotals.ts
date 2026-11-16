@@ -39,6 +39,12 @@ export interface PlanLike {
   no_deadline?: boolean | null;
   study_days?: string[] | null;
   study_plan_courses?: PlanCourseLike[] | null;
+  /** Planos "Por Módulo": horas e conclusão de cada módulo do plano. */
+  study_plan_modules?: Array<{
+    module_hours?: number | null;
+    allocated_hours?: number | null;
+    is_completed?: boolean | null;
+  }> | null;
 }
 
 export interface PlanningTotals {
@@ -65,6 +71,15 @@ export function computePlanningTotals(
   for (const plan of plans ?? []) {
     const planCourses = plan.study_plan_courses ?? [];
     if (planCourses.length === 0) {
+      const mods = plan.study_plan_modules ?? [];
+      if (mods.length > 0) {
+        const hoursOf = (m: (typeof mods)[number]) => Number(m.module_hours ?? m.allocated_hours ?? 0) || 0;
+        const modTotal = mods.reduce((s, m) => s + hoursOf(m), 0);
+        const planTotal = Number(plan.total_hours) > 0 ? Number(plan.total_hours) : modTotal;
+        totalHours += planTotal;
+        completedHours += Math.min(planTotal, mods.filter((m) => m.is_completed).reduce((s, m) => s + hoursOf(m), 0));
+        continue;
+      }
       totalHours += Number(plan.total_hours) || 0;
       continue;
     }
