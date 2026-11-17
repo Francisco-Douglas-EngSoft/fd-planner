@@ -215,7 +215,22 @@ export default function Focus() {
     setSettings,
     sessionStartTime,
     sessionEndTime,
+    isInitialized: timerReady,
   } = usePomodoroTimer();
+
+  // Estado atual do cronômetro para buscas assíncronas criadas em renders antigos.
+  const timerLiveRef = useRef({ isRunning, sessionStartTime, selectedCourse });
+  timerLiveRef.current = { isRunning, sessionStartTime, selectedCourse };
+
+  // Configuração de ciclo já aplicada ao cronômetro (divisão automática do plano).
+  const prevCyclesKeyRef = useRef<string | null>(null);
+
+  // Recomeçar volta à duração do ciclo do plano (não ao preset padrão).
+  const handleResetTimer = useCallback(() => {
+    resetTimer();
+    prevCyclesKeyRef.current = null;
+  }, [resetTimer]);
+
 
   // De onde vem a duração do ciclo: divisão automática da meta do plano ou um preset escolhido.
   const [timerSource, setTimerSource] = useState<TimerSource>(() =>
@@ -291,7 +306,7 @@ export default function Focus() {
         case 'KeyR':
           if (!e.ctrlKey && !e.metaKey) {
             e.preventDefault();
-            resetTimer();
+            handleResetTimer();
           }
           break;
         case 'KeyS':
@@ -309,7 +324,7 @@ export default function Focus() {
 
     globalThis.addEventListener('keydown', handleKeyDown);
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
-  }, [toggleTimer, resetTimer, stopAndSave, isMuted, setIsMuted]);
+  }, [toggleTimer, handleResetTimer, stopAndSave, isMuted, setIsMuted]);
 
   // Fetch today's studied time and completed cycles for selected course
   const fetchTodayStudiedTime = useCallback(async () => {
@@ -380,8 +395,19 @@ export default function Focus() {
     try {
       const targetCourseId = localStorage.getItem('fdplanner_selected_course');
       if (targetCourseId && courses.some(c => c.id === targetCourseId)) {
-        setSelectedCourse(targetCourseId);
         localStorage.removeItem('fdplanner_selected_course');
+        const live = timerLiveRef.current;
+        if ((live.isRunning || live.sessionStartTime) && live.selectedCourse !== targetCourseId) {
+          // Sessão iniciada em outro curso: pergunta antes (salvar/descartar/cancelar),
+          // em vez de trocar o curso no meio da sessão ou apagar um tempo pausado.
+          const moduleId = localStorage.getItem('fdplanner_focus_target_module') ?? '';
+          localStorage.removeItem('fdplanner_focus_target_module');
+          setPendingCourseId(targetCourseId);
+          setPendingStart({ courseId: targetCourseId, moduleId, minutes: 0 });
+          setShowCourseChangeDialog(true);
+          return;
+        }
+        setSelectedCourse(targetCourseId);
         const moduleId = localStorage.getItem('fdplanner_focus_target_module');
         if (moduleId) {
           // Persiste no hook para que a sessão de foco grave module_id
@@ -541,9 +567,9 @@ export default function Focus() {
       const savedPlan = localStorage.getItem('fdplanner_selected_plan');
       // Passa a lista recém-carregada: o estado `studyPlans` ainda é o antigo neste ponto.
       if (savedPlan && plansList.some(p => p.id === savedPlan)) {
-        handlePlanChange(savedPlan, plansList);
-      } else if (activePlans.length > 0 && !selectedPlan) {
-        handlePlanChange(activePlans[0].id, plansList);
+        restorePlan(savedPlan, plansList);
+      } else if (activePlans.length > 0 && !localStorage.getItem('fdplanner_selected_plan')) {
+        restorePlan(activePlans[0].id, plansList);
       }
     }
   };
@@ -965,9 +991,10 @@ export default function Focus() {
 
   // Only set custom time when cyclesInfo changes, NOT when isRunning changes (pausing).
   // We use a ref to track the previous cyclesInfo key so we only fire on actual plan/cycle changes.
-  const prevCyclesKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!cyclesInfo || isRunning) return;
+    // Antes de restaurar o estado salvo, ou com uma sessão já iniciada (rodando
+    // ou pausada), nunca sobrescreve o tempo — isso zerava o cronômetro ao voltar à página.
+    if (!timerReady || !cyclesInfo || isRunning || sessionStartTime) return;
     // Preset escolhido pelo usuário tem prioridade sobre a divisão automática.
     if (timerSource === 'preset') return;
     
@@ -982,7 +1009,7 @@ export default function Focus() {
     if (workSeconds > 0) {
       setCustomTime(workSeconds, 'work');
     }
-  }, [cyclesInfo, setCustomTime, isRunning, timerSource]);
+  }, [cyclesInfo, setCustomTime, isRunning, timerSource, timerReady, sessionStartTime]);
 
   // Sessão iniciada (rodando ou pausada) com tempo ainda não salvo.
   const sessionInProgress = mode === 'work' && !!sessionStartTime;
@@ -1080,7 +1107,8 @@ export default function Focus() {
 
   // Handle plan change
   const handlePlanChange = (planId: string, plansList: StudyPlan[] = studyPlans) => {
-    if (isRunning) {
+    // Também pausado: trocar o curso apagaria o tempo ainda não salvo.
+    if (isRunning || sessionInProgress) {
       // Se timer está rodando, não muda o plano
       toast({
         title: "Timer em execução",
@@ -1101,6 +1129,21 @@ export default function Focus() {
         setSelectedCourse(courseId); // Para compatibilidade com timer
       }
     }
+  };
+
+  // Reabre o planejamento ao voltar para a página (e a cada recarga dos dados).
+  // Com uma sessão em andamento ou pausada, o cronômetro continua no curso dela:
+  // trocar o curso aqui zerava o tempo ao sair e voltar para o Foco.
+  const restorePlan = (planId: string, plansList: StudyPlan[]) => {
+    setSelectedPlan(planId);
+    localStorage.setItem('fdplanner_selected_plan', planId);
+    const plan = plansList.find(p => p.id === planId);
+    const courseId = plan ? getCurrentPlanCourse(plan) : null;
+    if (!courseId) return;
+    setCurrentPlanCourse(courseId);
+    const live = timerLiveRef.current;
+    const sessionActive = live.isRunning || !!live.sessionStartTime;
+    if (!sessionActive && live.selectedCourse !== courseId) setSelectedCourse(courseId);
   };
 
   const handleSaveAndChangeCourse = async () => {
@@ -1137,8 +1180,9 @@ export default function Focus() {
     if (!pendingStart) return;
     const { moduleId, minutes } = pendingStart;
     setSelectedModule(moduleId);
-    setCustomTime(minutes * 60, 'work');
     setPendingStart(null);
+    if (minutes <= 0) return; // só escolher o curso/módulo, sem iniciar
+    setCustomTime(minutes * 60, 'work');
     setAutoStartRequested(true);
   };
 
@@ -1165,11 +1209,18 @@ export default function Focus() {
   // Handle start session from Daily Agenda
   const handleStartFromAgenda = useCallback((courseId: string, durationMinutes: number, moduleId: string | null = null) => {
     const targetModule = moduleId ?? '';
-    // Timer rodando em outro curso/módulo: pergunta antes de trocar.
-    if (isRunning && (courseId !== selectedCourse || targetModule !== selectedModule)) {
+    const sessionActive = isRunning || sessionInProgress;
+    const sameTarget = courseId === selectedCourse && targetModule === selectedModule;
+    // Sessão iniciada (rodando ou pausada) em outro curso/módulo: pergunta antes de trocar.
+    if (sessionActive && !sameTarget) {
       setPendingCourseId(courseId);
       setPendingStart({ courseId, moduleId: targetModule, minutes: durationMinutes });
       setShowCourseChangeDialog(true);
+      return;
+    }
+    // Mesma sessão já iniciada: continua de onde parou, sem zerar o tempo.
+    if (sessionActive && sameTarget) {
+      if (!isRunning) toggleTimer();
       return;
     }
 
@@ -1183,19 +1234,19 @@ export default function Focus() {
 
     // Auto-start if not running (o efeito abaixo inicia com o tempo já atualizado)
     if (!isRunning) setAutoStartRequested(true);
-  }, [isRunning, selectedCourse, selectedModule, setSelectedCourse, setSelectedModule, setCustomTime, toggleTimer]);
+  }, [isRunning, sessionInProgress, selectedCourse, selectedModule, setSelectedCourse, setSelectedModule, setCustomTime, toggleTimer]);
 
   const handleStartModule = useCallback((args: StartModuleSessionArgs) => {
     if (args.moduleId) setActiveModuleInfo({ id: args.moduleId, name: args.moduleName });
-    const willStartNow = !isRunning || (args.courseId === selectedCourse && (args.moduleId ?? '') === selectedModule);
+    const startsFresh = !isRunning && !sessionInProgress;
     handleStartFromAgenda(args.courseId, args.minutes, args.moduleId);
-    if (willStartNow && !isRunning) {
+    if (startsFresh) {
       toast({
         title: 'Sessão do módulo iniciada',
         description: `${args.minutes} min de ${args.moduleName} (${args.courseName}).`,
       });
     }
-  }, [handleStartFromAgenda, isRunning, selectedCourse, selectedModule, toast]);
+  }, [handleStartFromAgenda, isRunning, sessionInProgress, toast]);
 
   return (
     <div className="min-h-screen bg-background pb-6">
@@ -1440,7 +1491,8 @@ export default function Focus() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={resetTimer}
+                    onClick={handleResetTimer}
+                    aria-label="Recomeçar"
                     className="w-12 h-12 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all"
                   >
                     <RotateCcw className="h-5 w-5" />
@@ -1882,7 +1934,7 @@ export default function Focus() {
                                         disabled={!r.course_id}
                                         onClick={() => {
                                           if (!r.course_id) return;
-                                          if (isRunning && r.course_id !== selectedCourse) {
+                                          if ((isRunning || sessionInProgress) && r.course_id !== selectedCourse) {
                                             setPendingCourseId(r.course_id);
                                             setShowCourseChangeDialog(true);
                                           } else {
@@ -2026,7 +2078,7 @@ export default function Focus() {
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          if (isRunning && course.id !== selectedCourse) {
+                                          if ((isRunning || sessionInProgress) && course.id !== selectedCourse) {
                                             setPendingCourseId(course.id);
                                             setShowCourseChangeDialog(true);
                                           } else {

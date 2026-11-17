@@ -156,6 +156,10 @@ export function usePomodoroTimer() {
   });
   
   const targetEndTimeRef = useRef<number | null>(null);
+  // Estado mais recente para callbacks chamados de closures antigas (ex.: uma
+  // busca iniciada no primeiro render da página Foco que termina depois).
+  const liveRef = useRef({ isRunning, selectedCourse, timerStartedAt });
+  liveRef.current = { isRunning, selectedCourse, timerStartedAt };
 
   // Keep the display end-time state in sync with the ref. Piggybacks on the
   // per-second timeLeft updates so the UI can show the projected end hour.
@@ -204,21 +208,24 @@ export function usePomodoroTimer() {
             targetEndTimeRef.current = state.targetEndTime;
           } else {
             // Timer completed while user was away (tab closed, sleep, offline).
-            // CORREÇÃO: Calcular o tempo REALMENTE decorrido usando timerStartedAt
-            setTimeLeft(0);
+            // O ciclo terminou inteiro: tempo cronometrado = total do ciclo (pausas não contam).
             setIsRunning(false);
             targetEndTimeRef.current = null;
+            const totalTimeSeconds = state.customTotalTime || preset.work * 60;
+            if (state.mode === 'work') {
+              // Volta pronto para o próximo ciclo — nunca parado em 00:00, que
+              // registraria a mesma sessão de novo ao apertar Iniciar.
+              setSessions((state.sessions || 0) + 1);
+              setMode('work');
+              setTimeLeft(totalTimeSeconds);
+            } else {
+              setMode('work');
+              setTimeLeft(preset.work * 60);
+              setCustomTotalTime(null);
+            }
 
             if (state.mode === 'work' && state.selectedCourse && state.timerStartedAt) {
-              const totalTimeSeconds = state.customTotalTime || preset.work * 60;
-              
-              // Calcular quanto tempo realmente passou desde que o timer foi iniciado
-              const actualElapsedMs = state.targetEndTime - state.timerStartedAt;
-              const actualElapsedSeconds = Math.floor(actualElapsedMs / 1000);
-              
-              // Limitar ao tempo total configurado (não pode ser maior)
-              const elapsedSeconds = Math.min(actualElapsedSeconds, totalTimeSeconds);
-              const durationMinutes = Math.round(elapsedSeconds / 60);
+              const durationMinutes = Math.round(totalTimeSeconds / 60);
               
               if (durationMinutes >= 1) {
                 supabase.auth.getUser().then(({ data: { user } }) => {
@@ -267,7 +274,8 @@ export function usePomodoroTimer() {
       targetEndTime: isRunning ? targetEndTimeRef.current : null,
       remainingTime: timeLeft,
       customTotalTime,
-      timerStartedAt: isRunning ? timerStartedAt : null,
+      // Mantido também pausado: indica uma sessão iniciada que ainda não foi salva.
+      timerStartedAt,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [mode, timeLeft, isRunning, sessions, presetIndex, selectedCourse, selectedModule, isInitialized, customTotalTime, timerStartedAt]);
@@ -635,13 +643,16 @@ export function usePomodoroTimer() {
 
   // Reset timer when course changes (only if not running)
   const handleCourseChange = useCallback((courseId: string) => {
-    if (courseId !== selectedCourse) {
+    // Lê o estado atual (não o do render em que o callback foi criado): uma
+    // chamada atrasada não pode zerar um cronômetro restaurado ao voltar à página.
+    const live = liveRef.current;
+    if (courseId !== live.selectedCourse) {
       setPendingBreak(null);
       setSelectedCourse(courseId);
       // Trocar de curso invalida o módulo selecionado
       setSelectedModule('');
       // Reset timer state when changing course (if not running)
-      if (!isRunning) {
+      if (!live.isRunning) {
         setTimeLeft(preset.work * 60);
         setCustomTotalTime(null);
         setMode('work');
@@ -649,7 +660,7 @@ export function usePomodoroTimer() {
         setTimerStartedAt(null);
       }
     }
-  }, [selectedCourse, isRunning, preset.work]);
+  }, [preset.work]);
 
   // Calculate current elapsed time in minutes (for real-time display)
   const currentElapsedMinutes = useMemo(() => {
@@ -693,6 +704,8 @@ export function usePomodoroTimer() {
     currentElapsedMinutes,
     // Wall-clock timestamps for the running session (ms since epoch).
     sessionStartTime: timerStartedAt,
+    /** true depois de restaurar o estado salvo (cronômetro em andamento ou pausado). */
+    isInitialized,
     sessionEndTime: endTime,
   };
 }
