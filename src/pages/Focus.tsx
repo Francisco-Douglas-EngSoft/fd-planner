@@ -55,6 +55,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatSecondsToHMS, formatMinutesToHMS, formatHoursToHMS } from '@/lib/timeUtils';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeFocusSessions } from '@/hooks/useRealtimeFocusSessions';
+import { claimFocusCelebration } from '@/lib/focusCycleCompletion';
 
 interface Course {
   id: string;
@@ -168,9 +169,8 @@ export default function Focus() {
   const [showCompletionEffect, setShowCompletionEffect] = useState(false);
   const [showGoalCompletionEffect, setShowGoalCompletionEffect] = useState(false);
   const [showBreakTransition, setShowBreakTransition] = useState(false);
-  const [previousSessions, setPreviousSessions] = useState(0);
-  const [hasShownDailyGoalCelebration, setHasShownDailyGoalCelebration] = useState(false);
-  const [hasShownCyclesCelebration, setHasShownCyclesCelebration] = useState(false);
+  // Curso a que pertencem os números de hoje (evita comemorar com dados do curso anterior).
+  const [todayStatsCourse, setTodayStatsCourse] = useState<string>('');
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -216,6 +216,7 @@ export default function Focus() {
     sessionStartTime,
     sessionEndTime,
     isInitialized: timerReady,
+    completedCycles,
   } = usePomodoroTimer();
 
   // Estado atual do cronômetro para buscas assíncronas criadas em renders antigos.
@@ -278,17 +279,22 @@ export default function Focus() {
   useEffect(() => {
     if (pendingBreak && !isRunning) {
       setShowBreakTransition(true);
+    } else if (!pendingBreak) {
+      // Pausa iniciada/pulada por outro caminho (botão Iniciar, outra aba): fecha o cartão.
+      setShowBreakTransition(false);
     }
   }, [pendingBreak, isRunning]);
 
-  // Play sound and show effect when session completes
+  // Play sound and show effect when a cycle really completes in this tab
+  // (não quando o contador é sincronizado de outra aba ou restaurado ao abrir a página).
+  const prevCompletedCyclesRef = useRef(completedCycles);
   useEffect(() => {
-    if (sessions > previousSessions && previousSessions > 0) {
+    if (completedCycles > prevCompletedCyclesRef.current) {
       playSound();
       setShowCompletionEffect(true);
     }
-    setPreviousSessions(sessions);
-  }, [sessions, previousSessions, playSound]);
+    prevCompletedCyclesRef.current = completedCycles;
+  }, [completedCycles, playSound]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -331,8 +337,10 @@ export default function Focus() {
     if (!user || !selectedCourse) {
       setTodayStudiedMinutes(0);
       setTodayCompletedCycles(0);
+      setTodayStatsCourse('');
       return;
     }
+    const courseId = selectedCourse;
 
     const today = new Date();
     const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
@@ -351,6 +359,7 @@ export default function Focus() {
       setTodayStudiedMinutes(total);
       // Count completed cycles (each session is considered a cycle)
       setTodayCompletedCycles(data.length);
+      setTodayStatsCourse(courseId);
     }
   }, [user, selectedCourse]);
 
@@ -955,39 +964,33 @@ export default function Focus() {
     };
   }, [courseDailyInfo, targetCycles, dailyProgressInfo]);
 
-  // Celebrate when daily goal is completed
+  // Celebrate when daily goal is completed — uma vez por curso por dia, e só com os
+  // números do curso selecionado (antes repetia a cada visita à página).
+  const statsReady = !!selectedCourse && todayStatsCourse === selectedCourse;
   useEffect(() => {
-    if (dailyProgressInfo?.isCompleted && !hasShownDailyGoalCelebration && todayStudiedMinutes > 0) {
-      setHasShownDailyGoalCelebration(true);
+    if (!statsReady || !dailyProgressInfo?.isCompleted || todayStudiedMinutes <= 0) return;
+    if (!claimFocusCelebration(localStorage, 'daily_goal', selectedCourse, new Date())) return;
+    setShowGoalCompletionEffect(true);
+    playSuccessSound();
+    toast({
+      title: "🎉 Meta Diária Atingida!",
+      description: `Parabéns! Você completou sua meta de ${formatMinutesToHMS(dailyProgressInfo.dailyGoalMinutes)} de estudo hoje!`,
+    });
+  }, [statsReady, selectedCourse, dailyProgressInfo?.isCompleted, todayStudiedMinutes, playSuccessSound, toast, dailyProgressInfo?.dailyGoalMinutes]);
+
+  // Celebrate when all cycles are completed (mesmas regras)
+  useEffect(() => {
+    if (!statsReady || targetCycles <= 0 || todayCompletedCycles <= 0 || todayCompletedCycles < targetCycles) return;
+    if (!claimFocusCelebration(localStorage, 'cycles', selectedCourse, new Date())) return;
+    if (!dailyProgressInfo?.isCompleted) {
       setShowGoalCompletionEffect(true);
       playSuccessSound();
       toast({
-        title: "🎉 Meta Diária Atingida!",
-        description: `Parabéns! Você completou sua meta de ${formatMinutesToHMS(dailyProgressInfo.dailyGoalMinutes)} de estudo hoje!`,
+        title: "🏆 Todos os Ciclos Completos!",
+        description: `Você completou ${targetCycles} ciclos de foco hoje!`,
       });
     }
-  }, [dailyProgressInfo?.isCompleted, hasShownDailyGoalCelebration, todayStudiedMinutes, playSuccessSound, toast, dailyProgressInfo?.dailyGoalMinutes]);
-
-  // Celebrate when all cycles are completed
-  useEffect(() => {
-    if (todayCompletedCycles >= targetCycles && targetCycles > 0 && !hasShownCyclesCelebration && todayCompletedCycles > 0) {
-      setHasShownCyclesCelebration(true);
-      if (!dailyProgressInfo?.isCompleted) {
-        setShowGoalCompletionEffect(true);
-        playSuccessSound();
-        toast({
-          title: "🏆 Todos os Ciclos Completos!",
-          description: `Você completou ${targetCycles} ciclos de foco hoje!`,
-        });
-      }
-    }
-  }, [todayCompletedCycles, targetCycles, hasShownCyclesCelebration, dailyProgressInfo?.isCompleted, playSuccessSound, toast]);
-
-  // Reset celebration flags when course changes
-  useEffect(() => {
-    setHasShownDailyGoalCelebration(false);
-    setHasShownCyclesCelebration(false);
-  }, [selectedCourse]);
+  }, [statsReady, selectedCourse, todayCompletedCycles, targetCycles, dailyProgressInfo?.isCompleted, playSuccessSound, toast]);
 
   // Only set custom time when cyclesInfo changes, NOT when isRunning changes (pausing).
   // We use a ref to track the previous cyclesInfo key so we only fire on actual plan/cycle changes.

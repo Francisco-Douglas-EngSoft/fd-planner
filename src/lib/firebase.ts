@@ -140,6 +140,11 @@ export interface TestNotification {
   type: string;
 }
 
+/** Marca os avisos de teste — sem isso, "Hora da pausa!" parecia um ciclo de foco real. */
+export function testTitle(title: string): string {
+  return `🧪 Teste · ${title}`;
+}
+
 /** Todos os tipos de notificação do sistema, usados no teste completo. */
 export const TEST_NOTIFICATIONS: TestNotification[] = [
   {
@@ -193,7 +198,7 @@ export async function sendAllTestPush(): Promise<{
   let lastError: string | undefined;
   for (const n of TEST_NOTIFICATIONS) {
     const { data, error } = await supabase.functions.invoke("send-notification", {
-      body: { title: n.title, body: n.body, type: n.type },
+      body: { title: testTitle(n.title), body: n.body, type: n.type },
     });
     if (error) {
       lastError = error.message;

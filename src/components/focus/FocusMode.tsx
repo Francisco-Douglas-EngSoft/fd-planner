@@ -40,13 +40,13 @@ export function FocusMode({
 
   // Reset when opening
   useEffect(() => {
-    if (isOpen) {
-      setMode('work');
-      setTimeLeft(initialWorkMinutes * 60);
-      setIsRunning(false);
-      setSessions(0);
-      targetEndTimeRef.current = null;
-    }
+    // Abrir recomeça; fechar para o cronômetro — senão ele seguia contando
+    // escondido e avisava "Sessão concluída" depois que o modo foco já foi fechado.
+    setMode('work');
+    setTimeLeft(initialWorkMinutes * 60);
+    setIsRunning(false);
+    setSessions(0);
+    targetEndTimeRef.current = null;
   }, [isOpen, initialWorkMinutes]);
 
   // Timer logic
@@ -65,7 +65,7 @@ export function FocusMode({
       if (!targetEndTimeRef.current) return;
       
       const now = Date.now();
-      const remaining = Math.max(0, Math.floor((targetEndTimeRef.current - now) / 1000));
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
       
       if (now - lastUpdate >= 1000 || remaining <= 0) {
         lastUpdate = now;
@@ -89,6 +89,13 @@ export function FocusMode({
 
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
+    const target = targetEndTimeRef.current;
+    // Só conclui um ciclo de verdade: aberto, com horário de término já alcançado.
+    if (!isOpen || !target || Date.now() < target - 1000) {
+      if (!target || !isOpen) setIsRunning(false);
+      else setTimeLeft(Math.max(1, Math.ceil((target - Date.now()) / 1000)));
+      return;
+    }
     setIsRunning(false);
     targetEndTimeRef.current = null;
 
@@ -104,10 +111,15 @@ export function FocusMode({
 
     // Show notification
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('FD-Planner - Modo Foco', {
-        body: mode === 'work' ? '🎉 Sessão concluída! Hora da pausa.' : '💪 Pausa terminada! Vamos voltar ao foco.',
-        icon: '/favicon.png',
-      });
+      try {
+        new Notification('FD-Planner - Modo Foco', {
+          body: mode === 'work' ? '🎉 Sessão concluída! Hora da pausa.' : '💪 Pausa terminada! Vamos voltar ao foco.',
+          icon: '/favicon.png',
+          tag: 'fdplanner-focus-cycle',
+        });
+      } catch {
+        // ignore
+      }
     }
 
     if (mode === 'work') {
@@ -134,7 +146,7 @@ export function FocusMode({
       setMode('work');
       setTimeLeft(initialWorkMinutes * 60);
     }
-  }, [mode, sessions, isMuted, user, courseId, initialWorkMinutes, initialBreakMinutes]);
+  }, [isOpen, mode, sessions, isMuted, user, courseId, initialWorkMinutes, initialBreakMinutes]);
 
   // Watch for timer completion
   useEffect(() => {
@@ -145,11 +157,15 @@ export function FocusMode({
 
   const toggleTimer = useCallback(() => {
     if (!isRunning) {
+      if (timeLeft <= 0) return; // nunca inicia um cronômetro de 0 segundos
       targetEndTimeRef.current = Date.now() + timeLeft * 1000;
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
     } else {
+      if (targetEndTimeRef.current) {
+        setTimeLeft(Math.max(1, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000)));
+      }
       targetEndTimeRef.current = null;
     }
     setIsRunning(prev => !prev);

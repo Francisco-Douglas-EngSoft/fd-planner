@@ -18,11 +18,23 @@ vi.mock("@/lib/offlineFocusQueue", () => ({
 import { usePomodoroTimer } from "@/hooks/usePomodoroTimer";
 import { enqueueFocusSession } from "@/lib/offlineFocusQueue";
 
+const notificationSpy = vi.fn();
+class FakeNotification {
+  static permission = "granted";
+  static requestPermission = vi.fn();
+  constructor(title: string, options?: NotificationOptions) {
+    notificationSpy(title, options);
+  }
+}
+vi.stubGlobal("Notification", FakeNotification);
+vi.stubGlobal("Audio", class { play() { return Promise.resolve(); } });
+
 describe("usePomodoroTimer", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.useFakeTimers();
     vi.mocked(enqueueFocusSession).mockClear();
+    notificationSpy.mockClear();
   });
 
   it("inicia com valores padrão de work e sem timer rodando", () => {
@@ -181,5 +193,90 @@ describe("usePomodoroTimer", () => {
     expect(back.result.current.isRunning).toBe(false);
     expect(back.result.current.timeLeft).toBe(20 * 60);
     expect(back.result.current.sessions).toBe(1);
+  });
+
+  describe("avisos de ciclo concluído", () => {
+    const flush = async () => {
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    };
+
+    it("avisa uma vez quando o ciclo termina de verdade", async () => {
+      const { result } = renderHook(() => usePomodoroTimer());
+      act(() => {
+        result.current.setSelectedCourse("course-1");
+        result.current.setCustomTime(2 * 60, "work");
+      });
+      act(() => result.current.toggleTimer());
+      act(() => vi.advanceTimersByTime(2 * 60 * 1000 + 600));
+      await flush();
+      expect(notificationSpy).toHaveBeenCalledTimes(1);
+      expect(enqueueFocusSession).toHaveBeenCalledTimes(1);
+      expect(result.current.completedCycles).toBe(1);
+    });
+
+    it("apertar Iniciar em 00:00 depois de um ciclo não dá aviso falso nem conta de novo", async () => {
+      const { result } = renderHook(() => usePomodoroTimer());
+      act(() => {
+        result.current.setSelectedCourse("course-1");
+        result.current.setCustomTime(2 * 60, "work");
+      });
+      act(() => result.current.toggleTimer());
+      act(() => vi.advanceTimersByTime(2 * 60 * 1000 + 600));
+      await flush();
+      expect(result.current.timeLeft).toBe(0);
+      notificationSpy.mockClear();
+
+      act(() => result.current.toggleTimer()); // Iniciar em 00:00 → começa a pausa
+      act(() => vi.advanceTimersByTime(1000));
+      await flush();
+      expect(notificationSpy).not.toHaveBeenCalled();
+      expect(enqueueFocusSession).toHaveBeenCalledTimes(1);
+      expect(result.current.sessions).toBe(1);
+      expect(result.current.isRunning).toBe(true);
+      expect(result.current.mode).toBe("break");
+      expect(result.current.timeLeft).toBeGreaterThan(0);
+    });
+
+    it("se outra aba pausou o ciclo, esta aba não avisa ao chegar no fim", async () => {
+      const { result } = renderHook(() => usePomodoroTimer());
+      act(() => {
+        result.current.setSelectedCourse("course-1");
+        result.current.setCustomTime(2 * 60, "work");
+      });
+      act(() => result.current.toggleTimer());
+      act(() => vi.advanceTimersByTime(60 * 1000));
+      // Outra aba pausou com 60 s restantes (sem evento de storage nesta aba).
+      const saved = JSON.parse(localStorage.getItem("fdplanner_pomodoro_state")!);
+      localStorage.setItem(
+        "fdplanner_pomodoro_state",
+        JSON.stringify({ ...saved, targetEndTime: null, remainingTime: 60 }),
+      );
+      act(() => vi.advanceTimersByTime(61 * 1000));
+      await flush();
+      expect(notificationSpy).not.toHaveBeenCalled();
+      expect(enqueueFocusSession).not.toHaveBeenCalled();
+      expect(result.current.isRunning).toBe(false);
+      expect(result.current.timeLeft).toBe(60);
+    });
+
+    it("ciclo que acabou durante a suspensão é salvo sem aviso atrasado", async () => {
+      const { result } = renderHook(() => usePomodoroTimer());
+      act(() => {
+        result.current.setSelectedCourse("course-1");
+        result.current.setCustomTime(2 * 60, "work");
+      });
+      act(() => result.current.toggleTimer());
+      // Relógio pula 30 min sem ticks (computador suspenso).
+      vi.setSystemTime(Date.now() + 30 * 60 * 1000);
+      act(() => vi.advanceTimersByTime(500));
+      await flush();
+      expect(notificationSpy).not.toHaveBeenCalled();
+      expect(enqueueFocusSession).toHaveBeenCalledTimes(1);
+      expect(result.current.sessions).toBe(1);
+      expect(result.current.completedCycles).toBe(0);
+    });
   });
 });

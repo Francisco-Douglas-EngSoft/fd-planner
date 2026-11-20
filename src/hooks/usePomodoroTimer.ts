@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { emitFocusSessionSaved } from '@/hooks/useRealtimeFocusSessions';
 import { enqueueFocusSession, flushFocusQueue } from '@/lib/offlineFocusQueue';
+import { checkCycleCompletion } from '@/lib/focusCycleCompletion';
 
 /**
  * Persists a focus session offline-first: the session is written to a
@@ -46,6 +47,32 @@ const STORAGE_KEY = 'fdplanner_pomodoro_state';
 const PRESETS_KEY = 'fdplanner_pomodoro_presets';
 const SETTINGS_KEY = 'fdplanner_pomodoro_settings';
 const ACTIVE_PRESET_KEY = 'fdplanner_pomodoro_active_preset';
+// Horário de término do último ciclo já concluído (por qualquer aba): evita aviso duplo.
+const COMPLETED_KEY = 'fdplanner_pomodoro_completed';
+
+function readStoredState(): PomodoroState | undefined {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as PomodoroState) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readClaimedTarget(): number | null {
+  try {
+    const v = Number(localStorage.getItem(COMPLETED_KEY));
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
 
 interface PomodoroSettings {
   autoStartBreak: boolean;
@@ -135,6 +162,9 @@ export function usePomodoroTimer() {
   // Absolute timestamp (ms) when the running segment will finish. Mirrored in a
   // ref so the tick loop always reads a fresh value without re-subscribing.
   const [endTime, setEndTime] = useState<number | null>(null);
+  // Ciclos de foco concluídos AGORA nesta aba (não conta os sincronizados de outra aba
+  // nem os registrados em silêncio) — a página usa para tocar o efeito de conclusão.
+  const [completedCycles, setCompletedCycles] = useState(0);
 
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
@@ -156,10 +186,12 @@ export function usePomodoroTimer() {
   });
   
   const targetEndTimeRef = useRef<number | null>(null);
+  // Último estado gravado por esta aba (só regrava quando algo muda de verdade).
+  const lastWrittenStateRef = useRef<string | null>(null);
   // Estado mais recente para callbacks chamados de closures antigas (ex.: uma
   // busca iniciada no primeiro render da página Foco que termina depois).
-  const liveRef = useRef({ isRunning, selectedCourse, timerStartedAt });
-  liveRef.current = { isRunning, selectedCourse, timerStartedAt };
+  const liveRef = useRef({ isRunning, selectedCourse, selectedModule, timerStartedAt, mode, sessions, timeLeft });
+  liveRef.current = { isRunning, selectedCourse, selectedModule, timerStartedAt, mode, sessions, timeLeft };
 
   // Keep the display end-time state in sync with the ref. Piggybacks on the
   // per-second timeLeft updates so the UI can show the projected end hour.
@@ -200,7 +232,7 @@ export function usePomodoroTimer() {
         if (state.targetEndTime) {
           // Timer was running - calculate remaining time
           const now = Date.now();
-          const remaining = Math.max(0, Math.floor((state.targetEndTime - now) / 1000));
+          const remaining = Math.max(0, Math.ceil((state.targetEndTime - now) / 1000));
           
           if (remaining > 0) {
             setTimeLeft(remaining);
@@ -272,19 +304,109 @@ export function usePomodoroTimer() {
       selectedCourse,
       selectedModule,
       targetEndTime: isRunning ? targetEndTimeRef.current : null,
-      remainingTime: timeLeft,
+      // Rodando, o horário de término já descreve tudo: não regrava a cada segundo
+      // (isso apagava a pausa feita em outra aba e fazia a aba esquecida avisar).
+      remainingTime: isRunning ? 0 : timeLeft,
       customTotalTime,
       // Mantido também pausado: indica uma sessão iniciada que ainda não foi salva.
       timerStartedAt,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const serialized = JSON.stringify(state);
+    if (serialized === lastWrittenStateRef.current) return;
+    lastWrittenStateRef.current = serialized;
+    localStorage.setItem(STORAGE_KEY, serialized);
   }, [mode, timeLeft, isRunning, sessions, presetIndex, selectedCourse, selectedModule, isInitialized, customTotalTime, timerStartedAt]);
+
+  // Adota o estado salvo por outra aba/janela do app (pausou, zerou, concluiu ou
+  // começou outro ciclo). Nunca registra sessão nem avisa: quem mudou já fez isso.
+  const adoptStoredState = useCallback((state: PomodoroState) => {
+    setMode(state.mode || 'work');
+    setSessions(state.sessions || 0);
+    setSelectedCourse(state.selectedCourse || '');
+    setSelectedModule(state.selectedModule || '');
+    setCustomTotalTime(state.customTotalTime || null);
+    setTimerStartedAt(state.timerStartedAt || null);
+    const now = Date.now();
+    if (state.targetEndTime && state.targetEndTime > now) {
+      setPendingBreak(null);
+      targetEndTimeRef.current = state.targetEndTime;
+      setTimeLeft(Math.ceil((state.targetEndTime - now) / 1000));
+      setIsRunning(true);
+    } else {
+      targetEndTimeRef.current = null;
+      setIsRunning(false);
+      setTimeLeft(Math.max(0, state.remainingTime ?? preset.work * 60));
+    }
+  }, [preset.work]);
+
+  // Mantém as abas abertas em sincronia: uma aba esquecida não avisa sobre um
+  // ciclo que já foi pausado, zerado ou concluído em outra.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      let state: PomodoroState;
+      try {
+        state = JSON.parse(e.newValue);
+      } catch {
+        return;
+      }
+      const live = liveRef.current;
+      const running = !!state.targetEndTime;
+      const changed =
+        running !== live.isRunning ||
+        (running && state.targetEndTime !== targetEndTimeRef.current) ||
+        (!running && (state.remainingTime ?? 0) !== live.timeLeft) ||
+        (state.mode || 'work') !== live.mode ||
+        (state.selectedCourse || '') !== live.selectedCourse ||
+        (state.selectedModule || '') !== live.selectedModule ||
+        (state.timerStartedAt || null) !== live.timerStartedAt ||
+        (state.sessions || 0) !== live.sessions;
+      if (changed) adoptStoredState(state);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [adoptStoredState]);
 
   // Handle timer completion
   const handleTimerComplete = useCallback(async () => {
+    const target = targetEndTimeRef.current;
+    const now = Date.now();
+    const stored = readStoredState();
+    const check = checkCycleCompletion({
+      targetEndTime: target,
+      now,
+      storedTargetEndTime: stored ? stored.targetEndTime ?? null : undefined,
+      claimedTarget: readClaimedTarget(),
+    });
+
+    if (check === 'no_cycle') {
+      // Sem horário de término válido: não é um fim de ciclo de verdade.
+      setIsRunning(false);
+      return;
+    }
+    if (check === 'not_finished') {
+      setTimeLeft(Math.max(1, Math.ceil((target! - now) / 1000)));
+      return;
+    }
+    if (check === 'stale') {
+      if (stored) adoptStoredState(stored);
+      else {
+        targetEndTimeRef.current = null;
+        setIsRunning(false);
+      }
+      return;
+    }
+
+    try {
+      localStorage.setItem(COMPLETED_KEY, String(target));
+    } catch {
+      // ignore
+    }
+    const silent = check === 'complete_silent';
     setIsRunning(false);
     targetEndTimeRef.current = null;
 
+    if (!silent) {
     // Play notification sound
     try {
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleVIzpdfhsGkdD22p4txuQC5xt+jXaC8bdbnk1lgfLqLY3po+EIi92dBXHD6k0thzKiCo0tdsJiuq1tljKy2q1tdqLSuo1dlsKyer1NlrJyiq09hnJSmr09loKCis1NhqKSmr1NlpKCms1NhqKSmr1NloKCms1NhqKSms1NlpKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NhoKSms1NhqKSmr1NhoKSms1NhqKSmr1NhoKSms1NhqKSmr1NhoKSms1NhqKSmr1NhoKSms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NlpKCms1NlqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NhoKCms1NhqKSmr1NhoKCms1NhqKSmr1NloKCms1NhqKSms1NloKCms1NlpKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSms1NloKCms1NlpKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSms1NloKCms1NlpKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSms1NloKCms1NlpKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSmr1NloKCms1NhqKSms1NloKCms');
@@ -295,15 +417,23 @@ export function usePomodoroTimer() {
 
     // Show notification if supported
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('FD-Planner Timer', {
-        body: mode === 'work' ? 'Hora da pausa!' : 'Hora de voltar ao foco!',
-        icon: '/favicon.ico',
-      });
+      try {
+        new Notification('FD-Planner Timer', {
+          body: mode === 'work' ? 'Hora da pausa!' : 'Hora de voltar ao foco!',
+          icon: '/favicon.ico',
+          // Mesma etiqueta: um aviso repetido substitui o anterior em vez de empilhar.
+          tag: 'fdplanner-focus-cycle',
+        });
+      } catch {
+        // ignore (ex.: navegador exige service worker para notificações)
+      }
+    }
     }
 
     if (mode === 'work') {
       const newSessions = sessions + 1;
       setSessions(newSessions);
+      if (!silent) setCompletedCycles((c) => c + 1);
       
       // Save focus session to database if course is selected
       if (selectedCourse) {
@@ -365,7 +495,7 @@ export function usePomodoroTimer() {
       setCustomTotalTime(null);
       setTimerStartedAt(null);
     }
-  }, [mode, sessions, preset, selectedCourse, customTotalTime, settings]);
+  }, [mode, sessions, preset, selectedCourse, selectedModule, customTotalTime, settings, adoptStoredState]);
 
   // Timer logic — timestamp based so it stays accurate even when the tab is
   // backgrounded, the page is closed, or the user navigates away. Instead of
@@ -377,7 +507,7 @@ export function usePomodoroTimer() {
 
     const sync = () => {
       if (!targetEndTimeRef.current) return;
-      const remaining = Math.max(0, Math.round((targetEndTimeRef.current - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000));
       setTimeLeft(remaining);
     };
 
@@ -406,17 +536,40 @@ export function usePomodoroTimer() {
     }
   }, [timeLeft, isRunning, handleTimerComplete]);
 
+  // Começa um trecho novo (foco ou pausa) já com horário de término.
+  const startSegment = useCallback((segmentMode: 'work' | 'break' | 'longBreak', seconds: number) => {
+    const now = Date.now();
+    setPendingBreak(null);
+    setMode(segmentMode);
+    setTimeLeft(seconds);
+    setCustomTotalTime(seconds);
+    targetEndTimeRef.current = now + seconds * 1000;
+    setTimerStartedAt(now);
+    setIsRunning(true);
+    requestNotificationPermission();
+  }, []);
+
   const toggleTimer = useCallback(() => {
     if (isRunning) {
       // Pausing - capture remaining time from the ref before clearing it
       if (targetEndTimeRef.current) {
-        const remaining = Math.max(0, Math.floor((targetEndTimeRef.current - Date.now()) / 1000));
+        const remaining = Math.ceil((targetEndTimeRef.current - Date.now()) / 1000);
+        // O ciclo já acabou: deixa a conclusão acontecer (não pausa em 00:00).
+        if (remaining <= 0) return;
         setTimeLeft(remaining);
       }
       targetEndTimeRef.current = null;
       setIsRunning(false);
       // Manter timerStartedAt ao pausar para poder retomar corretamente
     } else {
+      // Em 00:00 (ciclo recém-concluído) nunca inicia um cronômetro de 0 segundos —
+      // isso disparava na hora um aviso falso de "ciclo concluído" e contava a sessão de novo.
+      if (timeLeft <= 0) {
+        if (pendingBreak) startSegment(pendingBreak.mode, pendingBreak.seconds);
+        else startSegment('work', mode === 'work' && customTotalTime ? customTotalTime : preset.work * 60);
+        return;
+      }
+
       // Starting the timer - set target end time
       const now = Date.now();
       targetEndTimeRef.current = now + timeLeft * 1000;
@@ -435,13 +588,9 @@ export function usePomodoroTimer() {
       }
       
       setIsRunning(true);
-
-      // Request notification permission
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
+      requestNotificationPermission();
     }
-  }, [isRunning, timeLeft, timerStartedAt, mode, preset, selectedCourse, selectedModule]);
+  }, [isRunning, timeLeft, timerStartedAt, mode, preset, selectedCourse, selectedModule, pendingBreak, customTotalTime, startSegment]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);
@@ -567,26 +716,10 @@ export function usePomodoroTimer() {
 
   const startPendingBreakAndRun = useCallback(() => {
     if (!pendingBreak) return;
-
     // Atomic start: ensure the timer starts with the pending break duration,
     // without relying on a subsequent toggleTimer call (which could capture stale timeLeft).
-    const seconds = pendingBreak.seconds;
-    const now = Date.now();
-    
-    setMode(pendingBreak.mode);
-    setTimeLeft(seconds);
-    setCustomTotalTime(seconds);
-    setPendingBreak(null);
-
-    targetEndTimeRef.current = now + seconds * 1000;
-    setTimerStartedAt(now);
-    setIsRunning(true);
-
-    // Request notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, [pendingBreak]);
+    startSegment(pendingBreak.mode, pendingBreak.seconds);
+  }, [pendingBreak, startSegment]);
 
   const skipPendingBreak = useCallback(() => {
     if (!pendingBreak) return;
@@ -707,5 +840,7 @@ export function usePomodoroTimer() {
     /** true depois de restaurar o estado salvo (cronômetro em andamento ou pausado). */
     isInitialized,
     sessionEndTime: endTime,
+    /** Ciclos de foco concluídos agora nesta aba (para o efeito de conclusão). */
+    completedCycles,
   };
 }

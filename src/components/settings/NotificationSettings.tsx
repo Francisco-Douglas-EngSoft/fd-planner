@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useEffect, useState } from 'react';
-import { enableFcm, sendTestPush, sendAllTestPush, TEST_NOTIFICATIONS, isFirebaseConfigured } from '@/lib/firebase';
+import { enableFcm, sendTestPush, sendAllTestPush, TEST_NOTIFICATIONS, isFirebaseConfigured, testTitle } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 export function NotificationSettings() {
@@ -90,7 +90,7 @@ export function NotificationSettings() {
       // Sem Firebase configurado: dispara as notificações locais em sequência.
       if (!fcmReady) {
         TEST_NOTIFICATIONS.forEach((n, i) => {
-          setTimeout(() => showNotification(n.title, n.body), i * 1500);
+          setTimeout(() => showNotification(testTitle(n.title), n.body), i * 1500);
         });
         toast({
           title: 'Enviando testes locais',
