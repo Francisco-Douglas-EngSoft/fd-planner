@@ -231,6 +231,27 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          id: boolean
+          public_signup_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          public_signup_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          public_signup_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -2623,6 +2644,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_public_signup_enabled: { Args: never; Returns: boolean }
       rotina_inicializar: { Args: never; Returns: boolean }
       unlock_achievement: {
         Args: { _achievement_id: string }

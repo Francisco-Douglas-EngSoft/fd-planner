@@ -21,6 +21,7 @@ import { format, formatDistanceToNow, startOfMonth, subDays, subMonths } from 'd
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AccountAccessCard } from '@/components/admin/AccountAccessCard';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -203,7 +204,7 @@ export default function Admin() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Painel do Desenvolvedor</h1>
-                <Badge variant="outline" className="hidden border-primary/30 text-primary sm:inline-flex">Admin</Badge>
+                <Badge variant="outline" className="hidden border-primary/30 text-primary sm:inline-flex">Desenvolvedor</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 Visão geral da plataforma, estudantes e mensagens recebidas.
@@ -359,7 +360,8 @@ export default function Admin() {
         </TabsContent>
 
         {/* Users */}
-        <TabsContent value="users">
+        <TabsContent value="users" className="space-y-4">
+          <AccountAccessCard onCreated={load} />
           <Card>
             <CardHeader className="gap-3 md:flex-row md:items-center md:justify-between md:space-y-0">
               <div>

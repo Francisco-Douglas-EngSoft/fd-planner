@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Eye, LogIn, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '@/i18n';
+import { usePublicSignup } from '@/hooks/usePublicSignup';
 
 export function GuestModeBanner() {
   const { isGuest, user, exitGuestMode } = useAuth();
   const { t } = useI18n();
+  const { enabled: signupOpen } = usePublicSignup();
 
   // Only show banner if in guest mode and not logged in
   if (!isGuest || user) return null;
@@ -27,7 +29,7 @@ export function GuestModeBanner() {
           <Link to="/auth">
             <Button size="sm" variant="secondary" className="gap-1 text-xs h-7">
               <LogIn className="h-3 w-3" />
-              <span className="hidden sm:inline">{t('Criar Conta', 'Sign Up')}</span>
+              <span className="hidden sm:inline">{signupOpen ? t('Criar Conta', 'Sign Up') : t('Entrar', 'Sign in')}</span>
               <span className="sm:hidden">{t('Entrar', 'Sign in')}</span>
             </Button>
           </Link>

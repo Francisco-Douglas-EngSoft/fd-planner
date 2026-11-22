@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useI18n } from '@/i18n';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { usePublicSignup } from '@/hooks/usePublicSignup';
 
 type AuthView = 'login' | 'signup' | 'forgot' | 'reset';
 
@@ -90,6 +91,13 @@ export default function Auth() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const highlights = getHighlights(t);
+  // Cadastro público temporariamente fechado: a chave fica no Painel do Desenvolvedor.
+  // O formulário de cadastro abaixo continua no código, só não aparece.
+  const { enabled: signupOpen } = usePublicSignup();
+
+  useEffect(() => {
+    if (!signupOpen && authView === 'signup') setAuthView('login');
+  }, [signupOpen, authView]);
 
   useEffect(() => {
     if (searchParams.get('mode') === 'reset') setAuthView('reset');
@@ -131,12 +139,19 @@ export default function Auth() {
       setIsLoading(false);
       return;
     }
+    if (!signupOpen) {
+      toast({ title: t('Cadastro fechado', 'Sign-up closed'), description: t('Novas contas são criadas pelo desenvolvedor.', 'New accounts are created by the developer.'), variant: 'destructive' });
+      setIsLoading(false);
+      return;
+    }
     const { error } = await signUp(signupEmail, signupPassword, signupName);
     if (error) {
+      const closed = /database error saving new user|cadastro público desativado/i.test(error.message);
       toast({
         title: t('Erro ao criar conta', 'Could not create account'),
-        description:
-          error.message === 'User already registered' ? t('Este email já está cadastrado', 'This email is already registered') : error.message,
+        description: closed
+          ? t('O cadastro está fechado no momento. Novas contas são criadas pelo desenvolvedor.', 'Sign-up is closed right now. New accounts are created by the developer.')
+          : error.message === 'User already registered' ? t('Este email já está cadastrado', 'This email is already registered') : error.message,
         variant: 'destructive',
       });
     } else {
@@ -328,6 +343,7 @@ export default function Auth() {
               </p>
 
               <Tabs value={authView} onValueChange={(v) => setAuthView(v as AuthView)} className="w-full">
+                {signupOpen && (
                 <TabsList className="mb-7 grid h-11 w-full grid-cols-2 rounded-xl border border-border bg-muted/60 p-1">
                   <TabsTrigger value="login" className="rounded-lg text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
                     {t('Entrar', 'Sign in')}
@@ -336,6 +352,7 @@ export default function Auth() {
                     {t('Criar conta', 'Sign up')}
                   </TabsTrigger>
                 </TabsList>
+                )}
 
                 <TabsContent value="login" className="mt-0">
                   <form onSubmit={handleLogin} className="space-y-5">
@@ -359,9 +376,15 @@ export default function Auth() {
                       {isLoading && spinner}
                       {isLoading ? t('Entrando...', 'Signing in...') : t('Entrar na plataforma', 'Sign in')}
                     </Button>
+                    {!signupOpen && (
+                      <p className="text-center text-xs text-muted-foreground">
+                        {t('Cadastro de novas contas temporariamente fechado. Novos acessos são criados pelo desenvolvedor.', 'New account sign-up is temporarily closed. New access is created by the developer.')}
+                      </p>
+                    )}
                   </form>
                 </TabsContent>
 
+                {signupOpen && (
                 <TabsContent value="signup" className="mt-0">
                   <form onSubmit={handleSignup} className="space-y-5">
                     <Field id="signup-name" label={t('Nome', 'Name')} icon={User}>
@@ -383,6 +406,7 @@ export default function Auth() {
                     </p>
                   </form>
                 </TabsContent>
+                )}
               </Tabs>
 
               <div className="relative my-7">

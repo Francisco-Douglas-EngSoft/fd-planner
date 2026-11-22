@@ -33,6 +33,7 @@ import { WhatsAppButton, WhatsAppInlineButton } from "@/components/landing/Whats
 import { AuthorshipNotice } from "@/components/legal/AuthorshipNotice";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/i18n";
+import { usePublicSignup } from "@/hooks/usePublicSignup";
 
 const WHATSAPP_NUMBER = "+5586981625526";
 
@@ -219,6 +220,7 @@ function ProductPreview() {
 
 const LandingPage = () => {
   const { t } = useI18n();
+  const { enabled: signupOpen } = usePublicSignup();
   const modules = getModules(t);
   const platform = getPlatform(t);
   const steps = getSteps(t);
@@ -250,7 +252,7 @@ const LandingPage = () => {
             </Button>
             <Button asChild size="sm" className="h-9 rounded-lg font-semibold shadow-[var(--shadow-glow)]">
               <Link to="/auth">
-                {t("Começar grátis", "Start free")} <ArrowRight className="ml-1 h-4 w-4" />
+                {signupOpen ? t("Começar grátis", "Start free") : t("Acessar", "Access")} <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </div>

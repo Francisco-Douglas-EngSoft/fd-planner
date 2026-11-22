@@ -14,3 +14,4 @@
 - [x] Biblioteca: relatório profissional de Metas de Leitura (previsão de livros por semana/mês/trimestre/semestre/ano, livro, início e prazo)
 - [x] Leitor no celular: sumário escondido por padrão, página em tela cheia
 - [x] Biblioteca: meta de armazenamento usado = 1,8 GB
+- [x] Cadastro público fechado; só o perfil Desenvolvedor cria contas (no Painel); outras contas atuais continuam ativas
